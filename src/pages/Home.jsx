@@ -83,9 +83,9 @@ export default function Home() {
     if (!localJob) return;
     const blob = new Blob([JSON.stringify(localJob, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
-    const base = ((selectedJob.site_name || selectedJob.client || 'assessment').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')) || 'assessment';
+    const base = ((localJob.site_name || localJob.client || 'assessment').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')) || 'assessment';
     a.href = URL.createObjectURL(blob);
-    a.download = `${base}-backup-${selectedJob.assessment_date || 'today'}.json`;
+    a.download = `${base}-backup-${localJob.assessment_date || 'today'}.json`;
     a.click();
   };
 
