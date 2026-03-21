@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { uid } from '@/lib/jobUtils';
 import { base44 } from '@/api/base44Client';
 import { Label } from '@/components/ui/label';
