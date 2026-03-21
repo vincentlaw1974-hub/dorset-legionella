@@ -134,14 +134,14 @@ export default function Home() {
         </div>
       )}
 
-      {selectedJob && (
+      {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
             {/* Left sidebar */}
             <div>
-              <JobList jobs={jobs} currentId={selectedJob.id} onSelect={setCurrentId} />
-              <MetricsBar job={selectedJob} />
-              <ReportChecks job={selectedJob} />
+              <JobList jobs={jobs} currentId={localJob.id} onSelect={setCurrentId} />
+              <MetricsBar job={localJob} />
+              <ReportChecks job={localJob} />
             </div>
 
             {/* Main content */}
@@ -161,21 +161,21 @@ export default function Home() {
               </div>
 
               {/* Tab content */}
-              {activeTab === 'overview' && <OverviewTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'management' && <ManagementTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'systems' && <SystemsTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'outlets' && <OutletsTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'actions' && <ActionsTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'photos' && <PhotosTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'logbook' && <LogbookTab job={selectedJob} onChange={handleChange} />}
-              {activeTab === 'report' && <ReportTab job={selectedJob} onPrint={handlePrint} />}
+              {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'report' && <ReportTab job={localJob} onPrint={handlePrint} />}
             </div>
           </div>
         </div>
       )}
 
       {/* Mobile bottom nav */}
-      {selectedJob && (
+      {localJob && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-25 bg-white border-t border-gray-200 p-2 grid grid-cols-4 gap-2">
           {MOBILE_TABS.map(id => {
             const tab = TABS.find(t => t.id === id);
