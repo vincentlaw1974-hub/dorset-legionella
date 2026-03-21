@@ -103,8 +103,8 @@ export default function Home() {
   };
 
   const handlePrint = () => {
-    if (!selectedJob) return;
-    const checks = reportChecks(selectedJob).filter(x => !x[1]);
+    if (!localJob) return;
+    const checks = reportChecks(localJob).filter(x => !x[1]);
     if (checks.length) {
       alert('Finish these first:\n- ' + checks.map(x => x[0]).join('\n- '));
       return;
