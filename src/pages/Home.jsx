@@ -80,8 +80,8 @@ export default function Home() {
   }, [localJob, updateMutation]);
 
   const handleExport = () => {
-    if (!selectedJob) return;
-    const blob = new Blob([JSON.stringify(selectedJob, null, 2)], { type: 'application/json' });
+    if (!localJob) return;
+    const blob = new Blob([JSON.stringify(localJob, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     const base = ((selectedJob.site_name || selectedJob.client || 'assessment').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')) || 'assessment';
     a.href = URL.createObjectURL(blob);
