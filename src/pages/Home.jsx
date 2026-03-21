@@ -38,15 +38,25 @@ export default function Home() {
     queryFn: () => base44.entities.Job.list('-created_date'),
   });
 
-  const currentJob = jobs[0] || null;
   const [currentId, setCurrentId] = useState(null);
+  const [localJob, setLocalJob] = useState(null);
+  const debounceRef = useRef(null);
+
   const selectedJob = jobs.find(j => j.id === (currentId || jobs[0]?.id)) || jobs[0] || null;
+
+  // Sync localJob when selected job changes (e.g. switching jobs)
+  useEffect(() => {
+    if (selectedJob && (!localJob || localJob.id !== selectedJob.id)) {
+      setLocalJob(selectedJob);
+    }
+  }, [selectedJob?.id]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Job.create(data),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setCurrentId(created.id);
+      setLocalJob(created);
     },
   });
 
@@ -60,9 +70,14 @@ export default function Home() {
   };
 
   const handleChange = useCallback((changes) => {
-    if (!selectedJob) return;
-    updateMutation.mutate({ id: selectedJob.id, data: { ...selectedJob, ...changes } });
-  }, [selectedJob, updateMutation]);
+    if (!localJob) return;
+    const updated = { ...localJob, ...changes };
+    setLocalJob(updated); // instant local update
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      updateMutation.mutate({ id: updated.id, data: updated });
+    }, 800); // save to DB after 800ms idle
+  }, [localJob, updateMutation]);
 
   const handleExport = () => {
     if (!selectedJob) return;
