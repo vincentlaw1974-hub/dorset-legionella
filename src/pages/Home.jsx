@@ -1,0 +1,182 @@
+import React, { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { blankJob, reportChecks, buildControlScheme } from '@/lib/jobUtils';
+
+import Header from '@/components/dorset/Header';
+import JobList from '@/components/dorset/JobList';
+import MetricsBar from '@/components/dorset/MetricsBar';
+import ReportChecks from '@/components/dorset/ReportChecks';
+import OverviewTab from '@/components/dorset/tabs/OverviewTab';
+import ManagementTab from '@/components/dorset/tabs/ManagementTab';
+import SystemsTab from '@/components/dorset/tabs/SystemsTab';
+import OutletsTab from '@/components/dorset/tabs/OutletsTab';
+import ActionsTab from '@/components/dorset/tabs/ActionsTab';
+import PhotosTab from '@/components/dorset/tabs/PhotosTab';
+import LogbookTab from '@/components/dorset/tabs/LogbookTab';
+import ReportTab from '@/components/dorset/tabs/ReportTab';
+
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'management', label: 'Management' },
+  { id: 'systems', label: 'Systems' },
+  { id: 'outlets', label: 'Outlets' },
+  { id: 'actions', label: 'Actions' },
+  { id: 'photos', label: 'Photos' },
+  { id: 'logbook', label: 'Logbook' },
+  { id: 'report', label: 'Report' },
+];
+
+const MOBILE_TABS = ['overview', 'outlets', 'photos', 'report'];
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState('overview');
+  const queryClient = useQueryClient();
+
+  const { data: jobs = [], isLoading } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: () => base44.entities.Job.list('-created_date'),
+  });
+
+  const currentJob = jobs[0] || null;
+  const [currentId, setCurrentId] = useState(null);
+  const selectedJob = jobs.find(j => j.id === (currentId || jobs[0]?.id)) || jobs[0] || null;
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Job.create(data),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setCurrentId(created.id);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['jobs'] }),
+  });
+
+  const handleNew = () => {
+    createMutation.mutate(blankJob());
+  };
+
+  const handleChange = useCallback((changes) => {
+    if (!selectedJob) return;
+    updateMutation.mutate({ id: selectedJob.id, data: { ...selectedJob, ...changes } });
+  }, [selectedJob, updateMutation]);
+
+  const handleExport = () => {
+    if (!selectedJob) return;
+    const blob = new Blob([JSON.stringify(selectedJob, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    const base = ((selectedJob.site_name || selectedJob.client || 'assessment').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')) || 'assessment';
+    a.href = URL.createObjectURL(blob);
+    a.download = `${base}-backup-${selectedJob.assessment_date || 'today'}.json`;
+    a.click();
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const d = JSON.parse(r.result);
+      delete d.id;
+      createMutation.mutate(d);
+    };
+    r.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handlePrint = () => {
+    if (!selectedJob) return;
+    const checks = reportChecks(selectedJob).filter(x => !x[1]);
+    if (checks.length) {
+      alert('Finish these first:\n- ' + checks.map(x => x[0]).join('\n- '));
+      return;
+    }
+    window.print();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen" style={{ background: '#f6f7f9' }}>
+      <Header onNew={handleNew} onExport={handleExport} onImport={handleImport} />
+
+      {/* No jobs state */}
+      {jobs.length === 0 && (
+        <div className="max-w-6xl mx-auto px-3 py-16 text-center">
+          <p className="text-gray-500 mb-4">No jobs yet. Create your first job to get started.</p>
+          <button onClick={handleNew} className="px-6 py-3 rounded-xl font-bold text-white text-sm" style={{ background: '#d71920' }}>
+            New job
+          </button>
+        </div>
+      )}
+
+      {selectedJob && (
+        <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
+            {/* Left sidebar */}
+            <div>
+              <JobList jobs={jobs} currentId={selectedJob.id} onSelect={setCurrentId} />
+              <MetricsBar job={selectedJob} />
+              <ReportChecks job={selectedJob} />
+            </div>
+
+            {/* Main content */}
+            <div>
+              {/* Desktop tabs */}
+              <div className="hidden sm:flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+                {TABS.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium border transition-all ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                    style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              {activeTab === 'overview' && <OverviewTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'management' && <ManagementTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'systems' && <SystemsTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'outlets' && <OutletsTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'actions' && <ActionsTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'photos' && <PhotosTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'logbook' && <LogbookTab job={selectedJob} onChange={handleChange} />}
+              {activeTab === 'report' && <ReportTab job={selectedJob} onPrint={handlePrint} />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom nav */}
+      {selectedJob && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-25 bg-white border-t border-gray-200 p-2 grid grid-cols-4 gap-2">
+          {MOBILE_TABS.map(id => {
+            const tab = TABS.find(t => t.id === id);
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`py-2.5 rounded-xl text-xs font-medium border transition-all ${activeTab === id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300'}`}
+                style={activeTab === id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+              >
+                {tab?.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
