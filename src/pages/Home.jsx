@@ -167,6 +167,7 @@ export default function Home() {
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'issues' && <IssuesTab job={localJob} onChange={handleChange} />}
               {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
               {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
