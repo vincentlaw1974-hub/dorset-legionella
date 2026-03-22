@@ -15,6 +15,7 @@ import ActionsTab from '@/components/dorset/tabs/ActionsTab';
 import PhotosTab from '@/components/dorset/tabs/PhotosTab';
 import LogbookTab from '@/components/dorset/tabs/LogbookTab';
 import ReportTab from '@/components/dorset/tabs/ReportTab';
+import IssuesTab from '@/components/dorset/tabs/IssuesTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
