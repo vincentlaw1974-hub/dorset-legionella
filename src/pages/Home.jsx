@@ -22,6 +22,7 @@ const TABS = [
   { id: 'management', label: 'Management' },
   { id: 'systems', label: 'Systems' },
   { id: 'outlets', label: 'Outlets' },
+  { id: 'issues', label: 'Issues' },
   { id: 'actions', label: 'Actions' },
   { id: 'photos', label: 'Photos' },
   { id: 'logbook', label: 'Logbook' },
