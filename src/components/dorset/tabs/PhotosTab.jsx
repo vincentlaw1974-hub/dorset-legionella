@@ -54,7 +54,11 @@ export default function PhotosTab({ job, onChange }) {
           const ready = (p.location || '').trim() && (p.caption || '').trim() && (p.kind || '').trim();
           return (
             <div key={p.id} className="border border-gray-200 rounded-2xl p-3">
-              {p.file_url && <img src={p.file_url} alt="" className="w-full max-h-52 object-cover rounded-xl mb-3 bg-gray-100" />}
+              {p.file_url && (
+                <div className="w-full aspect-video bg-gray-100 rounded-xl mb-3 overflow-hidden">
+                  <img src={p.file_url} alt="" className="w-full h-full object-contain" />
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <Label>Kind</Label>
