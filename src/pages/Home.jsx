@@ -62,9 +62,24 @@ export default function Home() {
     },
   });
 
+  const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['jobs'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setSaveState('saved');
+      setTimeout(() => setSaveState('idle'), 2000);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Job.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setCurrentId(null);
+      setLocalJob(null);
+    },
   });
 
   const handleNew = () => {
