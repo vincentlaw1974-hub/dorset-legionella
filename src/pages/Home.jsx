@@ -146,7 +146,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6f7f9' }}>
-      <Header onNew={handleNew} onExport={handleExport} onImport={handleImport} />
+      <Header onNew={handleNew} onExport={handleExport} onImport={handleImport} onDelete={handleDelete} saveState={saveState} hasJob={!!localJob} />
 
       {/* No jobs state */}
       {jobs.length === 0 && (
