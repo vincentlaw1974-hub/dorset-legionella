@@ -201,20 +201,22 @@ export default function Home() {
 
       {/* Mobile bottom nav */}
       {localJob && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-25 bg-white border-t border-gray-200 p-2 grid grid-cols-4 gap-2">
-          {MOBILE_TABS.map(id => {
-            const tab = TABS.find(t => t.id === id);
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`py-2.5 rounded-xl text-xs font-medium border transition-all ${activeTab === id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300'}`}
-                style={activeTab === id ? { background: '#d71920', borderColor: '#d71920' } : {}}
-              >
-                {tab?.label}
-              </button>
-            );
-          })}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-25 bg-white border-t border-gray-200 p-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            {MOBILE_TABS.map(id => {
+              const tab = TABS.find(t => t.id === id);
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex-shrink-0 py-2 px-3 rounded-xl text-xs font-medium border transition-all ${activeTab === id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300'}`}
+                  style={activeTab === id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+                >
+                  {tab?.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
