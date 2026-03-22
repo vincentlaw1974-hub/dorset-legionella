@@ -89,12 +89,19 @@ export default function Home() {
   const handleChange = useCallback((changes) => {
     if (!localJob) return;
     const updated = { ...localJob, ...changes };
-    setLocalJob(updated); // instant local update
+    setLocalJob(updated);
+    setSaveState('saving');
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       updateMutation.mutate({ id: updated.id, data: updated });
-    }, 800); // save to DB after 800ms idle
+    }, 800);
   }, [localJob, updateMutation]);
+
+  const handleDelete = () => {
+    if (!localJob) return;
+    if (!window.confirm(`Delete "${localJob.site_name || localJob.client || 'this job'}"? This cannot be undone.`)) return;
+    deleteMutation.mutate(localJob.id);
+  };
 
   const handleExport = () => {
     if (!localJob) return;
