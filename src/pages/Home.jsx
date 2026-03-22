@@ -29,7 +29,7 @@ const TABS = [
   { id: 'report', label: 'Report' },
 ];
 
-const MOBILE_TABS = ['overview', 'outlets', 'photos', 'report'];
+const MOBILE_TABS = ['overview', 'outlets', 'issues', 'actions', 'photos', 'logbook', 'report'];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
