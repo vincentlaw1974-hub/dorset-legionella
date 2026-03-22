@@ -27,6 +27,7 @@ export function blankJob() {
     cwst_present: false, tmvs_installed: true, air_con: false, closed_systems: false,
     cwst_location: '', cwst_temp: '', cwst_clean: true, cwst_drinking: false, restrictions: '',
     risk_contam: '2', risk_amplify: '2', risk_transmit: '2', risk_suscept: '4',
+    issues_text: '',
     outlets: [], actions: [], photos: [], logs: []
   };
 }
