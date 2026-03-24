@@ -16,20 +16,24 @@ import PhotosTab from '@/components/dorset/tabs/PhotosTab';
 import LogbookTab from '@/components/dorset/tabs/LogbookTab';
 import ReportTab from '@/components/dorset/tabs/ReportTab';
 import IssuesTab from '@/components/dorset/tabs/IssuesTab';
+import RoomsTab from '@/components/dorset/tabs/RoomsTab';
+import DeadLegsTab from '@/components/dorset/tabs/DeadLegsTab';
+import ShowersTab from '@/components/dorset/tabs/ShowersTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
-  { id: 'management', label: 'Management' },
+  { id: 'rooms', label: 'Rooms' },
   { id: 'systems', label: 'Systems' },
   { id: 'outlets', label: 'Outlets' },
   { id: 'issues', label: 'Issues' },
-  { id: 'actions', label: 'Actions' },
+  { id: 'dead_legs', label: 'Dead Legs' },
+  { id: 'showers', label: 'Showers' },
   { id: 'photos', label: 'Photos' },
   { id: 'logbook', label: 'Logbook' },
   { id: 'report', label: 'Report' },
 ];
 
-const MOBILE_TABS = ['overview', 'outlets', 'issues', 'actions', 'photos', 'logbook', 'report'];
+const MOBILE_TABS = ['overview', 'rooms', 'outlets', 'issues', 'dead_legs', 'showers', 'photos', 'logbook', 'report'];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -189,6 +193,9 @@ export default function Home() {
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'rooms' && <RoomsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'dead_legs' && <DeadLegsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'showers' && <ShowersTab job={localJob} onChange={handleChange} />}
               {activeTab === 'issues' && <IssuesTab job={localJob} onChange={handleChange} />}
               {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}

@@ -14,7 +14,7 @@ export default function ActionsTab({ job, onChange }) {
     const actions = [...(job.actions || []), {
       id: uid(),
       ref: `A${(job.actions || []).length + 1}`,
-      system: '', observation: '', action: '', priority: '2', status: ''
+      system: '', observation: '', action: '', priority: '2', responsible_person: '', deadline: '', status: ''
     }];
     onChange({ actions });
   };
@@ -48,6 +48,10 @@ export default function ActionsTab({ job, onChange }) {
                 </select>
               </div>
               <div><Label>Status</Label><Input value={a.status} onChange={e => updateAction(a.id, 'status', e.target.value)} /></div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 mt-2">
+              <div><Label>Responsible person</Label><Input value={a.responsible_person || ''} onChange={e => updateAction(a.id, 'responsible_person', e.target.value)} /></div>
+              <div><Label>Deadline</Label><Input type="date" value={a.deadline || ''} onChange={e => updateAction(a.id, 'deadline', e.target.value)} /></div>
             </div>
             <div className="mt-2"><Label>Observation</Label><Textarea value={a.observation} onChange={e => updateAction(a.id, 'observation', e.target.value)} /></div>
             <div className="mt-2"><Label>Action</Label><Textarea value={a.action} onChange={e => updateAction(a.id, 'action', e.target.value)} /></div>

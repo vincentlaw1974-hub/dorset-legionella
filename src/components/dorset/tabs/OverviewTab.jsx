@@ -56,12 +56,8 @@ export default function OverviewTab({ job, onChange }) {
         <div><Label>Assessment date</Label><Input type="date" {...f('assessment_date')} /></div>
         <div><Label>Review due</Label><Input type="date" {...f('review_due')} /></div>
         <div><Label>Report reference</Label><Input {...f('report_ref')} /></div>
-        <div>
-          <Label>Status</Label>
-          <select {...f('status')} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
-            {['In Progress','Completed','Reviewed'].map(t => <option key={t}>{t}</option>)}
-          </select>
-        </div>
+        <div><Label>Assessor</Label><Input {...f('assessor')} /></div>
+        <div><Label>Responsible person</Label><Input {...f('responsible_person')} /></div>
         <div><Label>Visit date(s)</Label><Input {...f('visit_dates')} /></div>
         <div>
           <Label>Overall risk</Label>
