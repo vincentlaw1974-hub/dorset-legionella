@@ -38,6 +38,7 @@ const MOBILE_TABS = ['overview', 'rooms', 'outlets', 'issues', 'dead_legs', 'sho
 export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -104,12 +105,16 @@ export default function Home() {
 
   const handleDelete = () => {
     if (!localJob) return;
+    setDeleteTargetId(localJob.id);
     setConfirmDelete(true);
   };
 
   const confirmDoDelete = () => {
-    deleteMutation.mutate(localJob.id);
+    if (deleteTargetId) {
+      deleteMutation.mutate(deleteTargetId);
+    }
     setConfirmDelete(false);
+    setDeleteTargetId(null);
   };
 
   const handleExport = () => {
