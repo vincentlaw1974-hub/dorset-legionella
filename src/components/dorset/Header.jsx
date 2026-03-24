@@ -9,8 +9,8 @@ export default function Header({ onNew, onExport, onImport, onDelete, saveState,
             <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=44&h=44&fit=crop" alt="logo" className="h-10 w-10 object-cover rounded-lg" />
           </div>
           <div>
-            <h1 className="text-xl font-bold leading-tight">Legionella Pro Compliance</h1>
-            <p className="text-xs text-gray-300">Executive summary • control scheme • schematic • CQC support</p>
+            <h1 className="text-xl font-bold leading-tight">Dorset Plumbing</h1>
+            <p className="text-xs text-gray-300">Legionella Risk Assessment • Control Scheme • CQC Support</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
