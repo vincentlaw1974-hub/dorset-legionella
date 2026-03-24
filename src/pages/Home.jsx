@@ -37,6 +37,7 @@ const MOBILE_TABS = ['overview', 'rooms', 'outlets', 'issues', 'dead_legs', 'sho
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -103,8 +104,12 @@ export default function Home() {
 
   const handleDelete = () => {
     if (!localJob) return;
-    if (!window.confirm(`Delete "${localJob.site_name || localJob.client || 'this job'}"? This cannot be undone.`)) return;
+    setConfirmDelete(true);
+  };
+
+  const confirmDoDelete = () => {
     deleteMutation.mutate(localJob.id);
+    setConfirmDelete(false);
   };
 
   const handleExport = () => {
@@ -201,6 +206,20 @@ export default function Home() {
               {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
               {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
               {activeTab === 'report' && <ReportTab job={localJob} onPrint={handlePrint} />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold mb-2">Delete job?</h2>
+            <p className="text-sm text-gray-600 mb-5">This will permanently delete <strong>{localJob?.site_name || localJob?.client || 'this job'}</strong>. This cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50">Cancel</button>
+              <button onClick={confirmDoDelete} className="px-4 py-2 rounded-xl bg-red-700 text-white text-sm font-bold hover:bg-red-800">Delete</button>
             </div>
           </div>
         </div>
