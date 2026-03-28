@@ -50,7 +50,17 @@ export default function LogbookTab({ job, onChange }) {
                   {categories.map(t => <option key={t}>{t}</option>)}
                 </select>
               </div>
-              <div><Label>Location</Label><Input value={l.location} onChange={e => updateLog(l.id, 'location', e.target.value)} /></div>
+              <div>
+                <Label>Location</Label>
+                {(job.rooms || []).length > 0 ? (
+                  <select value={l.location} onChange={e => updateLog(l.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                    <option value="">-- select room --</option>
+                    {(job.rooms || []).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                  </select>
+                ) : (
+                  <Input value={l.location} onChange={e => updateLog(l.id, 'location', e.target.value)} />
+                )}
+              </div>
               <div><Label>Completed by</Label><Input value={l.completed_by} onChange={e => updateLog(l.id, 'completed_by', e.target.value)} /></div>
             </div>
             <div className="mt-2"><Label>Detail</Label><Textarea value={l.detail} onChange={e => updateLog(l.id, 'detail', e.target.value)} /></div>

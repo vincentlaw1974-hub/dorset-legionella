@@ -127,7 +127,17 @@ export default function PhotosTab({ job, onChange }) {
                       {photoKinds.map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
-                  <div><Label>Location</Label><Input value={p.location} onChange={e => updatePhoto(p.id, 'location', e.target.value)} /></div>
+                  <div>
+                    <Label>Location</Label>
+                    {(job.rooms || []).length > 0 ? (
+                      <select value={p.location} onChange={e => updatePhoto(p.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                        <option value="">-- select room --</option>
+                        {(job.rooms || []).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                      </select>
+                    ) : (
+                      <Input value={p.location} onChange={e => updatePhoto(p.id, 'location', e.target.value)} />
+                    )}
+                  </div>
                 </div>
                 <div className="mt-2"><Label>Caption</Label><Input value={p.caption} onChange={e => updatePhoto(p.id, 'caption', e.target.value)} /></div>
                 <div className={`text-xs mt-2 ${ready ? 'text-green-700' : 'text-red-700'}`}>{ready ? 'Ready for report' : 'Add kind, location and caption'}</div>

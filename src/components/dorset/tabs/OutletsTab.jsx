@@ -51,7 +51,17 @@ export default function OutletsTab({ job, onChange }) {
                 <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${st.cls}`}>{st.text}</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <div><Label>Location</Label><Input value={o.location} onChange={e => updateOutlet(o.id, 'location', e.target.value)} /></div>
+                <div>
+                  <Label>Location</Label>
+                  {(job.rooms || []).length > 0 ? (
+                    <select value={o.location} onChange={e => updateOutlet(o.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                      <option value="">-- select room --</option>
+                      {(job.rooms || []).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    </select>
+                  ) : (
+                    <Input value={o.location} onChange={e => updateOutlet(o.id, 'location', e.target.value)} />
+                  )}
+                </div>
                 <div>
                   <Label>Type</Label>
                   <select value={o.type} onChange={e => updateOutlet(o.id, 'type', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
