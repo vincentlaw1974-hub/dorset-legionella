@@ -55,7 +55,7 @@ export default function DeadLegsTab({ job, onChange }) {
               <div>
                 <Label>Location</Label>
                 {rooms.length > 0 ? (
-                  <select value={d.location} onChange={e => update(d.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                  <select value={d.location} onChange={e => update(d.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
                     <option value="">Select room...</option>
                     {rooms.map(r => <option key={r}>{r}</option>)}
                     <option value="__other">Other</option>

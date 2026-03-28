@@ -53,7 +53,7 @@ export default function LogbookTab({ job, onChange }) {
               <div>
                 <Label>Location</Label>
                 {(job.rooms || []).length > 0 ? (
-                  <select value={l.location} onChange={e => updateLog(l.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                  <select value={l.location} onChange={e => updateLog(l.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
                     <option value="">-- select room --</option>
                     {(job.rooms || []).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                   </select>

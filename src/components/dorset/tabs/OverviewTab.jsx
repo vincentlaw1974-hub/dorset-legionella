@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { templateOutlets, uid } from '@/lib/jobUtils';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,27 @@ export default function OverviewTab({ job, onChange }) {
     });
   };
 
+  const [postcode, setPostcode] = useState('');
+  const [postcodeResults, setPostcodeResults] = useState([]);
+  const [postcodeLoading, setPostcodeLoading] = useState(false);
+
+  const lookupPostcode = async () => {
+    if (!postcode.trim()) return;
+    setPostcodeLoading(true);
+    setPostcodeResults([]);
+    const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode.trim())}`);
+    const json = await res.json();
+    setPostcodeLoading(false);
+    if (json.status === 200 && json.result) {
+      const r = json.result;
+      const addr = `${r.admin_ward || ''}, ${r.admin_district || ''}, ${r.region || ''}, ${r.postcode}`.replace(/^,\s*/, '');
+      onChange({ address: addr });
+      setPostcodeResults([]);
+    } else {
+      setPostcodeResults(['Address not found']);
+    }
+  };
+
   const handleCoverPhoto = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -59,7 +80,24 @@ export default function OverviewTab({ job, onChange }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>Client</Label><Input {...f('client')} /></div>
         <div><Label>Site name</Label><Input {...f('site_name')} /></div>
-        <div><Label>Address</Label><Textarea {...f('address')} className="min-h-[72px]" /></div>
+        <div>
+          <Label>Address</Label>
+          <div className="flex gap-2 mb-1">
+            <input
+              type="text"
+              placeholder="Postcode lookup"
+              value={postcode}
+              onChange={e => setPostcode(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && lookupPostcode()}
+              className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-base"
+            />
+            <button type="button" onClick={lookupPostcode} disabled={postcodeLoading} className="text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium whitespace-nowrap">
+              {postcodeLoading ? '...' : 'Find address'}
+            </button>
+          </div>
+          {postcodeResults.length > 0 && <div className="text-xs text-red-600 mb-1">{postcodeResults[0]}</div>}
+          <Textarea {...f('address')} className="min-h-[72px]" placeholder="Or type address manually" />
+        </div>
         <div>
           <Label>Property type</Label>
           <select {...f('property_type')} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
@@ -77,7 +115,7 @@ export default function OverviewTab({ job, onChange }) {
         <div><Label>Report reference</Label><Input {...f('report_ref')} /></div>
         <div>
           <Label>Assessor</Label>
-          <select value={job.assessor || ''} onChange={e => onChange({ assessor: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+          <select value={job.assessor || ''} onChange={e => onChange({ assessor: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
             <option value="">-- select --</option>
             {ASSESSORS.map(a => <option key={a}>{a}</option>)}
           </select>
@@ -101,7 +139,7 @@ export default function OverviewTab({ job, onChange }) {
         <Label>Cover photo <span className="text-xs text-gray-400">(shown full-width on report cover)</span></Label>
         {job.cover_photo_url && (
           <div className="relative mt-2 mb-2">
-            <img src={job.cover_photo_url} alt="Cover" className="w-full h-40 object-cover rounded-xl" />
+            <img src={job.cover_photo_url} alt="Cover" className="w-full rounded-xl" style={{maxHeight:'320px',objectFit:'contain',background:'#f3f4f6'}} />
             <button onClick={() => onChange({ cover_photo_url: '' })} className="absolute top-2 right-2 bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50">Remove</button>
           </div>
         )}

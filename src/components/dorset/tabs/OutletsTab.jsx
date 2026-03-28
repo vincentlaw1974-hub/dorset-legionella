@@ -54,7 +54,7 @@ export default function OutletsTab({ job, onChange }) {
                 <div>
                   <Label>Location</Label>
                   {(job.rooms || []).length > 0 ? (
-                    <select value={o.location} onChange={e => updateOutlet(o.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                    <select value={o.location} onChange={e => updateOutlet(o.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
                       <option value="">-- select room --</option>
                       {(job.rooms || []).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                     </select>
@@ -64,13 +64,13 @@ export default function OutletsTab({ job, onChange }) {
                 </div>
                 <div>
                   <Label>Type</Label>
-                  <select value={o.type} onChange={e => updateOutlet(o.id, 'type', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                  <select value={o.type} onChange={e => updateOutlet(o.id, 'type', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
                     {outletTypes.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div><Label>Hot °C</Label><Input inputMode="decimal" value={o.hot} onChange={e => updateOutlet(o.id, 'hot', e.target.value)} /></div>
                 <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(o.id, 'cold', e.target.value)} /></div>
-                <div><Label>Designation</Label><Input value={o.designation} onChange={e => updateOutlet(o.id, 'designation', e.target.value)} placeholder="S / Q / T / Y" /></div>
+
                 <label className="flex items-center gap-2 text-sm mt-4 cursor-pointer">
                   <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
                   Infrequently used

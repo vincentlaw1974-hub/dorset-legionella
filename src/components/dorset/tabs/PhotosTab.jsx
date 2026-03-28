@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { uid } from '@/lib/jobUtils';
 import { base44 } from '@/api/base44Client';
 import { Label } from '@/components/ui/label';
@@ -59,6 +59,11 @@ export default function PhotosTab({ job, onChange }) {
     onChange({ photos: (job.photos || []).map(p => p.id === id ? { ...p, [field]: value } : p) });
   };
 
+  const rotatePhoto = async (photo, deg) => {
+    const newRot = ((photo.rotation || 0) + deg + 360) % 360;
+    updatePhoto(photo.id, 'rotation', newRot);
+  };
+
   const removePhoto = (id) => {
     onChange({ photos: (job.photos || []).filter(p => p.id !== id) });
   };
@@ -116,8 +121,22 @@ export default function PhotosTab({ job, onChange }) {
             return (
               <div key={p.id} className="border border-gray-200 rounded-2xl p-3">
                 {p.file_url && (
-                  <div className="w-full aspect-video bg-gray-100 rounded-xl mb-3 overflow-hidden">
-                    <img src={p.file_url} alt="" className="w-full h-full object-contain" />
+                  <div className="w-full bg-gray-100 rounded-xl mb-3 overflow-hidden flex items-center justify-center" style={{minHeight:'160px'}}>
+                    <img
+                      src={p.file_url}
+                      alt=""
+                      style={{ transform: `rotate(${p.rotation || 0}deg)`, maxWidth:'100%', maxHeight:'260px', transition:'transform 0.2s', objectFit:'contain' }}
+                    />
+                  </div>
+                )}
+                {p.file_url && (
+                  <div className="flex gap-2 mb-2">
+                    <button type="button" onClick={() => rotatePhoto(p, -90)} className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-gray-300 bg-white">
+                      <RotateCcw className="w-3 h-3" /> Left
+                    </button>
+                    <button type="button" onClick={() => rotatePhoto(p, 90)} className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-gray-300 bg-white">
+                      <RotateCw className="w-3 h-3" /> Right
+                    </button>
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -130,7 +149,7 @@ export default function PhotosTab({ job, onChange }) {
                   <div>
                     <Label>Location</Label>
                     {(job.rooms || []).length > 0 ? (
-                      <select value={p.location} onChange={e => updatePhoto(p.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                      <select value={p.location} onChange={e => updatePhoto(p.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
                         <option value="">-- select room --</option>
                         {(job.rooms || []).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                       </select>
