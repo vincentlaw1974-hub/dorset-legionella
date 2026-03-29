@@ -73,12 +73,16 @@ export default function ReportTab({ job, onPrint }) {
       </div>`).join('');
 
     const deadLegRows = (job.dead_legs || []).map(d => `
-      <tr>
-        <td>${d.location || ''}</td>
-        <td>${d.description || ''}</td>
-        <td>${d.action || ''}</td>
-        <td>${d.photo_url ? `<img src="${d.photo_url}" style="width:60px;height:45px;object-fit:cover;border-radius:4px" crossorigin="anonymous"/>` : '—'}</td>
-      </tr>`).join('');
+      <div style="margin-bottom:16px">
+        <div style="background:#d71920 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff;padding:5px 10px;font-weight:bold;font-size:10px;border-radius:4px 4px 0 0">
+          Dead Leg: ${d.location || 'Unknown'}
+        </div>
+        <div style="border:1px solid #ddd;border-top:none;padding:8px 10px;font-size:10px;border-radius:0 0 4px 4px">
+          <div style="margin-bottom:4px">Location: ${d.location || '—'} &nbsp;|&nbsp; Pipe Material: ${d.pipe_material || 'Not recorded'} &nbsp;|&nbsp; Last Actioned: ${d.last_actioned || 'Not recorded'}</div>
+          <div style="margin-bottom:6px">Description: ${d.description || '—'}</div>
+          ${d.photo_url ? `<div><img src="${d.photo_url}" style="max-width:220px;max-height:160px;object-fit:contain;border-radius:4px" crossorigin="anonymous"/></div>` : ''}
+        </div>
+      </div>`).join('');
 
     const showerRows = (job.showers || []).map(s => `
       <tr>
@@ -101,146 +105,269 @@ export default function ReportTab({ job, onPrint }) {
 
     const riskColor = riskBadge === 'high' ? '#fee2e2;color:#991b1b' : riskBadge === 'medium' ? '#fef3c7;color:#92400e' : '#dcfce7;color:#166534';
 
+    // Compliance checks
+    const hasDeadLegs = (job.dead_legs || []).length > 0;
+    const cylTemp = parseFloat(job.cylinder_temp);
+    const hwTempFail = !isNaN(cylTemp) && cylTemp < 60;
+    const checks = [
+      { label: 'Temp Monitoring', pass: !!job.monthly_temp_log },
+      { label: 'Flushing Log', pass: !!job.flushing_log },
+      { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log },
+      { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records },
+      { label: 'HW Temp >=60C', pass: !hwTempFail && !isNaN(cylTemp) },
+      { label: 'No Dead Legs', pass: !hasDeadLegs },
+    ];
+
+    // Risk matrix: rows = susceptibility (high->low), cols = likelihood (low->high)
+    // Mark position based on risk
+    const riskPos = { 'LOW': [2,0], 'MEDIUM': [1,1], 'HIGH': [0,2] }[job.risk || 'LOW'];
+    const matrixHtml = (() => {
+      let rows = '';
+      for (let r = 0; r < 3; r++) {
+        let cols = '';
+        for (let c = 0; c < 3; c++) {
+          const isMarked = riskPos[0] === r && riskPos[1] === c;
+          const bg = r === 0 ? (c === 2 ? '#c0392b' : '#e67e22') : r === 1 ? (c === 0 ? '#27ae60' : '#e67e22') : '#27ae60';
+          cols += `<td style="width:33%;height:36px;background:${bg};border:2px solid #fff;text-align:center;vertical-align:middle;font-size:18px;font-weight:bold;color:#fff">${isMarked ? 'O' : ''}</td>`;
+        }
+        rows += `<tr>${cols}</tr>`;
+      }
+      return rows;
+    })();
+
+    // Temperature bar chart
+    const targetHot = job.cqc_mode ? 55 : 50;
+    const tempBars = (job.outlets || []).map(o => {
+      const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
+      const st = outletStatus(o, job.cqc_mode);
+      const color = st.cls === 'ok' ? '#27ae60' : st.cls === 'warn' ? '#e67e22' : '#c0392b';
+      const maxTemp = 70;
+      const hotWidth = !isNaN(hot) && o.type !== 'Outside Tap' ? Math.min((hot / maxTemp) * 100, 100) : 0;
+      const coldWidth = !isNaN(cold) ? Math.min((cold / maxTemp) * 100, 100) : 0;
+      const hotLabel = !isNaN(hot) && o.type !== 'Outside Tap' ? `${hot}${o.infrequent ? 'C (I)' : o.notes?.includes('TMV') ? 'C (T)' : 'C'}` : '';
+      const coldLabel = !isNaN(cold) ? `${cold}\u00b0C` : '';
+      return `<div style="margin-bottom:10px">
+        <div style="font-size:10px;font-weight:bold;margin-bottom:3px">${o.location || ''} (${o.type || ''})</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div style="width:${hotWidth}%;max-width:60%;height:18px;background:${color};border-radius:3px;display:inline-block"></div>
+          <span style="font-size:10px;font-weight:bold">${hotLabel}</span>
+          <div style="width:1px;height:18px;background:#888;margin-left:auto"></div>
+          <div style="width:${coldWidth}%;max-width:20%;height:18px;background:${color};border-radius:3px;display:inline-block"></div>
+          <span style="font-size:10px">${coldLabel}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Compliance notes auto-generated
+    const compNotes = [];
+    if (!job.monthly_temp_log) compNotes.push('COMPLIANCE ISSUE — No monthly temperature monitoring records were found at the time of this assessment. HSG274 Part 2 and ACOP L8 require regular temperature monitoring of hot and cold water outlets. This is a legal requirement and must be implemented immediately.');
+    if (!job.flushing_log) compNotes.push('COMPLIANCE ISSUE — No flushing log was found for infrequently used outlets. HSG274 Part 2 requires that outlets unused for more than 7 days are flushed for a minimum of 2 minutes and the activity recorded. This must be implemented as a matter of urgency.');
+    if (!job.shower_cleaning_log && (job.showers || []).length > 0) compNotes.push('COMPLIANCE ISSUE — No shower head descaling or cleaning records were found at this premises. HSG274 Part 2 requires that shower heads and flexible hoses are regularly cleaned, descaled, and disinfected.');
+    if (job.tmvs_installed && !job.tmv_service_records) compNotes.push('COMPLIANCE ISSUE — TMVs are installed at this premises but no service or maintenance records were found. Annual TMV inspection, cleaning, and re-setting is required under HSG274 and HTM 04-01.');
+    if (hwTempFail) compNotes.push(`COMPLIANCE ISSUE — Hot water storage temperature was recorded at ${job.cylinder_temp}\u00b0C, which is BELOW the HSG274 requirement of >=60C. Water stored between 20\u00b0C and 45\u00b0C provides ideal conditions for Legionella proliferation. Immediate investigation and rectification is required.`);
+    if (hasDeadLegs) compNotes.push(`${(job.dead_legs||[]).length} dead leg(s) or blind-ended pipe(s) have been identified at this premises. Dead legs allow water to stagnate and temperatures to drift into the Legionella growth range (20-45 degrees C). HSG274 recommends that dead legs are removed or that an appropriate management regime is implemented and recorded.`);
+    if (job.cqc_mode) compNotes.push('For care and nursing homes, this report is designed to support evidence for safe care and treatment and premises/equipment standards under CQC Regulation 15 and Regulation 12, but it does not on its own guarantee CQC compliance.');
+    compNotes.push('Providers should ensure all remedial actions identified in this report are acted upon within the timescales stated, that records are maintained, and that a named responsible person oversees the ongoing water safety management plan.');
+    const compNotesBenchmark = `Temperature benchmark used in this report: hot water stored at 60\u00b0C, hot outlets at least ${targetHot}\u00b0C within 1 minute${job.cqc_mode ? ' for healthcare/care settings' : ''}, and cold outlets at or below 20\u00b0C.`;
+
     win.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<title>Legionella Risk Assessment – ${job.site_name || job.client || 'Report'}</title>
+<title>Legionella Risk Assessment \u2013 ${job.site_name || job.client || 'Report'}</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { padding: 15mm 15mm 10mm; }
-  h1 { font-size: 22px; color: #d71920; margin: 0 0 4px; }
-  h2 { font-size: 13px; border-bottom: 3px solid #d71920; padding-bottom: 4px; margin: 18px 0 8px; color: #111; }
-  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10.5px; }
+  .page { padding: 12mm 15mm 10mm; }
+  .page-header { border-bottom: 4px solid #d71920; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .page-header-brand h1 { margin: 0; font-size: 26px; font-weight: 900; color: #111; }
+  .page-header-brand p { margin: 2px 0 0; font-size: 10px; color: #555; }
+  .ref { font-size: 9px; color: #888; text-align: right; }
+  .section-title { background: #1d1d1d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff !important; padding: 6px 10px; font-size: 11px; font-weight: bold; margin: 14px 0 8px; border-left: 4px solid #d71920; }
+  table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
   th { background: #f5e6e6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; padding: 5px 6px; border: 1px solid #ccc; font-weight: bold; }
   td { padding: 4px 6px; border: 1px solid #ddd; vertical-align: top; }
   tr:nth-child(even) td { background: #fafafa; }
-  .cover { background: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: white; padding: 30mm 15mm 20mm; border-bottom: 8px solid #d71920; }
-  .cover h1 { color: #d71920 !important; font-size: 28px; }
-  .cover-img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; margin: 16px 0; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-weight: bold; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .schema-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-weight: bold; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
-  @media print {
-    body { margin: 0; }
-    .no-print { display: none !important; }
-    th { background: #f5e6e6 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  }
+  .footer { margin-top: 20px; padding-top: 8px; border-top: 2px solid #d71920; font-size: 9px; color: #888; text-align: center; }
+  @media print { body { margin: 0; } .no-print { display: none !important; } }
 </style>
 </head><body>
 
-<!-- COVER PAGE -->
-<div class="cover">
-  <div style="font-size:13px;color:#ccc;margin-bottom:8px">Legionella Risk Assessment Report</div>
-  <h1>${job.site_name || job.client || 'Untitled Site'}</h1>
-  <div style="color:#ddd;margin-top:4px;font-size:12px">${job.address || ''}</div>
-  ${job.cover_photo_url ? `<img src="${job.cover_photo_url}" class="cover-img" crossorigin="anonymous" />` : ''}
-  <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px">
-    <span class="badge" style="background:${riskColor}">Risk: ${job.risk || 'LOW'}</span>
-    ${job.cqc_mode ? '<span class="badge" style="background:#fee2e2;color:#991b1b">CQC Support Mode</span>' : ''}
-    ${job.vulnerable_users ? '<span class="badge" style="background:#fef3c7;color:#92400e">Vulnerable Users</span>' : ''}
-  </div>
-  <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:#ccc">
-    <div>Assessment date: <strong style="color:#fff">${job.assessment_date || '—'}</strong></div>
-    <div>Review due: <strong style="color:#fff">${job.review_due || '—'}</strong></div>
-    <div>Assessor: <strong style="color:#fff">${job.assessor || '—'}</strong></div>
-    <div>Report ref: <strong style="color:#fff">${job.report_ref || '—'}</strong></div>
-    <div>Responsible person: <strong style="color:#fff">${job.responsible_person || '—'}</strong></div>
-    <div>Visit date(s): <strong style="color:#fff">${job.visit_dates || '—'}</strong></div>
-  </div>
-</div>
-
+<!-- PAGE 1 -->
 <div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <h1>Dorset Plumbing</h1>
+      <p>Gas Safe Registered | Legionella Risk Assessment</p>
+      <p>Prepared in accordance with HSG274 and ACOP L8</p>
+    </div>
+    <div class="ref">Ref: ${job.report_ref || (job.site_name || 'Report').replace(/\s+/g,'-') + '-' + (job.assessment_date || '')}</div>
+  </div>
 
-<!-- MANAGEMENT -->
-<h2>Management structure</h2>
-<table>
-  <tbody>
-    ${[['Duty Holder', job.duty_holder, job.duty_holder_role], ['Responsible Person', job.responsible_person, job.responsible_role], ['Deputy', job.deputy_person, job.deputy_role], ['Assessor', job.assessor, ''], ['Reviewer', job.reviewer, '']].filter(r => r[1]).map(([role, name, r]) => `<tr><td style="font-weight:bold;width:160px">${role}</td><td>${name}</td><td style="color:#555">${r || ''}</td></tr>`).join('')}
-  </tbody>
-</table>
+  ${job.cover_photo_url ? `<div style="margin-bottom:14px"><img src="${job.cover_photo_url}" style="width:100%;max-height:220px;object-fit:cover;border-radius:4px;display:block" crossorigin="anonymous"/></div>` : ''}
 
-${job.summary ? `<h2>Executive summary</h2><div style="white-space:pre-line;line-height:1.6">${job.summary}</div>` : ''}
+  <!-- Site details + Risk -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div style="border:1px solid #ddd;padding:10px;border-radius:4px">
+      <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div>
+      <div style="font-size:15px;font-weight:900">${job.site_name || job.client || '—'}</div>
+      <div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address || ''}</div>
+      <div style="margin-top:6px;font-size:10px">${job.client ? `Client: ${job.client}` : ''}</div>
+      <div style="font-size:10px">${job.assessor ? `Assessor: ${job.assessor}` : ''}</div>
+      <div style="font-size:10px">${job.responsible_person ? `Responsible Person: ${job.responsible_person}` : ''}</div>
+    </div>
+    <div style="border:2px solid #d71920;padding:10px;border-radius:4px;background:#fff5f5 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Overall Risk</div>
+      <div style="font-size:36px;font-weight:900;color:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'}">${job.risk || 'LOW'}</div>
+      <div style="font-size:10px;margin-top:4px">Assessment: ${job.assessment_date || '—'}</div>
+      <div style="font-size:10px">Next Review: ${job.review_due || '—'}</div>
+      <div style="font-size:10px">Property: ${job.property_type || '—'}</div>
+    </div>
+  </div>
 
-${job.issues_text ? `<h2>Issues / findings</h2><div style="white-space:pre-line;line-height:1.6">${job.issues_text}</div>` : ''}
+  <!-- Compliance Scorecard -->
+  <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:6px">Compliance Scorecard</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    ${checks.map(c => `<div style="border:1px solid ${c.pass?'#a3d9b1':'#f5c6c6'};background:${c.pass?'#eafaf1':'#fef0f0'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:80px">
+      <div style="font-size:13px;font-weight:900;color:${c.pass?'#27ae60':'#c0392b'}">${c.pass?'PASS':'FAIL'}</div>
+      <div style="font-size:9px;color:#444">${c.label}</div>
+    </div>`).join('')}
+  </div>
 
-<!-- SYSTEMS -->
-<h2>Water systems overview</h2>
-<table>
-  <tbody>
-    <tr><td style="font-weight:bold;width:200px">Cold water supply</td><td>${job.cold_source || 'Mains'}</td><td style="font-weight:bold;width:200px">Hot water system</td><td>${job.hot_system || '—'}</td></tr>
-    <tr><td style="font-weight:bold">CWST present</td><td>${job.cwst_present ? 'Yes' : 'No'}</td><td style="font-weight:bold">CWST location</td><td>${job.cwst_location || '—'}</td></tr>
-    <tr><td style="font-weight:bold">CWST temperature °C</td><td>${job.cwst_temp || '—'}</td><td style="font-weight:bold">TMVs installed</td><td>${job.tmvs_installed ? 'Yes' : 'No'}</td></tr>
-    <tr><td style="font-weight:bold">Cylinder/calorifier temp °C</td><td>${job.cylinder_temp || '—'}</td><td style="font-weight:bold">Air conditioning</td><td>${job.air_con ? 'Yes' : 'No'}</td></tr>
-    <tr><td style="font-weight:bold">Last full flush date</td><td>${job.last_flush_date || '—'}</td><td style="font-weight:bold">Vulnerable users</td><td>${job.vulnerable_users ? 'Yes' : 'No'}</td></tr>
-  </tbody>
-</table>
+  <!-- Risk Matrix + Summary side by side -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div>
+      ${job.summary ? `<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.6;white-space:pre-line">${job.summary}</div>` : '<div style="font-size:10px;color:#888">No summary entered.</div>'}
+    </div>
+    <div>
+      <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div>
+      <table style="width:120px;border-collapse:collapse">${matrixHtml}</table>
+      <div style="font-size:9px;color:#555;margin-top:2px;text-align:center">Low &nbsp;&nbsp; Med &nbsp;&nbsp; High<br>Likelihood -></div>
+    </div>
+  </div>
 
-<!-- SCHEMATIC -->
-${areas.length > 0 ? `
-<h2>Indicative schematic</h2>
-<div class="schema-wrap">${schemaBoxes}</div>
-` : ''}
-
-<!-- CONTROL SCHEME -->
-${scheme.length > 0 ? `
-<h2>Control scheme (${scheme.length} tasks)</h2>
-<table>
-  <thead><tr><th>Task</th><th>Frequency</th><th>Requirement</th><th>Responsible</th><th>Record</th></tr></thead>
-  <tbody>${schemeRows}</tbody>
-</table>` : ''}
-
-<!-- OUTLETS -->
-${(job.outlets || []).length > 0 ? `
-<h2>Outlet temperature readings (${(job.outlets || []).length} outlets)</h2>
-<table>
-  <thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Designation</th><th>Infrequent</th><th>Status</th><th>Notes</th></tr></thead>
-  <tbody>${outletRows}</tbody>
-</table>` : ''}
-
-<!-- ACTIONS -->
-${(job.actions || []).length > 0 ? `
-<h2>Improvement actions (${(job.actions || []).length})</h2>
-<table>
-  <thead><tr><th>Ref</th><th>System</th><th>Priority</th><th>Responsible</th><th>Deadline</th><th>Observation</th><th>Action</th><th>Status</th></tr></thead>
-  <tbody>${actionRows}</tbody>
-</table>
-<div style="font-size:10px;color:#666;margin-top:4px">Priority key: 1 Immediate, 2 As soon as practicable, 3 Planned remedial works, 4 Future maintenance/capital, O Observation</div>` : ''}
-
-<!-- DEAD LEGS -->
-${(job.dead_legs || []).length > 0 ? `
-<h2>Dead legs / blind ends (${(job.dead_legs || []).length})</h2>
-<table>
-  <thead><tr><th>Location</th><th>Description</th><th>Recommended action</th><th>Photo</th></tr></thead>
-  <tbody>${deadLegRows}</tbody>
-</table>` : ''}
-
-<!-- SHOWERS -->
-${(job.showers || []).length > 0 ? `
-<h2>Shower head register (${(job.showers || []).length})</h2>
-<table>
-  <thead><tr><th>Location</th><th>Last descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead>
-  <tbody>${showerRows}</tbody>
-</table>` : ''}
-
-<!-- LOGBOOK -->
-${(job.logs || []).length > 0 ? `
-<h2>Site logbook (${(job.logs || []).length} entries)</h2>
-<table>
-  <thead><tr><th>Date</th><th>Category</th><th>Location</th><th>Detail</th><th>Completed by</th><th>Status</th></tr></thead>
-  <tbody>${logRows}</tbody>
-</table>` : ''}
-
-<!-- PHOTOS -->
-${allPhotos.length > 0 ? `
-<h2>Photographic evidence (${allPhotos.length} photos)</h2>
-<div class="photo-grid">${photoGrid}</div>` : ''}
-
-<div style="margin-top:30px;padding-top:10px;border-top:2px solid #d71920;font-size:10px;color:#888;text-align:center">
-  Dorset Plumbing — Legionella Risk Assessment Report &nbsp;|&nbsp; ${job.site_name || job.client || ''} &nbsp;|&nbsp; ${job.assessment_date || ''} &nbsp;|&nbsp; Ref: ${job.report_ref || '—'}
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 1</div>
 </div>
 
+<!-- PAGE 2 -->
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref || ''}</div></div>
+
+  <div class="section-title">System Overview</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">
+    ${[
+      ['Property Type', job.property_type || '—'],
+      ['CWST Present', job.cwst_present ? 'Yes' : 'No'],
+      ['Building Age', job.building_age || 'Not entered'],
+      ['CWST Clean', job.cwst_clean ? 'Yes' : 'No'],
+      ['Cold Water Supply', job.cold_source || 'Mains'],
+      ['CWST Location', job.cwst_location || '—'],
+      ['Hot Water System', job.hot_system || '—'],
+      ['CWST Temp', job.cwst_temp ? job.cwst_temp + '°C' : '—'],
+      ['HW Storage Temp', job.cylinder_temp ? job.cylinder_temp + '°C (target >=60C)' : '—'],
+      ['Dead Legs', hasDeadLegs ? (job.dead_legs||[]).length + ' identified — see Dead Legs section' : 'None identified'],
+      ['Vulnerable Users', job.vulnerable_users ? 'Yes' : 'No'],
+      ['Last Full Flush', job.last_flush_date || 'Not recorded'],
+      ['TMVs Installed', job.tmvs_installed ? 'Yes' : 'No'],
+      ['Shower Descale', 'Not recorded (3 monthly)'],
+      ['Air Conditioning', job.air_con ? 'Yes' : 'No'],
+      ['Previous Assessment', job.previous_assessment_date || 'Not recorded'],
+    ].map(([k,v]) => `<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}
+  </div>
+
+  ${(job.outlets||[]).length > 0 ? `
+  <div class="section-title">Temperature Results</div>
+  <div style="font-size:9px;color:#666;margin-bottom:8px">Hot outlets — target line shows minimum requirement. Cold outlets — target line shows maximum.</div>
+  ${tempBars}
+  <div style="display:flex;gap:12px;font-size:9px;margin-top:6px">
+    <span><span style="display:inline-block;width:12px;height:12px;background:#27ae60;vertical-align:middle"></span> Pass</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#e67e22;vertical-align:middle"></span> Check</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#c0392b;vertical-align:middle"></span> Urgent</span>
+  </div>
+
+  <div class="section-title">Outlet Register</div>
+  <table>
+    <thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status / Notes</th></tr></thead>
+    <tbody>${outletRows}</tbody>
+  </table>` : ''}
+
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 2</div>
 </div>
+
+<!-- PAGE 3 -->
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref || ''}</div></div>
+
+  <div class="section-title">Issues / Findings</div>
+  <div style="font-size:10px;line-height:1.6;white-space:pre-line">${job.issues_text || 'No issues entered.'}</div>
+
+  ${(job.actions||[]).length > 0 ? `
+  <div class="section-title">Remedial Actions</div>
+  <table>
+    <thead><tr><th>Priority</th><th>Action</th><th>Responsible</th><th>Deadline</th></tr></thead>
+    <tbody>${actionRows}</tbody>
+  </table>
+  <div style="font-size:9px;color:#666;margin-top:4px">Priority: 1 Immediate | 2 As soon as practicable | 3 Planned works | 4 Future capital | O Observation</div>` : '<div style="font-size:10px;color:#888;margin-top:4px">No remedial actions recorded.</div>'}
+
+  ${scheme.length > 0 ? `
+  <div class="section-title">Control Scheme</div>
+  <table>
+    <thead><tr><th>Task</th><th>Frequency</th><th>Requirement</th><th>Responsible</th><th>Record</th></tr></thead>
+    <tbody>${schemeRows}</tbody>
+  </table>` : ''}
+
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 3</div>
+</div>
+
+${(job.dead_legs||[]).length > 0 ? `
+<!-- PAGE 4 -->
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref || ''}</div></div>
+  <div class="section-title">Dead Legs / Blind Ends Register</div>
+  <p style="font-size:10px">${(job.dead_legs||[]).length} dead leg(s) identified. Each represents a Legionella risk factor under HSG274. Removal or a documented management regime is required.</p>
+  ${deadLegRows}
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 4</div>
+</div>` : ''}
+
+${(job.showers||[]).length > 0 ? `
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref || ''}</div></div>
+  <div class="section-title">Shower Head Register</div>
+  <table>
+    <thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead>
+    <tbody>${showerRows}</tbody>
+  </table>
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 5</div>
+</div>` : ''}
+
+<!-- SCHEMATIC + LEGAL -->
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref || ''}</div></div>
+  <div class="section-title">Indicative Schematic</div>
+  <div style="font-size:9px;color:#666;margin-bottom:8px">Indicative only, not to scale. For legionella control purposes.</div>
+  ${schemaBoxes.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${schemaBoxes}</div>` : ''}
+
+  <div class="section-title">Legal / Compliance Notes</div>
+  <p style="font-size:10px">\u2022 This assessment is intended to support legionella risk management and record keeping. The dutyholder remains responsible for implementing, monitoring and reviewing all control measures.</p>
+  <p style="font-size:10px">\u2022 ${compNotesBenchmark}</p>
+  ${compNotes.map((n,i) => `<p style="font-size:10px;${n.startsWith('COMPLIANCE') ? 'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;' : ''}margin:4px 0">\u2022 ${n}</p>`).join('')}
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 6</div>
+</div>
+
+<!-- LOGBOOK + PHOTOS -->
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref || ''}</div></div>
+  <div class="section-title">Site Logbook</div>
+  ${(job.logs||[]).length > 0 ? `<table><thead><tr><th>Date</th><th>Category</th><th>Location</th><th>Detail</th><th>Completed by</th><th>Status</th></tr></thead><tbody>${logRows}</tbody></table>` : '<p style="font-size:10px;color:#888">No log entries.</p>'}
+
+  ${allPhotos.length > 0 ? `
+  <div class="section-title">Photo Evidence</div>
+  <div class="photo-grid">${photoGrid}</div>` : ''}
+
+  <div class="footer">Dorset Plumbing \u2014 Legionella Risk Assessment &nbsp;|&nbsp; ${job.site_name || job.client || ''} \u2014 ${job.assessment_date || ''} &nbsp;|&nbsp; Page 7</div>
+</div>
+
 </body></html>`);
 
     win.document.close();
