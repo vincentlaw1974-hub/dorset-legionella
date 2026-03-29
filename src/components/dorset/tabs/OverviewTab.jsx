@@ -26,6 +26,7 @@ export default function OverviewTab({ job, onChange }) {
       cqc_mode: ['Nursing Home', 'Care Home'].includes(name),
       vulnerable_users: ['Nursing Home', 'Care Home', 'Holiday Park'].includes(name),
       tmvs_installed: name !== 'Domestic',
+      risk: ['Nursing Home', 'Care Home'].includes(name) ? 'MEDIUM' : 'LOW',
       outlets,
     });
   };

@@ -18,7 +18,7 @@ export function blankJob() {
   return {
     client: '', site_name: '', address: '', property_type: 'Nursing Home',
     assessment_date: today(), review_due: '', report_ref: '', visit_dates: '',
-    status: 'In Progress', risk: 'LOW', summary: '',
+    status: 'In Progress', risk: 'MEDIUM', summary: '',
     duty_holder: '', duty_holder_role: '', responsible_person: '', responsible_role: '',
     deputy_person: '', deputy_role: '', assessor: '', reviewer: '',
     written_scheme: false, schematics_available: false, training_records: false,

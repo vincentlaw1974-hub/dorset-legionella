@@ -34,7 +34,23 @@ export default function SystemsTab({ job, onChange }) {
             </label>
           ))}
           <div><Label>CWST location</Label><Input {...f('cwst_location')} /></div>
-          <div><Label>CWST temperature °C</Label><Input inputMode="decimal" {...f('cwst_temp')} /></div>
+          <div>
+            <Label>CWST temperature °C <span className="text-xs text-gray-400">(must be &lt;20°C)</span></Label>
+            <Input
+              inputMode="decimal"
+              value={job.cwst_temp || ''}
+              onChange={e => {
+                const val = e.target.value;
+                const temp = parseFloat(val);
+                const update = { cwst_temp: val };
+                if (!isNaN(temp) && temp > 20) update.risk = 'HIGH';
+                onChange(update);
+              }}
+            />
+            {parseFloat(job.cwst_temp) > 20 && (
+              <div className="text-xs text-red-600 mt-1 font-bold">⚠ CWST above 20°C — risk auto-set to HIGH</div>
+            )}
+          </div>
           {[
             ['cwst_clean', 'CWST clean'],
             ['cwst_drinking', 'CWST feeds drinking water'],

@@ -68,13 +68,22 @@ export default function OutletsTab({ job, onChange }) {
                     {outletTypes.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
-                <div><Label>Hot °C</Label><Input inputMode="decimal" value={o.hot} onChange={e => updateOutlet(o.id, 'hot', e.target.value)} /></div>
+                {o.type !== 'Outside Tap' && (
+                  <div><Label>Hot °C</Label><Input inputMode="decimal" value={o.hot} onChange={e => updateOutlet(o.id, 'hot', e.target.value)} /></div>
+                )}
                 <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(o.id, 'cold', e.target.value)} /></div>
 
-                <label className="flex items-center gap-2 text-sm mt-4 cursor-pointer">
-                  <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
-                  Infrequently used
-                </label>
+                {o.type === 'Outside Tap' ? (
+                  <label className="flex items-center gap-2 text-sm mt-4 cursor-pointer">
+                    <input type="checkbox" checked={!!o.check_valve} onChange={e => updateOutlet(o.id, 'check_valve', e.target.checked)} className="w-4 h-4 accent-red-600" />
+                    Check valve fitted
+                  </label>
+                ) : (
+                  <label className="flex items-center gap-2 text-sm mt-4 cursor-pointer">
+                    <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
+                    Infrequently used
+                  </label>
+                )}
               </div>
               <div className="mt-2"><Label>Notes</Label><Textarea value={o.notes} onChange={e => updateOutlet(o.id, 'notes', e.target.value)} className="min-h-[60px]" /></div>
               <div className="mt-2">

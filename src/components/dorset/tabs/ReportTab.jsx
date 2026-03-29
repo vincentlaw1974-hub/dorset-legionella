@@ -31,11 +31,14 @@ export default function ReportTab({ job, onPrint }) {
     const outletRows = (job.outlets || []).map(o => {
       const st = outletStatus(o, job.cqc_mode);
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534' : st.cls === 'warn' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
+      const isOutsideTap = o.type === 'Outside Tap';
+      const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
+      const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
+      const noteText = [o.notes, extraNote].filter(Boolean).join(' | ');
       return `<tr>
-        <td>${o.location || ''}</td><td>${o.type || ''}</td><td>${o.hot || ''}</td><td>${o.cold || ''}</td>
-        <td>${o.designation || ''}</td><td>${o.infrequent ? 'Yes' : 'No'}</td>
+        <td>${o.location || ''}</td><td>${o.type || ''}</td><td>${hotCell}</td><td>${o.cold || '—'}</td>
         <td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td>
-        <td>${o.notes || ''}</td>
+        <td>${noteText}</td>
       </tr>`;
     }).join('');
 
