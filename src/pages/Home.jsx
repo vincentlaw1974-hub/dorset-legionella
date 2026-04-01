@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { blankJob, reportChecks, buildControlScheme } from '@/lib/jobUtils';
+import { blankJob, reportChecks, buildControlScheme, calculateRisk } from '@/lib/jobUtils';
 
 import Header from '@/components/dorset/Header';
 import JobList from '@/components/dorset/JobList';
@@ -94,7 +94,11 @@ export default function Home() {
 
   const handleChange = useCallback((changes) => {
     if (!localJob) return;
-    const updated = { ...localJob, ...changes };
+    let updated = { ...localJob, ...changes };
+    // Auto-calculate risk unless manually overridden
+    if (!updated.risk_override) {
+      updated.risk = calculateRisk(updated);
+    }
     setLocalJob(updated);
     setSaveState('saving');
     clearTimeout(debounceRef.current);

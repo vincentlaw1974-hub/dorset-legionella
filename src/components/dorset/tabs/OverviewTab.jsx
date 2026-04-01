@@ -125,9 +125,18 @@ export default function OverviewTab({ job, onChange }) {
         <div><Label>Visit date(s)</Label><Input {...f('visit_dates')} /></div>
         <div>
           <Label>Overall risk</Label>
-          <select {...f('risk')} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
-            {['LOW','MEDIUM','HIGH'].map(t => <option key={t}>{t}</option>)}
-          </select>
+          <div className="flex gap-2 items-center">
+            <select {...f('risk')} disabled={!job.risk_override} className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+              {['LOW','MEDIUM','HIGH'].map(t => <option key={t}>{t}</option>)}
+            </select>
+            <button
+              type="button"
+              onClick={() => onChange({ risk_override: !job.risk_override })}
+              className="text-xs px-3 py-2 rounded-xl border font-medium whitespace-nowrap"
+              style={{ background: job.risk_override ? '#7f1d1d' : '#fff', color: job.risk_override ? '#fff' : '#374151', borderColor: '#d1d5db' }}
+            >{job.risk_override ? 'Auto (resume)' : 'Manual override'}</button>
+          </div>
+          {job.risk_override && <div className="text-xs text-amber-700 mt-1">⚠ Risk manually overridden — auto-calculation paused</div>}
         </div>
       </div>
       <div className="mt-3">

@@ -66,7 +66,16 @@ export default function SystemsTab({ job, onChange }) {
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <strong>Hot water storage</strong>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-          <div><Label>Cylinder / calorifier temp °C</Label><Input inputMode="decimal" {...f('cylinder_temp')} /></div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer col-span-full">
+            <input type="checkbox" {...cb('hw_not_stored')} className="w-4 h-4 accent-red-600" />
+            Hot water not stored (combi boiler / inline heater)
+          </label>
+          {!job.hw_not_stored && (
+            <div><Label>Cylinder / calorifier temp °C <span className="text-xs text-gray-400">(target ≥60°C)</span></Label><Input inputMode="decimal" {...f('cylinder_temp')} /></div>
+          )}
+          {job.hw_not_stored && (
+            <div><Label>Boiler set temperature °C <span className="text-xs text-gray-400">(target ≥60°C)</span></Label><Input inputMode="decimal" {...f('hw_boiler_set_temp')} /></div>
+          )}
           <div><Label>Last full flush date</Label><Input type="date" {...f('last_flush_date')} /></div>
         </div>
       </div>
@@ -88,18 +97,32 @@ export default function SystemsTab({ job, onChange }) {
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <strong>Records in place</strong>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-          {[
-            ['monthly_temp_log', 'Monthly temperature log'],
-            ['flushing_log', 'Flushing log'],
-            ['shower_cleaning_log', 'Shower cleaning log'],
-            ['tmv_service_records', 'TMV service records'],
-          ].map(([field, label]) => (
-            <label key={field} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" {...cb(field)} className="w-4 h-4 accent-red-600" />
-              {label}
-            </label>
-          ))}
+        <div className="text-xs text-gray-500 mt-1 mb-3">Tick if records are in place. Tick N/A if not applicable.</div>
+        <table className="w-full text-sm">
+          <thead><tr className="text-xs text-gray-500 border-b">
+            <th className="text-left pb-1 font-semibold">Record type</th>
+            <th className="text-center pb-1 w-16 font-semibold">In place</th>
+            <th className="text-center pb-1 w-12 font-semibold">N/A</th>
+          </tr></thead>
+          <tbody>
+            {[['monthly_temp_log','log_temps_na','Monthly temperature log'],['flushing_log','log_flush_na','Flushing log'],['shower_cleaning_log','log_shower_na','Shower cleaning log'],['tmv_service_records','log_tmv_na','TMV service records']].map(([field, naField, label]) => (
+              <tr key={field} className="border-b last:border-0">
+                <td className="py-2">{label}</td>
+                <td className="text-center"><input type="checkbox" checked={!!job[field] && !job[naField]} disabled={!!job[naField]} onChange={e => onChange({ [field]: e.target.checked })} className="w-4 h-4 accent-red-600" /></td>
+                <td className="text-center"><input type="checkbox" checked={!!job[naField]} onChange={e => onChange({ [naField]: e.target.checked, ...(e.target.checked ? { [field]: false } : {}) })} className="w-4 h-4 accent-gray-400" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mt-3">
+          <Label>AC last service date</Label>
+          <Input type="date" {...f('ac_last_service_date')} />
+          {job.air_con && job.ac_last_service_date && new Date(job.ac_last_service_date) < new Date(new Date().setFullYear(new Date().getFullYear()-1)) && (
+            <div className="text-xs text-red-600 mt-1 font-bold">⚠ AC not serviced within 12 months — HIGH risk</div>
+          )}
+          {job.air_con && !job.ac_last_service_date && (
+            <div className="text-xs text-red-600 mt-1 font-bold">⚠ No AC service date recorded — HIGH risk</div>
+          )}
         </div>
         <div className="mt-3">
           <Label>Scope / restrictions / no-access areas</Label>
