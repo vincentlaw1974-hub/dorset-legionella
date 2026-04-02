@@ -83,17 +83,19 @@ export default function OutletsTab({ job, onChange }) {
                     {(o.hasCheckValve || o.check_valve) && <div className="text-xs text-green-700 mt-1">✓ Check valve fitted</div>}
                   </div>
                 ) : (
-                  <>
-                    <label className="flex items-center gap-2 text-sm mt-2 cursor-pointer">
-                      <input type="checkbox" checked={!!o.hasTmv} onChange={e => updateOutlet(o.id, 'hasTmv', e.target.checked)} className="w-4 h-4 accent-red-600" />
-                      TMV fitted (blended 38–46°C)
-                    </label>
-                    <label className="flex items-center gap-2 text-sm mt-2 cursor-pointer">
-                      <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
-                      Infrequently used
-                    </label>
-                    {o.hasTmv && <div className="text-xs text-blue-700 col-span-full mt-1">Pass range: 38–46°C blended</div>}
-                  </>
+                  <div className="col-span-full">
+                    <div className="flex flex-wrap gap-4 mt-1">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked={!!o.hasTmv} onChange={e => updateOutlet(o.id, 'hasTmv', e.target.checked)} className="w-4 h-4 accent-red-600" />
+                        TMV fitted (blended 38–46°C)
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
+                        Infrequently used
+                      </label>
+                    </div>
+                    {o.hasTmv && <div className="text-xs text-blue-700 mt-1">Pass range: 38–46°C blended</div>}
+                  </div>
                 )}
               </div>
               <div className="mt-2"><Label>Notes</Label><Textarea value={o.notes} onChange={e => updateOutlet(o.id, 'notes', e.target.value)} className="min-h-[60px]" /></div>

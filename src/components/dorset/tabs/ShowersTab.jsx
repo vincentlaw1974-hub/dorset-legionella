@@ -68,7 +68,19 @@ export default function ShowersTab({ job, onChange }) {
               </div>
               <div>
                 <Label>Last descale date</Label>
-                <Input type="date" value={s.last_descale} onChange={e => update(s.id, 'last_descale', e.target.value)} />
+                <Input type="date" value={s.last_descale} onChange={e => {
+                  const val = e.target.value;
+                  const next = val ? new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0,10) : '';
+                  update(s.id, 'last_descale', val);
+                  update(s.id, 'next_descale', next);
+                }} />
+              </div>
+              <div>
+                <Label>Next descale due <span className="text-xs text-gray-400">(auto: +3 months)</span></Label>
+                <Input type="date" value={s.next_descale || ''} onChange={e => update(s.id, 'next_descale', e.target.value)} />
+                {s.next_descale && new Date(s.next_descale) < new Date() && (
+                  <div className="text-xs text-red-600 mt-1 font-bold">⚠ Descale overdue</div>
+                )}
               </div>
               <div>
                 <Label>Condition</Label>

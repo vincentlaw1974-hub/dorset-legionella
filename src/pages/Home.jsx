@@ -49,6 +49,7 @@ export default function Home() {
   const [currentId, setCurrentId] = useState(null);
   const [localJob, setLocalJob] = useState(null);
   const debounceRef = useRef(null);
+  const localJobRef = useRef(null);
 
   const selectedJob = jobs.find(j => j.id === (currentId || jobs[0]?.id)) || jobs[0] || null;
 
@@ -56,6 +57,7 @@ export default function Home() {
   useEffect(() => {
     if (selectedJob && (!localJob || localJob.id !== selectedJob.id)) {
       setLocalJob(selectedJob);
+      localJobRef.current = selectedJob;
     }
   }, [selectedJob?.id]);
 
@@ -93,12 +95,14 @@ export default function Home() {
   };
 
   const handleChange = useCallback((changes) => {
-    if (!localJob) return;
-    let updated = { ...localJob, ...changes };
+    const current = localJobRef.current;
+    if (!current) return;
+    let updated = { ...current, ...changes };
     // Auto-calculate risk unless manually overridden
     if (!updated.risk_override) {
       updated.risk = calculateRisk(updated);
     }
+    localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
     // Photos save immediately (no debounce) so they're never lost
@@ -111,7 +115,7 @@ export default function Home() {
         updateMutation.mutate({ id: updated.id, data: updated });
       }, 800);
     }
-  }, [localJob, updateMutation]);
+  }, [updateMutation]);
 
   const handleDelete = () => {
     if (!localJob) return;
