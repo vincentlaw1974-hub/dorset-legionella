@@ -101,10 +101,16 @@ export default function Home() {
     }
     setLocalJob(updated);
     setSaveState('saving');
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    // Photos save immediately (no debounce) so they're never lost
+    if ('photos' in changes) {
+      clearTimeout(debounceRef.current);
       updateMutation.mutate({ id: updated.id, data: updated });
-    }, 800);
+    } else {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        updateMutation.mutate({ id: updated.id, data: updated });
+      }, 800);
+    }
   }, [localJob, updateMutation]);
 
   const handleDelete = () => {
