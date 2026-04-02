@@ -38,6 +38,8 @@ const MOBILE_TABS = ['overview', 'rooms', 'outlets', 'issues', 'dead_legs', 'sho
 export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [newJobDraft, setNewJobDraft] = useState({ site_name: '', address: '', client: '' });
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [mobileShowList, setMobileShowList] = useState(false);
   const queryClient = useQueryClient();
@@ -92,7 +94,14 @@ export default function Home() {
   });
 
   const handleNew = () => {
-    createMutation.mutate(blankJob());
+    setNewJobDraft({ site_name: '', address: '', client: '' });
+    setShowAddressModal(true);
+  };
+
+  const handleAddressSubmit = () => {
+    if (!newJobDraft.address.trim()) return;
+    createMutation.mutate({ ...blankJob(), ...newJobDraft });
+    setShowAddressModal(false);
   };
 
   const handleChange = useCallback((changes) => {
@@ -176,6 +185,56 @@ export default function Home() {
   return (
     <div className="min-h-screen" style={{ background: '#f6f7f9' }}>
       <Header onNew={handleNew} onExport={handleExport} onImport={handleImport} onDelete={handleDelete} saveState={saveState} hasJob={!!localJob} />
+
+      {/* New job address modal */}
+      {showAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold mb-1">New Job — Site Details</h2>
+            <p className="text-sm text-gray-500 mb-4">Enter the site address before continuing.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Site Name</label>
+                <input
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm mt-1"
+                  placeholder="e.g. Sunrise Care Home"
+                  value={newJobDraft.site_name}
+                  onChange={e => setNewJobDraft(d => ({ ...d, site_name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Client</label>
+                <input
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm mt-1"
+                  placeholder="e.g. NHS Trust"
+                  value={newJobDraft.client}
+                  onChange={e => setNewJobDraft(d => ({ ...d, client: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Address <span className="text-red-600">*</span></label>
+                <textarea
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm mt-1 min-h-[80px]"
+                  placeholder="Full site address"
+                  value={newJobDraft.address}
+                  onChange={e => setNewJobDraft(d => ({ ...d, address: e.target.value }))}
+                />
+                {newJobDraft.address.trim() === '' && <p className="text-xs text-red-500 mt-1">Address is required.</p>}
+              </div>
+            </div>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={handleAddressSubmit}
+                disabled={!newJobDraft.address.trim()}
+                className="px-5 py-2 rounded-xl font-bold text-white text-sm disabled:opacity-40"
+                style={{ background: '#d71920' }}
+              >
+                Create Job
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* No jobs state */}
       {jobs.length === 0 && (
