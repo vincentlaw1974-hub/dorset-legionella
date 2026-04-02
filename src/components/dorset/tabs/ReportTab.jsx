@@ -107,14 +107,14 @@ export default function ReportTab({ job, onPrint }) {
 
     // Compliance checks
     const hasDeadLegs = (job.dead_legs || []).length > 0;
-    const cylTemp = parseFloat(job.cylinder_temp);
+    const cylTemp = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
     const hwTempFail = !isNaN(cylTemp) && cylTemp < 60;
     const checks = [
       { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
       { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
       { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
       { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
-      { label: 'HW Temp >=60C', pass: job.hw_not_stored || isNaN(cylTemp) || !hwTempFail },
+      { label: 'HW Temp >=60C', pass: isNaN(cylTemp) || !hwTempFail },
       { label: 'No Dead Legs', pass: !hasDeadLegs },
     ];
 
