@@ -146,7 +146,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f6f7f9' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: '#f6f7f9' }}>
       <Header onNew={handleNew} onDelete={handleDelete} saveState={saveState} hasJob={!!localJob} />
 
       {jobs.length === 0 && (
@@ -172,7 +172,7 @@ export default function Home() {
             {/* Main content */}
             <div className="flex-1 min-w-0">
               {/* Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+              <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
                 {TABS.map(t => (
                   <button
                     key={t.id}
