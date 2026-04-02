@@ -191,7 +191,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
             <h2 className="text-lg font-bold mb-1">New Job — Site Details</h2>
-            <p className="text-sm text-gray-500 mb-4">Enter the site address before continuing.</p>
+            <p className="text-sm text-gray-500 mb-4">Enter the site address before continuing. This cannot be skipped.</p>
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium">Site Name</label>
