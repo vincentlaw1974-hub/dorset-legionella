@@ -391,7 +391,7 @@ ${(job.showers||[]).length > 0 ? `
           <div className="text-xs text-gray-400 mb-1">Legionella Risk Assessment Report</div>
           <h1 className="text-2xl font-bold" style={{ color: '#d71920' }}>{job.site_name || job.client || 'Untitled Site'}</h1>
           <div className="text-gray-300 text-xs mt-1">{job.address}</div>
-          {job.cover_photo_url && <img src={job.cover_photo_url} alt="Cover" className="w-full h-40 object-cover rounded-xl mt-3" />}
+          {job.cover_photo_url && <img src={job.cover_photo_url} alt="Cover" className="w-full rounded-xl mt-3" style={{maxHeight:'280px',objectFit:'contain',background:'#f3f4f6'}} />}
           <div className="flex flex-wrap gap-2 mt-3">
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${riskBadge}`}>Risk: {job.risk || 'LOW'}</span>
             {job.cqc_mode && <span className="px-2 py-0.5 rounded-full text-xs font-bold badge-high">CQC Mode</span>}
