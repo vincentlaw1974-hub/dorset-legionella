@@ -119,7 +119,14 @@ export function calculateRisk(job) {
   const tempMult = isCare ? 1.5 : isMedical ? 1.2 : 1;
   score += Math.round((tempFails >= 3 ? 3 : tempFails >= 1 ? 2 : 0) * tempMult);
 
-  const urgent = outlets.some(o => { const hot = parseFloat(o.hot), cold = parseFloat(o.cold); return (!isNaN(hot) && hot < 45) || (!isNaN(cold) && cold >= 25); });
+  const urgent = outlets.some(o => {
+    const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
+    if (o.type === 'Outside Tap') return false;
+    const hotUrgent = o.hasTmv
+      ? (!isNaN(hot) && (hot < 38 || hot > 46))
+      : (!isNaN(hot) && hot < 45);
+    return hotUrgent || (!isNaN(cold) && cold >= 25);
+  });
   if (urgent) score += isCare ? 3 : 2;
 
   if (job.cwst_present) score += 1;
