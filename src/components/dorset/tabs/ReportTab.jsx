@@ -6,7 +6,7 @@ function buildSchematic(job) {
   (job.outlets || []).forEach(o => {
     const key = o.location || 'Area';
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
-    const target = o.type === 'Pot Wash' ? 60 : (job.cqc_mode ? 55 : 50);
+    const target = o.type === 'Pot Wash' ? 60 : 50;
     groups[key] = groups[key] || { count: 0, issue: false, types: new Set() };
     groups[key].count++;
     groups[key].types.add(o.type || 'Outlet');
