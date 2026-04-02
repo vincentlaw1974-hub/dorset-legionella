@@ -190,79 +190,16 @@ export default function Home() {
 
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <div className="flex flex-col lg:flex-row gap-3 items-start">
             {/* Left sidebar */}
-            <div style={{ width: '280px', flexShrink: 0 }}>
+            <div className="w-full lg:w-[280px] lg:flex-shrink-0">
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
             {/* Main content */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-
-
-              {/* Tabs */}
-              <div style={{ display: 'flex' }} className="gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
-                {TABS.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTab(t.id)}
-                    className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium border transition-all ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
-                    style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Tab content */}
-              {activeTab === 'jobs' && (
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <strong className="text-base">All saved jobs</strong>
-                    <button onClick={handleNew} className="text-sm px-4 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ New job</button>
-                  </div>
-                  {jobs.length === 0 && <p className="text-sm text-gray-400">No jobs yet.</p>}
-                  <div className="space-y-2">
-                    {jobs.map(j => (
-                      <div
-                        key={j.id}
-                        onClick={() => { setCurrentId(j.id); setActiveTab('overview'); }}
-                        className={`border rounded-xl p-3 cursor-pointer transition-all hover:shadow-sm ${j.id === localJob?.id ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-red-300 bg-white'}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-sm">{j.site_name || j.client || 'Untitled'}</div>
-                            <div className="text-xs text-gray-500">{j.client}{j.client && j.assessment_date ? ' — ' : ''}{j.assessment_date}</div>
-                            <div className="text-xs text-gray-400">{j.address}</div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${(j.risk||'low').toLowerCase()}`}>{j.risk || 'LOW'}</span>
-                            <span className="text-xs text-gray-400">{j.status}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'rooms' && <RoomsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'dead_legs' && <DeadLegsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'showers' && <ShowersTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'issues' && <IssuesTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'report' && <ReportTab job={localJob} onPrint={handlePrint} />}
-            </div>
-          </div>
-        </div>
-      )}
+            <div className="flex-1 min-w-0">
 
       {/* Delete confirmation dialog */}
       {confirmDelete && (
