@@ -217,7 +217,11 @@ export default function Home() {
                   className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm mt-1 min-h-[80px]"
                   placeholder="Full site address"
                   value={newJobDraft.address}
-                  onChange={e => setNewJobDraft(d => ({ ...d, address: e.target.value }))}
+                  onChange={e => {
+                    const addr = e.target.value;
+                    const firstLine = addr.split('\n')[0].trim();
+                    setNewJobDraft(d => ({ ...d, address: addr, site_name: d.site_name || firstLine }));
+                  }}
                 />
                 {newJobDraft.address.trim() === '' && <p className="text-xs text-red-500 mt-1">Address is required.</p>}
               </div>
