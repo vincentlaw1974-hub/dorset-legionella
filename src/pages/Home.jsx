@@ -34,13 +34,10 @@ const TABS = [
   { id: 'report', label: 'Report' },
 ];
 
-const MOBILE_TABS = ['overview', 'rooms', 'outlets', 'issues', 'dead_legs', 'showers', 'photos', 'logbook', 'report'];
-
 export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
-  const [mobileShowList, setMobileShowList] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -55,7 +52,6 @@ export default function Home() {
 
   const selectedJob = jobs.find(j => j.id === (currentId || jobs[0]?.id)) || jobs[0] || null;
 
-  // Sync localJob when selected job changes (e.g. switching jobs)
   useEffect(() => {
     if (selectedJob && (!localJob || localJob.id !== selectedJob.id)) {
       setLocalJob(selectedJob);
@@ -72,7 +68,7 @@ export default function Home() {
     },
   });
 
-  const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const [saveState, setSaveState] = useState('idle');
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
@@ -100,14 +96,12 @@ export default function Home() {
     const current = localJobRef.current;
     if (!current) return;
     let updated = { ...current, ...changes };
-    // Auto-calculate risk unless manually overridden
     if (!updated.risk_override) {
       updated.risk = calculateRisk(updated);
     }
     localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
-    // Photos save immediately (no debounce) so they're never lost
     if ('photos' in changes) {
       clearTimeout(debounceRef.current);
       updateMutation.mutate({ id: updated.id, data: updated });
@@ -133,29 +127,6 @@ export default function Home() {
     setDeleteTargetId(null);
   };
 
-  const handleExport = () => {
-    if (!localJob) return;
-    const blob = new Blob([JSON.stringify(localJob, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    const base = ((localJob.site_name || localJob.client || 'assessment').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')) || 'assessment';
-    a.href = URL.createObjectURL(blob);
-    a.download = `${base}-backup-${localJob.assessment_date || 'today'}.json`;
-    a.click();
-  };
-
-  const handleImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const r = new FileReader();
-    r.onload = () => {
-      const d = JSON.parse(r.result);
-      delete d.id;
-      createMutation.mutate(d);
-    };
-    r.readAsText(file);
-    e.target.value = '';
-  };
-
   const handlePrint = () => {
     if (!localJob) return;
     const checks = reportChecks(localJob).filter(x => !x[1]);
@@ -178,7 +149,6 @@ export default function Home() {
     <div className="min-h-screen" style={{ background: '#f6f7f9' }}>
       <Header onNew={handleNew} onDelete={handleDelete} saveState={saveState} hasJob={!!localJob} />
 
-      {/* No jobs state */}
       {jobs.length === 0 && (
         <div className="max-w-6xl mx-auto px-3 py-16 text-center">
           <p className="text-gray-500 mb-4">No jobs yet. Create your first job to get started.</p>
@@ -191,6 +161,7 @@ export default function Home() {
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
           <div className="flex flex-col lg:flex-row gap-3 items-start">
+
             {/* Left sidebar */}
             <div className="w-full lg:w-[280px] lg:flex-shrink-0">
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); }} />
@@ -200,8 +171,69 @@ export default function Home() {
 
             {/* Main content */}
             <div className="flex-1 min-w-0">
+              {/* Tabs */}
+              <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+                {TABS.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium border transition-all ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                    style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
 
-      {/* Delete confirmation dialog */}
+              {/* Tab content */}
+              {activeTab === 'jobs' && (
+                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <strong className="text-base">All saved jobs</strong>
+                    <button onClick={handleNew} className="text-sm px-4 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ New job</button>
+                  </div>
+                  {jobs.length === 0 && <p className="text-sm text-gray-400">No jobs yet.</p>}
+                  <div className="space-y-2">
+                    {jobs.map(j => (
+                      <div
+                        key={j.id}
+                        onClick={() => { setCurrentId(j.id); setActiveTab('overview'); }}
+                        className={`border rounded-xl p-3 cursor-pointer transition-all hover:shadow-sm ${j.id === localJob?.id ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-red-300 bg-white'}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-sm">{j.site_name || j.client || 'Untitled'}</div>
+                            <div className="text-xs text-gray-500">{j.client}{j.client && j.assessment_date ? ' — ' : ''}{j.assessment_date}</div>
+                            <div className="text-xs text-gray-400">{j.address}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${(j.risk||'low').toLowerCase()}`}>{j.risk || 'LOW'}</span>
+                            <span className="text-xs text-gray-400">{j.status}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'rooms' && <RoomsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'dead_legs' && <DeadLegsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'showers' && <ShowersTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'issues' && <IssuesTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'report' && <ReportTab job={localJob} onPrint={handlePrint} />}
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
@@ -214,7 +246,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
