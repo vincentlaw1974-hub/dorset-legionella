@@ -39,7 +39,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
-  const [mobileShowList, setMobileShowList] = useState(true);
+  const [mobileShowList, setMobileShowList] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   useEffect(() => {
     const handler = () => setIsDesktop(window.innerWidth >= 768);
