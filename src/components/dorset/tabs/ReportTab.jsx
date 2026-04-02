@@ -114,7 +114,7 @@ export default function ReportTab({ job, onPrint }) {
       { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
       { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
       { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
-      { label: 'HW Temp >=60C', pass: !hwTempFail && !isNaN(cylTemp) },
+      { label: 'HW Temp >=60C', pass: job.hw_not_stored || isNaN(cylTemp) || !hwTempFail },
       { label: 'No Dead Legs', pass: !hasDeadLegs },
     ];
 
