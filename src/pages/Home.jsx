@@ -39,6 +39,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [mobileShowList, setMobileShowList] = useState(true);
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -92,6 +93,7 @@ export default function Home() {
 
   const handleNew = () => {
     createMutation.mutate(blankJob());
+    setMobileShowList(false);
   };
 
   const handleChange = useCallback((changes) => {
@@ -189,15 +191,23 @@ export default function Home() {
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
-            {/* Left sidebar */}
-            <div>
-              <JobList jobs={jobs} currentId={localJob.id} onSelect={setCurrentId} />
+            {/* Left sidebar — always visible on desktop, toggleable on mobile */}
+            <div className={mobileShowList ? 'block' : 'hidden lg:block'}>
+              <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setMobileShowList(false); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
-            {/* Main content */}
-            <div>
+            {/* Main content — hidden on mobile when showing list */}
+            <div className={mobileShowList ? 'hidden lg:block' : 'block'}>
+              {/* Back to jobs button (mobile only) */}
+              <div className="flex items-center gap-2 mb-3 lg:hidden">
+                <button onClick={() => setMobileShowList(true)} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium hover:bg-gray-50">
+                  ← All jobs
+                </button>
+                <span className="text-sm font-semibold text-gray-700 truncate">{localJob.site_name || localJob.client || 'Untitled job'}</span>
+              </div>
+
               {/* Desktop tabs */}
               <div className="hidden sm:flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
                 {TABS.map(t => (
@@ -245,7 +255,7 @@ export default function Home() {
       )}
 
       {/* Mobile bottom nav */}
-      {localJob && (
+      {localJob && !mobileShowList && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-25 bg-white border-t border-gray-200 p-2">
           <div className="flex gap-2 overflow-x-auto scrollbar-none">
             {MOBILE_TABS.map(id => {
