@@ -197,22 +197,24 @@ export default function Home() {
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            {/* Left sidebar */}
-            <div style={{ width: '280px', flexShrink: 0, display: (!isDesktop && !mobileShowList) ? 'none' : 'block' }}>
+            {/* Left sidebar — always visible on desktop, toggle on mobile */}
+            <div style={{ width: '280px', flexShrink: 0, display: isDesktop ? 'block' : (mobileShowList ? 'block' : 'none') }}>
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setMobileShowList(false); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
-            {/* Main content */}
-            <div style={{ flex: 1, minWidth: 0, display: (!isDesktop && mobileShowList) ? 'none' : 'block' }}>
+            {/* Main content — always visible on desktop, toggle on mobile */}
+            <div style={{ flex: 1, minWidth: 0, display: isDesktop ? 'block' : (mobileShowList ? 'none' : 'block') }}>
               {/* Back to jobs button (mobile only) */}
+              {!isDesktop && (
               <div className="flex items-center gap-2 mb-3">
                 <button onClick={() => setMobileShowList(true)} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium hover:bg-gray-50">
                   ← All jobs
                 </button>
                 <span className="text-sm font-semibold text-gray-700 truncate">{localJob.site_name || localJob.client || 'Untitled job'}</span>
               </div>
+              )}
 
               {/* Tabs */}
               <div style={{ display: 'flex' }} className="gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
