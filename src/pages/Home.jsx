@@ -196,16 +196,16 @@ export default function Home() {
 
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
-          <div style={{ display: isDesktop ? 'grid' : 'block', gridTemplateColumns: '280px 1fr', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
             {/* Left sidebar */}
-            <div style={{ display: isDesktop ? 'block' : (mobileShowList ? 'block' : 'none') }}>
+            <div style={{ width: '280px', flexShrink: 0, display: (!isDesktop && !mobileShowList) ? 'none' : 'block' }}>
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setMobileShowList(false); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
             {/* Main content */}
-            <div style={{ display: isDesktop ? 'block' : (mobileShowList ? 'none' : 'block') }}>
+            <div style={{ flex: 1, minWidth: 0, display: (!isDesktop && mobileShowList) ? 'none' : 'block' }}>
               {/* Back to jobs button (mobile only) */}
               <div className="flex items-center gap-2 mb-3">
                 <button onClick={() => setMobileShowList(true)} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium hover:bg-gray-50">
