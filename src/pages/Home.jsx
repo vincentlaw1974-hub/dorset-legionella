@@ -40,6 +40,12 @@ export default function Home() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [mobileShowList, setMobileShowList] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -190,16 +196,16 @@ export default function Home() {
 
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
-          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-3">
-            {/* Left sidebar — always visible on desktop, toggled on mobile */}
-            <div className={mobileShowList ? 'block' : 'hidden md:block'}>
+          <div style={{ display: isDesktop ? 'grid' : 'block', gridTemplateColumns: '280px 1fr', gap: '12px' }}>
+            {/* Left sidebar */}
+            <div style={{ display: isDesktop ? 'block' : (mobileShowList ? 'block' : 'none') }}>
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setMobileShowList(false); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
-            {/* Main content — always visible on desktop, toggled on mobile */}
-            <div className={mobileShowList ? 'hidden md:block' : 'block'}>
+            {/* Main content */}
+            <div style={{ display: isDesktop ? 'block' : (mobileShowList ? 'none' : 'block') }}>
               {/* Back to jobs button (mobile only) */}
               <div className="flex items-center gap-2 mb-3">
                 <button onClick={() => setMobileShowList(true)} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium hover:bg-gray-50">
@@ -208,8 +214,8 @@ export default function Home() {
                 <span className="text-sm font-semibold text-gray-700 truncate">{localJob.site_name || localJob.client || 'Untitled job'}</span>
               </div>
 
-              {/* Desktop tabs */}
-              <div className="hidden sm:flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+              {/* Tabs */}
+              <div style={{ display: 'flex' }} className="gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
                 {TABS.map(t => (
                   <button
                     key={t.id}
@@ -255,8 +261,8 @@ export default function Home() {
       )}
 
       {/* Bottom tab nav */}
-      {localJob && !mobileShowList && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-25 bg-white border-t border-gray-200 p-2">
+      {localJob && !isDesktop && !mobileShowList && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 25, background: 'white', borderTop: '1px solid #e5e7eb', padding: '8px' }}>
           <div className="flex gap-2 overflow-x-auto scrollbar-none">
             {MOBILE_TABS.map(id => {
               const tab = TABS.find(t => t.id === id);
