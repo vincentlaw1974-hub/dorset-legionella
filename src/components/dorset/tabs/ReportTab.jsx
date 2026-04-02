@@ -110,10 +110,10 @@ export default function ReportTab({ job, onPrint }) {
     const cylTemp = parseFloat(job.cylinder_temp);
     const hwTempFail = !isNaN(cylTemp) && cylTemp < 60;
     const checks = [
-      { label: 'Temp Monitoring', pass: !!job.monthly_temp_log },
-      { label: 'Flushing Log', pass: !!job.flushing_log },
-      { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log },
-      { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records },
+      { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
+      { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
+      { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
+      { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
       { label: 'HW Temp >=60C', pass: !hwTempFail && !isNaN(cylTemp) },
       { label: 'No Dead Legs', pass: !hasDeadLegs },
     ];
