@@ -190,16 +190,16 @@ export default function Home() {
 
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-3">
             {/* Left sidebar — always visible on desktop, toggled on mobile */}
-            <div className={mobileShowList ? 'block' : 'hidden lg:block'}>
+            <div className={mobileShowList ? 'block' : 'hidden md:block'}>
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setMobileShowList(false); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
             {/* Main content — always visible on desktop, toggled on mobile */}
-            <div className={mobileShowList ? 'hidden lg:block' : 'block'}>
+            <div className={mobileShowList ? 'hidden md:block' : 'block'}>
               {/* Back to jobs button (mobile only) */}
               <div className="flex items-center gap-2 mb-3">
                 <button onClick={() => setMobileShowList(true)} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium hover:bg-gray-50">
