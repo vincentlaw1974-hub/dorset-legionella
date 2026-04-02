@@ -11,7 +11,7 @@ export default function InviteModal({ onClose }) {
     if (!email.trim()) return;
     setStatus('sending');
     try {
-      await base44.users.inviteUser(email.trim(), 'user');
+      await base44.users.inviteUser(email.trim(), 'admin');
       setMessage(`Invite sent to ${email.trim()}`);
       setStatus('done');
       setEmail('');
