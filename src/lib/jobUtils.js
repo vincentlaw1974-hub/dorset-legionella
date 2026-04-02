@@ -58,7 +58,7 @@ export function outletStatus(o, cqcMode) {
     return { text: 'Pass', cls: 'ok' };
   }
 
-  const target = o.type === 'Pot Wash' ? 60 : (cqcMode ? 55 : 50);
+  const target = o.type === 'Pot Wash' ? 60 : 50;
   if (!isNaN(hot) && hot < 20) return { text: 'Urgent', cls: 'fail' };
   if (!isNaN(hot) && hot < target) return { text: 'Check', cls: 'warn' };
   if (o.infrequent) return { text: 'Check', cls: 'warn' };
@@ -66,7 +66,7 @@ export function outletStatus(o, cqcMode) {
 }
 
 export function buildControlScheme(job) {
-  const targetTemp = job.cqc_mode ? 55 : 50;
+  const targetTemp = 50;
   const rp = job.responsible_person || 'Responsible Person';
   const dh = job.duty_holder || 'Duty Holder';
   const rows = [
@@ -106,7 +106,7 @@ export function calculateRisk(job) {
   if (job.vulnerable_users) score += isCare ? 2 : 1;
 
   const outlets = job.outlets || [];
-  const hotTarget = isCare ? 55 : 50;
+  const hotTarget = 50;
   let tempFails = 0;
   outlets.forEach(o => {
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
