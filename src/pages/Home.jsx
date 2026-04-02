@@ -190,7 +190,7 @@ export default function Home() {
 
       {localJob && (
         <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
+          <div className={mobileShowList ? 'grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3' : 'block'}>
             {/* Left sidebar — shown when mobileShowList is true on all screen sizes */}
             <div className={mobileShowList ? 'block' : 'hidden'}>
               <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setMobileShowList(false); }} />
