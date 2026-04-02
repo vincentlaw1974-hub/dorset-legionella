@@ -68,12 +68,24 @@ export default function ShowersTab({ job, onChange }) {
               </div>
               <div>
                 <Label>Last descale date</Label>
-                <Input type="date" value={s.last_descale} onChange={e => {
-                  const val = e.target.value;
-                  const next = val ? new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0,10) : '';
-                  update(s.id, 'last_descale', val);
-                  update(s.id, 'next_descale', next);
-                }} />
+                <label className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                  <input type="checkbox" checked={!!s.descale_not_known} onChange={e => {
+                    const notKnown = e.target.checked;
+                    const reportDate = job.assessment_date || today();
+                    const d = new Date(reportDate);
+                    d.setMonth(d.getMonth() + 3);
+                    const nextStr = d.toISOString().slice(0,10);
+                    onChange({ showers: showers.map(sh => sh.id === s.id ? { ...sh, descale_not_known: notKnown, last_descale: notKnown ? '' : sh.last_descale, next_descale: notKnown ? nextStr : sh.next_descale } : sh) });
+                  }} className="w-4 h-4 accent-red-600" />
+                  Date not known
+                </label>
+                {!s.descale_not_known && (
+                  <Input type="date" value={s.last_descale} onChange={e => {
+                    const val = e.target.value;
+                    const next = val ? new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0,10) : '';
+                    onChange({ showers: showers.map(sh => sh.id === s.id ? { ...sh, last_descale: val, next_descale: next } : sh) });
+                  }} />
+                )}
               </div>
               <div>
                 <Label>Next descale due <span className="text-xs text-gray-400">(auto: +3 months)</span></Label>

@@ -71,7 +71,12 @@ export default function OutletsTab({ job, onChange }) {
                 {o.type !== 'Outside Tap' && (
                   <div><Label>Hot °C</Label><Input inputMode="decimal" value={o.hot} onChange={e => updateOutlet(o.id, 'hot', e.target.value)} /></div>
                 )}
-                <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(o.id, 'cold', e.target.value)} /></div>
+                {o.type !== 'Outside Tap' && (
+                  <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(o.id, 'cold', e.target.value)} /></div>
+                )}
+                {o.type === 'Outside Tap' && (
+                  <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(o.id, 'cold', e.target.value)} /></div>
+                )}
 
                 {o.type === 'Outside Tap' ? (
                   <div className="col-span-full">

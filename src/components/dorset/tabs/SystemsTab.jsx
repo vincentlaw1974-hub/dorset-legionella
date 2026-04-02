@@ -33,33 +33,37 @@ export default function SystemsTab({ job, onChange }) {
               {label}
             </label>
           ))}
-          <div><Label>CWST location</Label><Input {...f('cwst_location')} /></div>
-          <div>
-            <Label>CWST temperature °C <span className="text-xs text-gray-400">(must be &lt;20°C)</span></Label>
-            <Input
-              inputMode="decimal"
-              value={job.cwst_temp || ''}
-              onChange={e => {
-                const val = e.target.value;
-                const temp = parseFloat(val);
-                const update = { cwst_temp: val };
-                if (!isNaN(temp) && temp > 20) update.risk = 'HIGH';
-                onChange(update);
-              }}
-            />
-            {parseFloat(job.cwst_temp) > 20 && (
-              <div className="text-xs text-red-600 mt-1 font-bold">⚠ CWST above 20°C — risk auto-set to HIGH</div>
-            )}
-          </div>
-          {[
-            ['cwst_clean', 'CWST clean'],
-            ['cwst_drinking', 'CWST feeds drinking water'],
-          ].map(([field, label]) => (
-            <label key={field} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" {...cb(field)} className="w-4 h-4 accent-red-600" />
-              {label}
-            </label>
-          ))}
+
+          {job.cwst_present && (
+            <>
+              <div><Label>CWST location</Label><Input {...f('cwst_location')} /></div>
+              <div>
+                <Label>CWST temperature °C <span className="text-xs text-gray-400">(must be &lt;20°C)</span></Label>
+                <Input
+                  inputMode="decimal"
+                  value={job.cwst_temp || ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const temp = parseFloat(val);
+                    const update = { cwst_temp: val };
+                    if (!isNaN(temp) && temp > 20) update.risk = 'HIGH';
+                    onChange(update);
+                  }}
+                />
+                {parseFloat(job.cwst_temp) > 20 && (
+                  <div className="text-xs text-red-600 mt-1 font-bold">⚠ CWST above 20°C — risk auto-set to HIGH</div>
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" {...cb('cwst_clean')} className="w-4 h-4 accent-red-600" />
+                CWST clean
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" {...cb('cwst_drinking')} className="w-4 h-4 accent-red-600" />
+                CWST feeds drinking water
+              </label>
+            </>
+          )}
         </div>
       </div>
 
@@ -76,7 +80,9 @@ export default function SystemsTab({ job, onChange }) {
           {job.hw_not_stored && (
             <div><Label>Boiler set temperature °C <span className="text-xs text-gray-400">(target ≥60°C)</span></Label><Input inputMode="decimal" {...f('hw_boiler_set_temp')} /></div>
           )}
-          <div><Label>Last full flush date</Label><Input type="date" {...f('last_flush_date')} /></div>
+          {!job.hw_not_stored && (
+            <div><Label>Last full flush date</Label><Input type="date" {...f('last_flush_date')} /></div>
+          )}
         </div>
       </div>
 
@@ -114,16 +120,18 @@ export default function SystemsTab({ job, onChange }) {
             ))}
           </tbody>
         </table>
-        <div className="mt-3">
-          <Label>AC last service date</Label>
-          <Input type="date" {...f('ac_last_service_date')} />
-          {job.air_con && job.ac_last_service_date && new Date(job.ac_last_service_date) < new Date(new Date().setFullYear(new Date().getFullYear()-1)) && (
-            <div className="text-xs text-red-600 mt-1 font-bold">⚠ AC not serviced within 12 months — HIGH risk</div>
-          )}
-          {job.air_con && !job.ac_last_service_date && (
-            <div className="text-xs text-red-600 mt-1 font-bold">⚠ No AC service date recorded — HIGH risk</div>
-          )}
-        </div>
+        {job.air_con && (
+          <div className="mt-3">
+            <Label>AC last service date</Label>
+            <Input type="date" {...f('ac_last_service_date')} />
+            {job.ac_last_service_date && new Date(job.ac_last_service_date) < new Date(new Date().setFullYear(new Date().getFullYear()-1)) && (
+              <div className="text-xs text-red-600 mt-1 font-bold">⚠ AC not serviced within 12 months — HIGH risk</div>
+            )}
+            {!job.ac_last_service_date && (
+              <div className="text-xs text-red-600 mt-1 font-bold">⚠ No AC service date recorded — HIGH risk</div>
+            )}
+          </div>
+        )}
         <div className="mt-3">
           <Label>Scope / restrictions / no-access areas</Label>
           <Textarea {...f('restrictions')} placeholder="Pipework behind walls not visible, no access areas, hidden services, etc." />

@@ -22,8 +22,30 @@ export default function PhotosTab({ job, onChange }) {
 
   const handleFileInput = (e) => {
     const files = [...e.target.files];
-    if (files.length) openEditor(files[0]);
+    if (files.length === 1) {
+      openEditor(files[0]);
+    } else if (files.length > 1) {
+      handleMultiUpload(files);
+    }
     e.target.value = '';
+  };
+
+  const handleMultiUpload = async (files) => {
+    setUploading(true);
+    const newPhotos = [...(job.photos || [])];
+    for (const file of files) {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      newPhotos.push({ id: uid(), file_url, kind: 'General', location: '', caption: '' });
+    }
+    onChange({ photos: newPhotos });
+    setUploading(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+    if (files.length === 1) openEditor(files[0]);
+    else if (files.length > 1) handleMultiUpload(files);
   };
 
   const rotate = (deg) => setEditor(ed => ({ ...ed, rotation: (ed.rotation + deg + 360) % 360 }));
@@ -108,11 +130,16 @@ export default function PhotosTab({ job, onChange }) {
             <button onClick={() => cameraRef.current.click()} className="text-sm px-3 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>Take photo</button>
             <button onClick={() => uploadRef.current.click()} className="text-sm px-3 py-2 rounded-xl font-bold bg-white border border-gray-300 text-gray-900">Upload photos</button>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileInput} className="hidden" />
-            <input ref={uploadRef} type="file" accept="image/*" onChange={handleFileInput} className="hidden" />
+            <input ref={uploadRef} type="file" accept="image/*" multiple onChange={handleFileInput} className="hidden" />
           </div>
         </div>
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm mb-3">
-          Use <strong>Take photo</strong> on site for direct camera capture. Each photo opens in an edit step so you can rotate it. Every photo needs a location, type, and caption.
+        <div
+          className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm mb-3 border-dashed cursor-pointer"
+          onDragOver={e => e.preventDefault()}
+          onDrop={handleDrop}
+          onClick={() => uploadRef.current.click()}
+        >
+          Use <strong>Take photo</strong> on site for direct camera capture. You can also <strong>drag and drop multiple photos</strong> here, or click to select multiple files.
         </div>
         {uploading && <div className="flex items-center gap-2 text-sm text-gray-500 mb-3"><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</div>}
         <div className="space-y-3">
