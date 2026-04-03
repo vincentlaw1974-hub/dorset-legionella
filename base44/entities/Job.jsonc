@@ -1,6 +1,13 @@
 {
   "name": "Job",
   "type": "object",
+  "allow_public_read": false,
+  "rls": {
+    "read": "any_authenticated",
+    "create": "any_authenticated",
+    "update": "any_authenticated",
+    "delete": "owner_only"
+  },
   "properties": {
     "client": {
       "type": "string"
