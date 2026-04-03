@@ -17,12 +17,14 @@ function buildSchematic(job) {
 
 export default function ReportTab({ job, onPrint }) {
   const printRef = useRef();
+  const handlePrintRef = useRef(null);
 
   useEffect(() => {
-    const handler = () => handlePrint();
+    const handler = () => handlePrintRef.current && handlePrintRef.current();
     window.addEventListener('dorset:export', handler);
     return () => window.removeEventListener('dorset:export', handler);
   }, []);
+
   const fails = (job.outlets || []).filter(o => outletStatus(o, job.cqc_mode).cls !== 'ok').length;
   const scheme = buildControlScheme(job);
   const riskBadge = (job.risk || 'LOW').toLowerCase();
@@ -380,6 +382,8 @@ ${(job.showers||[]).length > 0 ? `
     win.focus();
     setTimeout(() => { win.print(); }, 800);
   };
+
+  handlePrintRef.current = handlePrint;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
