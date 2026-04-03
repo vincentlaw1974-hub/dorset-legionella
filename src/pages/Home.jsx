@@ -15,6 +15,7 @@ import ActionsTab from '@/components/dorset/tabs/ActionsTab';
 import PhotosTab from '@/components/dorset/tabs/PhotosTab';
 import LogbookTab from '@/components/dorset/tabs/LogbookTab';
 import ReportTab from '@/components/dorset/tabs/ReportTab';
+import JobsListPanel from '@/components/dorset/JobsListPanel';
 import IssuesTab from '@/components/dorset/tabs/IssuesTab';
 import RoomsTab from '@/components/dorset/tabs/RoomsTab';
 import DeadLegsTab from '@/components/dorset/tabs/DeadLegsTab';
@@ -35,7 +36,7 @@ const TABS = [
 ];
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('jobs');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const queryClient = useQueryClient();
@@ -207,36 +208,7 @@ export default function Home() {
               </div>
 
               {/* Tab content */}
-              {activeTab === 'jobs' && (
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <strong className="text-base">All saved jobs</strong>
-                    <button onClick={handleNew} className="text-sm px-4 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ New job</button>
-                  </div>
-                  {jobs.length === 0 && <p className="text-sm text-gray-400">No jobs yet.</p>}
-                  <div className="space-y-2">
-                    {jobs.map(j => (
-                      <div
-                        key={j.id}
-                        onClick={() => { setCurrentId(j.id); setActiveTab('overview'); }}
-                        className={`border rounded-xl p-3 cursor-pointer transition-all hover:shadow-sm ${j.id === localJob?.id ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-red-300 bg-white'}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-sm">{j.site_name || j.client || 'Untitled'}</div>
-                            <div className="text-xs text-gray-500">{j.client}{j.client && j.assessment_date ? ' — ' : ''}{j.assessment_date}</div>
-                            <div className="text-xs text-gray-400">{j.address}</div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${(j.risk||'low').toLowerCase()}`}>{j.risk || 'LOW'}</span>
-                            <span className="text-xs text-gray-400">{j.status}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {activeTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={(id) => { setCurrentId(id); setActiveTab('overview'); }} onNew={handleNew} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
