@@ -80,9 +80,10 @@ export default function OverviewTab({ job, onChange }) {
       </div>
       {/* Status selector */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {['In Progress', 'Completed', 'Reviewed'].map(s => {
+        {['In Progress', 'Completed', 'Reviewed', 'Future'].map(s => {
           const active = (job.status || 'In Progress') === s;
-          const colors = { 'In Progress': '#d97706', 'Completed': '#16a34a', 'Reviewed': '#2563eb' };
+          const colors = { 'In Progress': '#d97706', 'Completed': '#16a34a', 'Reviewed': '#2563eb', 'Future': '#7c3aed' };
+          const icons = { 'In Progress': '🔵', 'Completed': '✅', 'Reviewed': '🔍', 'Future': '🗓' };
           return (
             <button
               key={s}
@@ -90,7 +91,7 @@ export default function OverviewTab({ job, onChange }) {
               className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all`}
               style={active ? { background: colors[s], color: '#fff', borderColor: colors[s] } : { background: '#fff', color: '#374151', borderColor: '#d1d5db' }}
             >
-              {s === 'In Progress' ? '🔵' : s === 'Completed' ? '✅' : '🔍'} {s}
+              {icons[s]} {s}
             </button>
           );
         })}

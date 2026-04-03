@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 
-const STATUS_FILTERS = ['All', 'In Progress', 'Completed', 'Reviewed'];
+const STATUS_FILTERS = ['All', 'In Progress', 'Completed', 'Reviewed', 'Future'];
 
 function isReviewDueSoon(dateStr) {
   if (!dateStr) return false;
@@ -28,6 +28,7 @@ export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
 
   const filtered = jobs.filter(j => {
     if (!matchesSearch(j)) return false;
+    if (statusFilter === 'All' && j.status === 'Future') return false;
     if (statusFilter !== 'All' && j.status !== statusFilter) return false;
     return true;
   });
