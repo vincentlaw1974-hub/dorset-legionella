@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { buildControlScheme, outletStatus } from '@/lib/jobUtils';
 
 function buildSchematic(job) {
@@ -17,6 +17,12 @@ function buildSchematic(job) {
 
 export default function ReportTab({ job, onPrint }) {
   const printRef = useRef();
+
+  useEffect(() => {
+    const handler = () => handlePrint();
+    window.addEventListener('dorset:export', handler);
+    return () => window.removeEventListener('dorset:export', handler);
+  }, []);
   const fails = (job.outlets || []).filter(o => outletStatus(o, job.cqc_mode).cls !== 'ok').length;
   const scheme = buildControlScheme(job);
   const riskBadge = (job.risk || 'LOW').toLowerCase();

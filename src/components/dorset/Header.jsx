@@ -65,6 +65,14 @@ export default function Header({ onNew, onDelete, onDuplicate, saveState, hasJob
             </span>
           )}
 
+          {/* Export PDF */}
+          {hasJob && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('dorset:export'))}
+              className="text-sm px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-xl font-bold hover:bg-gray-600 hidden sm:inline-flex items-center gap-1"
+            >📄 Export PDF</button>
+          )}
+
           {/* Open job search */}
           <button
             onClick={() => setShowSearch(v => !v)}
