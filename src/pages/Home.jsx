@@ -104,7 +104,9 @@ export default function Home() {
   };
 
   const handleNew = () => {
-    createMutation.mutate(blankJob());
+    const siteName = window.prompt('Enter site name for the new job:');
+    if (!siteName || !siteName.trim()) return;
+    createMutation.mutate({ ...blankJob(), site_name: siteName.trim() });
   };
 
   const handleChange = useCallback((changes) => {
