@@ -8,10 +8,6 @@ export default function ManagementTab({ job, onChange }) {
     value: job[field] || '',
     onChange: (e) => onChange({ [field]: e.target.value })
   });
-  const cb = (field) => ({
-    checked: !!job[field],
-    onChange: (e) => onChange({ [field]: e.target.checked })
-  });
 
   const naInput = (field, label) => {
     const naKey = `${field}_na`;
@@ -30,6 +26,34 @@ export default function ManagementTab({ job, onChange }) {
           </label>
         </div>
         <Input {...f(field)} disabled={!!job[naKey]} placeholder={job[naKey] ? 'Not applicable' : ''} />
+      </div>
+    );
+  };
+
+  const naCheckbox = (field, label) => {
+    const naKey = `${field}_na`;
+    const isNA = !!job[naKey];
+    return (
+      <div key={field} className="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
+        <label className={`flex items-center gap-2 text-sm cursor-pointer ${isNA ? 'opacity-40' : ''}`}>
+          <input
+            type="checkbox"
+            checked={!!job[field] && !isNA}
+            disabled={isNA}
+            onChange={e => onChange({ [field]: e.target.checked })}
+            className="w-4 h-4 accent-red-600"
+          />
+          {label}
+        </label>
+        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer ml-3 whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={isNA}
+            onChange={e => onChange({ [naKey]: e.target.checked, ...(e.target.checked ? { [field]: false } : {}) })}
+            className="w-3.5 h-3.5 accent-gray-400"
+          />
+          N/A
+        </label>
       </div>
     );
   };
@@ -55,20 +79,13 @@ export default function ManagementTab({ job, onChange }) {
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <strong>Documentation &amp; compliance</strong>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-          {[
-            ['written_scheme', 'Written scheme in place'],
-            ['schematics_available', 'Existing schematics available'],
-            ['training_records', 'Training records available'],
-            ['monitoring_records', 'Monitoring records available'],
-            ['vulnerable_users', 'Vulnerable users/residents present'],
-            ['cqc_mode', 'Care/CQC support mode'],
-          ].map(([field, label]) => (
-            <label key={field} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" {...cb(field)} className="w-4 h-4 accent-red-600" />
-              {label}
-            </label>
-          ))}
+        <div className="mt-3 divide-y divide-gray-100">
+          {naCheckbox('written_scheme', 'Written scheme in place')}
+          {naCheckbox('schematics_available', 'Existing schematics available')}
+          {naCheckbox('training_records', 'Training records available')}
+          {naCheckbox('monitoring_records', 'Monitoring records available')}
+          {naCheckbox('vulnerable_users', 'Vulnerable users/residents present')}
+          {naCheckbox('cqc_mode', 'Care/CQC support mode')}
         </div>
         <div className="mt-3">
           <Label>Compliance notes</Label>
