@@ -18,6 +18,8 @@ function isOverdue(dateStr) {
 
 export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
   const [search, setSearch] = useState('');
+  const recentIds = JSON.parse(localStorage.getItem('recentJobs') || '[]');
+  const recentJobs = recentIds.map(id => jobs.find(j => j.id === id)).filter(Boolean).slice(0, 3);
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date');
 
@@ -80,6 +82,27 @@ export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
           </button>
         ))}
       </div>
+
+      {/* Recently viewed */}
+      {!search && statusFilter === 'All' && recentJobs.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Recently viewed</div>
+          <div className="flex flex-col gap-1">
+            {recentJobs.map(j => (
+              <button
+                key={j.id}
+                onClick={() => onSelect(j.id)}
+                className={`text-left px-3 py-2 rounded-xl border text-sm transition-all hover:bg-red-50 hover:border-red-300 ${j.id === currentId ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'}`}
+              >
+                <span className="font-medium">{j.site_name || j.client || 'Untitled'}</span>
+                <span className="ml-2 text-xs text-gray-400">{j.assessment_date}</span>
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-gray-100 mt-3 mb-3" />
+          <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">All jobs</div>
+        </div>
+      )}
 
       {/* Job list */}
       {sorted.length === 0 && <p className="text-sm text-gray-400 text-center py-6">No jobs found.</p>}
