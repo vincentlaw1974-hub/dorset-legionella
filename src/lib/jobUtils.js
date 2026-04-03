@@ -58,7 +58,7 @@ export function outletStatus(o, cqcMode) {
     return { text: 'Pass', cls: 'ok' };
   }
 
-  const target = o.type === 'Pot Wash' ? 60 : 50;
+  const target = o.type === 'Pot Wash' ? 60 : (cqcMode ? 55 : 50);
   if (!isNaN(hot) && hot < 20) return { text: 'Urgent', cls: 'fail' };
   if (!isNaN(hot) && hot < target) return { text: 'Check', cls: 'warn' };
   if (o.infrequent) return { text: 'Check', cls: 'warn' };

@@ -5,12 +5,11 @@ function buildSchematic(job) {
   const groups = {};
   (job.outlets || []).forEach(o => {
     const key = o.location || 'Area';
-    const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
-    const target = o.type === 'Pot Wash' ? 60 : 50;
+    const { cls } = outletStatus(o, job.cqc_mode);
     groups[key] = groups[key] || { count: 0, issue: false, types: new Set() };
     groups[key].count++;
     groups[key].types.add(o.type || 'Outlet');
-    if ((!isNaN(hot) && hot < target) || (!isNaN(cold) && cold > 20)) groups[key].issue = true;
+    if (cls !== 'ok') groups[key].issue = true;
   });
   return Object.entries(groups).map(([name, info]) => ({ name, count: info.count, issue: info.issue, types: [...info.types].join(', ') }));
 }
