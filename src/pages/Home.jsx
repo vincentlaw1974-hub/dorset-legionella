@@ -238,8 +238,8 @@ export default function Home() {
               <ReportChecks job={localJob} />
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 min-w-0">
+            {/* Main content — key by job id forces full remount on job switch, preventing stale state */}
+            <div key={localJob.id} className="flex-1 min-w-0">
               {/* Tabs */}
               <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
                 {TABS.map(t => (
