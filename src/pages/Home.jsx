@@ -181,7 +181,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: '#f6f7f9' }}>
-      <Header onNew={handleNew} onDelete={handleDelete} onComplete={handleComplete} onDuplicate={handleDuplicate} saveState={saveState} hasJob={!!localJob} job={localJob} jobs={jobs} onSelect={handleSelect} />
+      <Header onNew={handleNew} onDelete={handleDelete} onDuplicate={handleDuplicate} saveState={saveState} hasJob={!!localJob} job={localJob} jobs={jobs} onSelect={handleSelect} />
 
       {jobs.length === 0 && (
         <div className="max-w-6xl mx-auto px-3 py-16 text-center">
