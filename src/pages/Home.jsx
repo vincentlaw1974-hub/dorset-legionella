@@ -24,15 +24,17 @@ import ShowersTab from '@/components/dorset/tabs/ShowersTab';
 const TABS = [
   { id: 'jobs', label: '📁 Jobs' },
   { id: 'overview', label: 'Overview' },
+  { id: 'management', label: 'Management' },
   { id: 'rooms', label: 'Rooms' },
   { id: 'systems', label: 'Systems' },
   { id: 'outlets', label: 'Outlets' },
   { id: 'issues', label: 'Issues' },
   { id: 'dead_legs', label: 'Dead Legs' },
   { id: 'showers', label: 'Showers' },
+  { id: 'actions', label: 'Actions' },
   { id: 'photos', label: 'Photos' },
   { id: 'logbook', label: 'Logbook' },
-  { id: 'report', label: 'Report' },
+  { id: 'report', label: '📄 Report' },
 ];
 
 export default function Home() {
