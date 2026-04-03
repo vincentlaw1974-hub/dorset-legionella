@@ -78,6 +78,24 @@ export default function OverviewTab({ job, onChange }) {
           {templates.map(t => <option key={t}>{t}</option>)}
         </select>
       </div>
+      {/* Status selector */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {['In Progress', 'Completed', 'Reviewed'].map(s => {
+          const active = (job.status || 'In Progress') === s;
+          const colors = { 'In Progress': '#d97706', 'Completed': '#16a34a', 'Reviewed': '#2563eb' };
+          return (
+            <button
+              key={s}
+              onClick={() => onChange({ status: s })}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all`}
+              style={active ? { background: colors[s], color: '#fff', borderColor: colors[s] } : { background: '#fff', color: '#374151', borderColor: '#d1d5db' }}
+            >
+              {s === 'In Progress' ? '🔵' : s === 'Completed' ? '✅' : '🔍'} {s}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>Client</Label><Input {...f('client')} /></div>
         <div><Label>Site name</Label><Input {...f('site_name')} /></div>
