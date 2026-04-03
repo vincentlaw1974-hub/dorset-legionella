@@ -69,8 +69,8 @@ export default function Header({ onNew, onDelete, onDuplicate, saveState, hasJob
           {hasJob && (
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('dorset:export'))}
-              className="text-sm px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-xl font-bold hover:bg-gray-600 hidden sm:inline-flex items-center gap-1"
-            >📄 Export PDF</button>
+              className="text-sm px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-xl font-bold hover:bg-gray-600 flex items-center gap-1"
+            >📄 <span className="hidden sm:inline">Export PDF</span></button>
           )}
 
           {/* Open job search */}
