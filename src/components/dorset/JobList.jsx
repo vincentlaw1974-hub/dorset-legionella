@@ -5,11 +5,19 @@ export default function JobList({ jobs, currentId, onSelect }) {
   const [search, setSearch] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
 
+  const matchesSearch = j => `${j.client} ${j.site_name} ${j.address}`.toLowerCase().includes(search.toLowerCase());
+
   const filtered = jobs.filter(j => {
-    const isCompleted = j.status === 'Completed';
-    if (!showCompleted && isCompleted) return false;
-    return `${j.client} ${j.site_name} ${j.address}`.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch(j)) return false;
+    if (!showCompleted && j.status === 'Completed') return false;
+    return true;
   });
+
+  // If searching and there are matching completed jobs, auto-show them
+  const hasMatchingCompleted = search.trim() && jobs.some(j => j.status === 'Completed' && matchesSearch(j));
+  const visibleFiltered = hasMatchingCompleted
+    ? jobs.filter(j => matchesSearch(j))
+    : filtered;
 
   const completedCount = jobs.filter(j => j.status === 'Completed').length;
 
@@ -35,7 +43,7 @@ export default function JobList({ jobs, currentId, onSelect }) {
       )}
 
       <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-0.5">
-        {filtered.map(j => (
+        {visibleFiltered.map(j => (
           <div
             key={j.id}
             onClick={() => onSelect(j.id)}
@@ -52,7 +60,7 @@ export default function JobList({ jobs, currentId, onSelect }) {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && <div className="text-xs text-gray-400 text-center py-3">No jobs found</div>}
+        {visibleFiltered.length === 0 && <div className="text-xs text-gray-400 text-center py-3">No jobs found</div>}
       </div>
     </div>
   );
