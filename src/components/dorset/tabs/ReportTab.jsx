@@ -162,17 +162,21 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
 
   const handlePrint = () => {
     const html = buildReportHtml();
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none';
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    setTimeout(() => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(() => document.body.removeChild(iframe), 2000);
-    }, 800);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      win.addEventListener('load', () => {
+        setTimeout(() => {
+          win.focus();
+          win.print();
+          URL.revokeObjectURL(url);
+        }, 500);
+      });
+    } else {
+      // fallback: direct navigation
+      window.location.href = url;
+    }
   };
 
   handlePrintRef.current = handlePrint;
