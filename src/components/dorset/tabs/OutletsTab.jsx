@@ -1,5 +1,6 @@
 import React from 'react';
 import { uid, templateOutlets, outletStatus } from '@/lib/jobUtils';
+import { base44 } from '@/api/base44Client';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,18 +14,26 @@ export default function OutletsTab({ job, onChange }) {
   };
 
   const addOutlet = () => {
-    const outlets = [...(job.outlets || []), { id: uid(), location: '', type: 'WHB', hot: '', cold: '', notes: '', designation: '', infrequent: false }];
+    const outlets = [...(job.outlets || []), { id: uid(), location: '', type: 'WHB', hot: '', cold: '', notes: '', infrequent: false }];
     onChange({ outlets });
   };
 
   const addTemplateOutlets = () => {
     const name = job.property_type in templateOutlets ? job.property_type : 'Nursing Home';
-    const newOnes = templateOutlets[name].map(([location, type]) => ({ id: uid(), location, type, hot: '', cold: '', notes: '', designation: '', infrequent: false }));
+    const newOnes = templateOutlets[name].map(([location, type]) => ({ id: uid(), location, type, hot: '', cold: '', notes: '', infrequent: false }));
     onChange({ outlets: [...(job.outlets || []), ...newOnes] });
   };
 
   const removeOutlet = (id) => {
     onChange({ outlets: (job.outlets || []).filter(o => o.id !== id) });
+  };
+
+  const handleOutletPhoto = async (id, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    updateOutlet(id, 'photo_url', file_url);
+    e.target.value = '';
   };
 
   return (
@@ -92,18 +101,38 @@ export default function OutletsTab({ job, onChange }) {
                     <div className="flex flex-wrap gap-4 mt-1">
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input type="checkbox" checked={!!o.hasTmv} onChange={e => updateOutlet(o.id, 'hasTmv', e.target.checked)} className="w-4 h-4 accent-red-600" />
-                        TMV fitted (blended 38–46°C)
+                        TMV fitted — record blended outlet temp (38–46°C)
                       </label>
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
                         Infrequently used
                       </label>
                     </div>
-                    {o.hasTmv && <div className="text-xs text-blue-700 mt-1">Pass range: 38–46°C blended</div>}
+                    {o.hasTmv && <div className="text-xs text-blue-700 mt-1">⚠ Enter the blended outlet temp, NOT the system/boiler temp. Pass range: 38–46°C.</div>}
                   </div>
                 )}
               </div>
-              <div className="mt-2"><Label>Notes</Label><Textarea value={o.notes} onChange={e => updateOutlet(o.id, 'notes', e.target.value)} className="min-h-[60px]" /></div>
+
+              <div className="mt-2">
+                <Label>Notes</Label>
+                <Textarea value={o.notes} onChange={e => updateOutlet(o.id, 'notes', e.target.value)} className="min-h-[60px]" />
+              </div>
+
+              {/* Outlet photo */}
+              <div className="mt-2">
+                {o.photo_url ? (
+                  <div className="relative inline-block">
+                    <img src={o.photo_url} alt="outlet" className="h-24 w-32 object-cover rounded-xl border border-gray-200" />
+                    <button onClick={() => updateOutlet(o.id, 'photo_url', '')} className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full w-5 h-5 text-xs text-red-600 flex items-center justify-center font-bold">×</button>
+                  </div>
+                ) : (
+                  <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50 inline-block">
+                    📷 Add outlet photo
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleOutletPhoto(o.id, e)} />
+                  </label>
+                )}
+              </div>
+
               <div className="mt-2">
                 <button onClick={() => removeOutlet(o.id)} className="text-sm px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50">Remove outlet</button>
               </div>
