@@ -46,7 +46,7 @@ export default function JobList({ jobs, currentId, onSelect }) {
         {visibleFiltered.map(j => (
           <div
             key={j.id}
-            onClick={() => onSelect(j.id)}
+            onClick={() => { setShowCompleted(true); onSelect(j.id); }}
             className={`p-3 border rounded-xl cursor-pointer transition-all ${j.id === currentId ? 'border-brand-red bg-red-50' : 'border-gray-200 bg-white hover:bg-gray-50'} ${j.status === 'Completed' ? 'opacity-60' : ''}`}
           >
             <div className="font-bold text-sm">{j.site_name || j.client || 'Untitled site'}</div>
