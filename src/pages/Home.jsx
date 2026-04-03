@@ -185,7 +185,7 @@ export default function Home() {
 
             {/* Left sidebar */}
             <div className="w-full lg:w-[280px] lg:flex-shrink-0">
-              <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); }} />
+              <JobList jobs={jobs} currentId={localJob.id} onSelect={(id) => { setCurrentId(id); setActiveTab('overview'); }} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
