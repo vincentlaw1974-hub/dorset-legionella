@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import InviteModal from '@/components/dorset/InviteModal';
 
-export default function Header({ onNew, onDelete, saveState, hasJob }) {
+export default function Header({ onNew, onDelete, onComplete, onDuplicate, saveState, hasJob, job }) {
   const [showInvite, setShowInvite] = useState(false);
   return (
     <header className="sticky top-0 z-30 text-white" style={{ background: 'linear-gradient(180deg,#111 0%,#1c1c1c 100%)', borderBottom: '5px solid #d71920' }}>
@@ -29,6 +29,12 @@ export default function Header({ onNew, onDelete, saveState, hasJob }) {
           )}
           <button onClick={() => setShowInvite(true)} className="text-sm px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-xl font-bold hover:bg-gray-100">Invite user</button>
           <button onClick={onNew} className="text-sm px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-xl font-bold hover:bg-gray-100">New job</button>
+          {hasJob && onDuplicate && (
+            <button onClick={onDuplicate} className="text-sm px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-xl font-bold hover:bg-gray-100">Duplicate</button>
+          )}
+          {hasJob && job?.status !== 'Completed' && onComplete && (
+            <button onClick={onComplete} className="text-sm px-3 py-2 bg-green-600 text-white border border-green-700 rounded-xl font-bold hover:bg-green-700">Mark complete</button>
+          )}
           {hasJob && (
             <button onClick={onDelete} className="text-sm px-3 py-2 bg-red-700 text-white border border-red-800 rounded-xl font-bold hover:bg-red-800">Delete job</button>
           )}

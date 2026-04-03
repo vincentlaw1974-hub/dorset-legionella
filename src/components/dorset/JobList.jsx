@@ -3,33 +3,52 @@ import { Input } from '@/components/ui/input';
 
 export default function JobList({ jobs, currentId, onSelect }) {
   const [search, setSearch] = useState('');
-  const filtered = jobs.filter(j =>
-    `${j.client} ${j.site_name} ${j.address}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  const filtered = jobs.filter(j => {
+    const isCompleted = j.status === 'Completed';
+    if (!showCompleted && isCompleted) return false;
+    return `${j.client} ${j.site_name} ${j.address}`.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const completedCount = jobs.filter(j => j.status === 'Completed').length;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm mb-3">
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <strong className="text-sm">Saved jobs</strong>
         <Input
-          placeholder="Search jobs"
+          placeholder="Search…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="max-w-[160px] h-8 text-sm"
+          className="max-w-[140px] h-8 text-sm"
         />
       </div>
-      <div className="grid gap-2">
+
+      {completedCount > 0 && (
+        <button
+          onClick={() => setShowCompleted(v => !v)}
+          className="text-xs text-gray-500 underline mb-2 block"
+        >
+          {showCompleted ? `Hide completed (${completedCount})` : `Show completed (${completedCount})`}
+        </button>
+      )}
+
+      <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-0.5">
         {filtered.map(j => (
           <div
             key={j.id}
             onClick={() => onSelect(j.id)}
-            className={`p-3 border rounded-xl cursor-pointer transition-all ${j.id === currentId ? 'border-brand-red bg-red-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+            className={`p-3 border rounded-xl cursor-pointer transition-all ${j.id === currentId ? 'border-brand-red bg-red-50' : 'border-gray-200 bg-white hover:bg-gray-50'} ${j.status === 'Completed' ? 'opacity-60' : ''}`}
           >
             <div className="font-bold text-sm">{j.site_name || j.client || 'Untitled site'}</div>
-            <div className="text-xs text-gray-500 mt-1">{j.property_type} • {j.assessment_date} • {j.status}</div>
+            <div className="text-xs text-gray-500 mt-1">{j.property_type} • {j.assessment_date}</div>
             <div className="text-xs text-gray-500">{j.address || ''}</div>
-            <div className="mt-1.5">
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold badge-${(j.risk || 'low').toLowerCase()}`}>{j.risk || 'LOW'}</span>
+              {j.status === 'Completed' && (
+                <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-gray-200 text-gray-600">Completed</span>
+              )}
             </div>
           </div>
         ))}

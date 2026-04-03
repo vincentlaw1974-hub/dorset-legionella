@@ -113,6 +113,27 @@ export default function Home() {
     }
   }, [updateMutation]);
 
+  const handleComplete = useCallback(() => {
+    if (!localJob) return;
+    const updated = { ...localJob, status: 'Completed' };
+    localJobRef.current = updated;
+    setLocalJob(updated);
+    updateMutation.mutate({ id: updated.id, data: updated });
+  }, [localJob, updateMutation]);
+
+  const handleDuplicate = useCallback(() => {
+    if (!localJob) return;
+    const { id, created_date, updated_date, created_by, ...rest } = localJob;
+    const copy = {
+      ...rest,
+      site_name: (rest.site_name || rest.client || 'Copy') + ' (Copy)',
+      status: 'In Progress',
+      assessment_date: '',
+      review_due: '',
+    };
+    createMutation.mutate(copy);
+  }, [localJob, createMutation]);
+
   const handleDelete = () => {
     if (!localJob) return;
     setDeleteTargetId(localJob.id);
@@ -147,7 +168,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: '#f6f7f9' }}>
-      <Header onNew={handleNew} onDelete={handleDelete} saveState={saveState} hasJob={!!localJob} />
+      <Header onNew={handleNew} onDelete={handleDelete} onComplete={handleComplete} onDuplicate={handleDuplicate} saveState={saveState} hasJob={!!localJob} job={localJob} />
 
       {jobs.length === 0 && (
         <div className="max-w-6xl mx-auto px-3 py-16 text-center">
