@@ -57,7 +57,9 @@ export default function Home() {
   const selectedJob = jobs.find(j => j.id === (currentId || jobs[0]?.id)) || jobs[0] || null;
 
   useEffect(() => {
-    if (selectedJob && (!localJob || localJob.id !== selectedJob.id)) {
+    // Only sync from server if we don't already have this job loaded locally
+    // (avoid overwriting in-flight edits when the query re-fetches)
+    if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
       setLocalJob(selectedJob);
       localJobRef.current = selectedJob;
     }
@@ -93,10 +95,23 @@ export default function Home() {
   });
 
   const handleSelect = (id) => {
+    // Flush any pending save for the current job before switching
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      if (localJobRef.current) {
+        updateMutation.mutate({ id: localJobRef.current.id, data: localJobRef.current });
+      }
+    }
+    // Find the job and set it immediately to avoid any stale state
+    const nextJob = jobs.find(j => j.id === id);
+    if (nextJob) {
+      localJobRef.current = nextJob;
+      setLocalJob(nextJob);
+    }
     setCurrentId(id);
     setActiveTab('overview');
     setSidebarOpen(false);
-    // Track recently viewed
     const key = 'recentJobs';
     const recent = JSON.parse(localStorage.getItem(key) || '[]');
     const updated = [id, ...recent.filter(r => r !== id)].slice(0, 3);
@@ -116,16 +131,21 @@ export default function Home() {
     if (!updated.risk_override) {
       updated.risk = calculateRisk(updated);
     }
+    // Guard: only save if the id hasn't changed under us
+    const jobId = current.id;
     localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
     if ('photos' in changes) {
       clearTimeout(debounceRef.current);
-      updateMutation.mutate({ id: updated.id, data: updated });
+      updateMutation.mutate({ id: jobId, data: updated });
     } else {
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        updateMutation.mutate({ id: updated.id, data: updated });
+        // Double-check we're still on the same job before saving
+        if (localJobRef.current?.id === jobId) {
+          updateMutation.mutate({ id: jobId, data: localJobRef.current });
+        }
       }, 800);
     }
   }, [updateMutation]);
