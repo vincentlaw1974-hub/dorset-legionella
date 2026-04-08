@@ -144,7 +144,7 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
 <div class="page" style="page-break-before:always">
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
   <div class="section-title">Indicative Schematic</div>
-  ${schemaBoxes.length>0?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${schemaBoxes}</div>`:''}
+  ${schemaBoxes.length>0?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${schemaBoxes}</div>`:'<p style="font-size:10px;color:#888">No outlets recorded — add outlets with locations to generate the schematic.</p>'}
   <div class="section-title">Legal / Compliance Notes</div>
   <p style="font-size:10px">• ${compNotesBenchmark}</p>
   ${compNotes.map(n=>`<p style="font-size:10px;${n.startsWith('COMPLIANCE')?'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;':''}margin:4px 0">• ${n}</p>`).join('')}
