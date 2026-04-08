@@ -22,6 +22,7 @@ import DeadLegsTab from '@/components/dorset/tabs/DeadLegsTab';
 import ShowersTab from '@/components/dorset/tabs/ShowersTab';
 import RenewalsTab from '@/components/dorset/tabs/RenewalsTab';
 import DashboardTab from '@/components/dorset/tabs/DashboardTab';
+import SchematicTab from '@/components/dorset/tabs/SchematicTab';
 
 const TABS = [
   { id: 'jobs', label: '📁 Jobs' },
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'dashboard', label: '📊 Dashboard' },
   { id: 'overview', label: 'Overview' },
   { id: 'management', label: 'Management' },
+  { id: 'schematic', label: '🗺 Schematic' },
   { id: 'rooms', label: 'Rooms' },
   { id: 'systems', label: 'Systems' },
   { id: 'outlets', label: 'Outlets' },
@@ -279,6 +281,7 @@ export default function Home() {
 
             {/* Main content */}
             <div key={localJob.id} className="flex-1 min-w-0">
+              {activeTab === 'schematic' && <SchematicTab job={localJob} onChange={handleChange} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
