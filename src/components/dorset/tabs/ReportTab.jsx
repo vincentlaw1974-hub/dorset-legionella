@@ -167,14 +167,24 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
     const win = window.open(url, '_blank');
     if (win) {
       win.addEventListener('load', () => {
-        setTimeout(() => {
-          win.focus();
-          win.print();
-          URL.revokeObjectURL(url);
-        }, 500);
+        // Wait longer for images to load from CDN
+        const images = win.document.querySelectorAll('img');
+        const promises = Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        });
+        Promise.all(promises).then(() => {
+          setTimeout(() => {
+            win.focus();
+            win.print();
+            URL.revokeObjectURL(url);
+          }, 300);
+        });
       });
     } else {
-      // fallback: direct navigation
       window.location.href = url;
     }
   };
@@ -253,7 +263,7 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
             <div><strong>Outlets ({(job.outlets || []).length})</strong></div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-xs mt-1">
-                <thead><tr className="bg-red-50">{['Location','Type','Hot °C','Cold °C','Status','Notes'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
+                <thead><tr className="bg-red-50">{['Location','Type','Hot °C','Cold °C','Status','Notes','Photo'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
                 <tbody>{(job.outlets || []).map(o => {
                   const st = outletStatus(o, job.cqc_mode);
                   return <tr key={o.id}>
@@ -263,6 +273,7 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
                     <td className="border border-gray-200 p-1.5">{o.cold}</td>
                     <td className="border border-gray-200 p-1.5"><span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold badge-${st.cls}`}>{st.text}</span></td>
                     <td className="border border-gray-200 p-1.5">{o.notes}</td>
+                    <td className="border border-gray-200 p-1.5">{o.photo_url ? <img src={o.photo_url} alt="" className="w-16 h-12 object-cover rounded" /> : '—'}</td>
                   </tr>;
                 })}</tbody>
               </table>
