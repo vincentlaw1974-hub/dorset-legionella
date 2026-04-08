@@ -3,6 +3,22 @@ import { Input } from '@/components/ui/input';
 
 const STATUS_FILTERS = ['All', 'In Progress', 'Completed', 'Reviewed', 'Future'];
 
+function getRenewalDate(job) {
+  if (job.review_due) return new Date(job.review_due);
+  if (job.created_date) {
+    const d = new Date(job.created_date);
+    d.setMonth(d.getMonth() + 11);
+    return d;
+  }
+  return null;
+}
+
+function getDaysUntilRenewal(job) {
+  const date = getRenewalDate(job);
+  if (!date) return null;
+  return Math.ceil((date - new Date()) / (1000 * 60 * 60 * 24));
+}
+
 function isReviewDueSoon(dateStr) {
   if (!dateStr) return false;
   const due = new Date(dateStr);
@@ -22,6 +38,11 @@ export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
   const recentJobs = recentIds.map(id => jobs.find(j => j.id === id)).filter(Boolean).slice(0, 3);
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date');
+
+  const renewalJobs = jobs
+    .map(j => ({ job: j, days: getDaysUntilRenewal(j) }))
+    .filter(({ days }) => days !== null && days <= 60)
+    .sort((a, b) => a.days - b.days);
 
   const matchesSearch = j =>
     `${j.client} ${j.site_name} ${j.address}`.toLowerCase().includes(search.toLowerCase());
@@ -83,6 +104,35 @@ export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
           </button>
         ))}
       </div>
+
+      {/* Renewals Due */}
+      {renewalJobs.length > 0 && (
+        <div className="mb-4">
+          <div className="text-xs text-red-600 font-bold uppercase tracking-wide mb-1.5">⚠ Renewals Due ({renewalJobs.length})</div>
+          <div className="flex flex-col gap-1.5">
+            {renewalJobs.map(({ job: j, days }) => (
+              <button
+                key={j.id}
+                onClick={() => onSelect(j.id)}
+                className={`text-left px-3 py-2 rounded-xl border text-sm transition-all hover:bg-red-50 hover:border-red-300 ${j.id === currentId ? 'border-red-400 bg-red-50' : days < 0 ? 'border-red-300 bg-red-50' : 'border-orange-200 bg-orange-50'}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold truncate">{j.site_name || j.client || 'Untitled'}</span>
+                  <span className={`text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full ${
+                    days < 0 ? 'bg-red-200 text-red-800' : days <= 14 ? 'bg-orange-200 text-orange-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d`}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Renewal: {getRenewalDate(j)?.toISOString().slice(0, 10) || '—'}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-gray-100 mt-3 mb-3" />
+        </div>
+      )}
 
       {/* Recently viewed */}
       {!search && statusFilter === 'All' && recentJobs.length > 0 && (
