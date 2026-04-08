@@ -20,9 +20,11 @@ import IssuesTab from '@/components/dorset/tabs/IssuesTab';
 import RoomsTab from '@/components/dorset/tabs/RoomsTab';
 import DeadLegsTab from '@/components/dorset/tabs/DeadLegsTab';
 import ShowersTab from '@/components/dorset/tabs/ShowersTab';
+import RenewalsTab from '@/components/dorset/tabs/RenewalsTab';
 
 const TABS = [
   { id: 'jobs', label: '📁 Jobs' },
+  { id: 'renewals', label: '🔔 Renewals' },
   { id: 'overview', label: 'Overview' },
   { id: 'management', label: 'Management' },
   { id: 'rooms', label: 'Rooms' },
@@ -256,6 +258,7 @@ export default function Home() {
 
               {/* Tab content */}
               {activeTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
+              {activeTab === 'renewals' && <RenewalsTab jobs={jobs} onSelect={handleSelect} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
