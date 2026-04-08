@@ -27,37 +27,37 @@ export default function ActionsTab({ job, onChange }) {
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2 mb-2">
         <strong>Improvement actions</strong>
-        <button onClick={addAction} className="text-sm px-3 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>Add action</button>
+        <button onClick={addAction} className="text-sm px-4 py-3 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ Add action</button>
       </div>
-      <div className="text-xs text-gray-500 mb-3">Priority key: 1 Immediate, 2 As soon as practicable, 3 Planned remedial works, 4 Future maintenance/capital, O Observation.</div>
+      <div className="text-xs text-gray-500 mb-3">Priority: 1 Immediate, 2 ASAP, 3 Planned, 4 Future, O Observation.</div>
 
       {(job.actions || []).length === 0 && (
         <div className="text-sm text-gray-400 text-center py-6">No actions yet.</div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {(job.actions || []).map(a => (
-          <div key={a.id} className="border border-gray-200 rounded-2xl p-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div><Label>Ref</Label><Input value={a.ref} onChange={e => updateAction(a.id, 'ref', e.target.value)} /></div>
-              <div><Label>System</Label><Input value={a.system} onChange={e => updateAction(a.id, 'system', e.target.value)} /></div>
+          <div key={a.id} className="border border-gray-200 rounded-2xl p-4">
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div><Label>Ref</Label><Input className="h-12 text-base" value={a.ref} onChange={e => updateAction(a.id, 'ref', e.target.value)} /></div>
               <div>
                 <Label>Priority</Label>
-                <select value={a.priority} onChange={e => updateAction(a.id, 'priority', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                <select value={a.priority} onChange={e => updateAction(a.id, 'priority', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-3 text-base">
                   {['1','2','3','4','O'].map(p => <option key={p}>{p}</option>)}
                 </select>
               </div>
-              <div><Label>Status</Label><Input value={a.status} onChange={e => updateAction(a.id, 'status', e.target.value)} /></div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 mt-2">
-              <div><Label>Responsible person</Label><Input value={a.responsible_person || ''} onChange={e => updateAction(a.id, 'responsible_person', e.target.value)} /></div>
-              <div><Label>Deadline</Label><Input type="date" value={a.deadline || ''} onChange={e => updateAction(a.id, 'deadline', e.target.value)} /></div>
+            <div className="mb-3"><Label>System</Label><Input className="h-12 text-base" value={a.system} onChange={e => updateAction(a.id, 'system', e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div><Label>Responsible</Label><Input className="h-12 text-base" value={a.responsible_person || ''} onChange={e => updateAction(a.id, 'responsible_person', e.target.value)} /></div>
+              <div><Label>Deadline</Label><Input type="date" className="h-12 text-base" value={a.deadline || ''} onChange={e => updateAction(a.id, 'deadline', e.target.value)} /></div>
             </div>
-            <div className="mt-2"><Label>Observation</Label><Textarea value={a.observation} onChange={e => updateAction(a.id, 'observation', e.target.value)} /></div>
-            <div className="mt-2"><Label>Action</Label><Textarea value={a.action} onChange={e => updateAction(a.id, 'action', e.target.value)} /></div>
-            <div className="mt-2">
-              <button onClick={() => removeAction(a.id)} className="text-sm px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50">Remove action</button>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div><Label>Status</Label><Input className="h-12 text-base" value={a.status} onChange={e => updateAction(a.id, 'status', e.target.value)} /></div>
             </div>
+            <div className="mb-3"><Label>Observation</Label><Textarea className="text-base min-h-[80px]" value={a.observation} onChange={e => updateAction(a.id, 'observation', e.target.value)} /></div>
+            <div className="mb-3"><Label>Action required</Label><Textarea className="text-base min-h-[80px]" value={a.action} onChange={e => updateAction(a.id, 'action', e.target.value)} /></div>
+            <button onClick={() => removeAction(a.id)} className="w-full py-3 rounded-xl bg-white text-red-600 border border-red-200 font-bold text-sm">Remove action</button>
           </div>
         ))}
       </div>

@@ -12,7 +12,7 @@ import ManagementTab from '@/components/dorset/tabs/ManagementTab';
 import SystemsTab from '@/components/dorset/tabs/SystemsTab';
 import OutletsTab from '@/components/dorset/tabs/OutletsTab';
 import ActionsTab from '@/components/dorset/tabs/ActionsTab';
-import PhotosTab from '@/components/dorset/tabs/PhotosTab';
+import PhotosTab from '@/components/dorset/tabs/PhotosTab.jsx';
 import LogbookTab from '@/components/dorset/tabs/LogbookTab';
 import ReportTab from '@/components/dorset/tabs/ReportTab';
 import JobsListPanel from '@/components/dorset/JobsListPanel';
@@ -225,12 +225,12 @@ export default function Home() {
       {/* Global tabs — always visible when jobs exist */}
       {jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pt-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
             {TABS.map(t => (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium border transition-all ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                className={`whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border transition-all flex-shrink-0 ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
                 style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
               >
                 {t.label}
