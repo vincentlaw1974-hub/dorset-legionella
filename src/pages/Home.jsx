@@ -220,8 +220,43 @@ export default function Home() {
         </div>
       )}
 
-      {localJob && (
-        <div className="max-w-6xl mx-auto px-3 py-3 pb-24">
+      {/* Global tabs — always visible when jobs exist */}
+      {jobs.length > 0 && (
+        <div className="max-w-6xl mx-auto px-3 pt-3">
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium border transition-all ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio-level tabs — no job needed */}
+      {activeTab === 'jobs' && jobs.length > 0 && (
+        <div className="max-w-6xl mx-auto px-3 pb-24">
+          <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />
+        </div>
+      )}
+      {activeTab === 'renewals' && jobs.length > 0 && (
+        <div className="max-w-6xl mx-auto px-3 pb-24">
+          <RenewalsTab jobs={jobs} onSelect={handleSelect} />
+        </div>
+      )}
+      {activeTab === 'dashboard' && jobs.length > 0 && (
+        <div className="max-w-6xl mx-auto px-3 pb-24">
+          <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />
+        </div>
+      )}
+
+      {localJob && !['jobs','renewals','dashboard'].includes(activeTab) && (
+        <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
           <div className="flex flex-col lg:flex-row gap-3 items-start">
 
             {/* Mobile sidebar toggle */}
@@ -242,26 +277,8 @@ export default function Home() {
               <ReportChecks job={localJob} />
             </div>
 
-            {/* Main content — key by job id forces full remount on job switch, preventing stale state */}
+            {/* Main content */}
             <div key={localJob.id} className="flex-1 min-w-0">
-              {/* Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
-                {TABS.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTab(t.id)}
-                    className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium border transition-all ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
-                    style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Tab content */}
-              {activeTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
-              {activeTab === 'renewals' && <RenewalsTab jobs={jobs} onSelect={handleSelect} />}
-              {activeTab === 'dashboard' && <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
