@@ -30,7 +30,71 @@ export default function ReportTab({ job, onPrint }) {
   const areas = buildSchematic(job);
 
   const buildReportHtml = () => {
+    // Build schematic data
+    const roomGroups = {};
+    (job.outlets || []).forEach(o => {
+      const key = o.location || 'Unspecified';
+      if (!roomGroups[key]) roomGroups[key] = [];
+      roomGroups[key].push(o);
+    });
+
+    const outletTypeIcon = (type) => {
+      const map = { 'WHB': '🚿', 'Shower': '🚿', 'Bath': '🛁', 'Kitchen Sink': '🍽️', 'Cleaner Sink': '🪣', 'Outside Tap': '🌿', 'Pot Wash': '🍽️', 'TMV': '🔧' };
+      return map[type] || '💧';
+    };
+
+    const statusColor = (o) => {
+      const st = outletStatus(o, job.cqc_mode);
+      return st.cls === 'ok' ? '#27ae60' : st.cls === 'warn' ? '#e67e22' : '#c0392b';
+    };
+
+    const flowNodes = [
+      { label: 'Cold Mains', sub: job.cold_source || 'Mains', color: '#3b82f6', bg: '#eff6ff', icon: '🌊' },
+      job.cwst_present ? { label: 'CWST', sub: job.cwst_location || 'Storage tank', color: '#8b5cf6', bg: '#f5f3ff', icon: '🏗️' } : null,
+      job.hw_not_stored ? null : { label: 'HW Cylinder', sub: job.cylinder_temp ? job.cylinder_temp + '°C' : 'Storage', color: '#f97316', bg: '#fff7ed', icon: '♨️' },
+      job.tmvs_installed ? { label: 'TMVs', sub: 'Blended outlets', color: '#8b5cf6', bg: '#f5f3ff', icon: '🔧' } : null,
+      { label: 'Outlets', sub: `${(job.outlets||[]).length} total`, color: '#10b981', bg: '#ecfdf5', icon: '🚿' },
+    ].filter(Boolean);
+
+    const flowHtml = flowNodes.map((n, i) =>
+      `<div style="display:inline-flex;align-items:center;gap:6px">
+        <div style="border:2px solid ${n.color};background:${n.bg};border-radius:10px;padding:8px 12px;text-align:center;min-width:80px">
+          <div style="font-size:18px">${n.icon}</div>
+          <div style="font-weight:bold;font-size:10px;color:${n.color}">${n.label}</div>
+          <div style="font-size:9px;color:#666">${n.sub}</div>
+        </div>
+        ${i < flowNodes.length - 1 ? '<span style="font-size:16px;color:#999">→</span>' : ''}
+      </div>`
+    ).join('');
+
+    const passCount = (job.outlets||[]).filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
+    const warnCount = (job.outlets||[]).filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
+    const failCount = (job.outlets||[]).filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
+
+    const roomCardsHtml = Object.entries(roomGroups).map(([room, outlets]) => {
+      const roomFail = outlets.some(o => outletStatus(o, job.cqc_mode).cls === 'fail');
+      const roomWarn = outlets.some(o => outletStatus(o, job.cqc_mode).cls === 'warn');
+      const borderCol = roomFail ? '#c0392b' : roomWarn ? '#e67e22' : '#10b981';
+      const bgCol = roomFail ? '#fff5f5' : roomWarn ? '#fffbeb' : '#f0fdf4';
+      const chips = outlets.map(o => {
+        const st = outletStatus(o, job.cqc_mode);
+        const col = statusColor(o);
+        return `<div style="border:2px solid ${col};border-radius:8px;padding:5px 8px;background:#fff;text-align:center;min-width:70px">
+          <div style="font-size:14px">${outletTypeIcon(o.type)}</div>
+          <div style="font-size:9px;font-weight:bold">${o.type||'Outlet'}</div>
+          <div style="font-size:9px;font-weight:bold;color:${col}">${st.text.toUpperCase()}</div>
+          ${o.hot ? `<div style="font-size:8px;color:#555">${o.hot}°C H</div>` : ''}
+          ${o.cold ? `<div style="font-size:8px;color:#555">${o.cold}°C C</div>` : ''}
+        </div>`;
+      }).join('');
+      return `<div style="border:2px solid ${borderCol};background:${bgCol};border-radius:10px;padding:10px;margin-bottom:10px;break-inside:avoid">
+        <div style="font-weight:bold;font-size:11px;margin-bottom:6px;color:${borderCol}">● ${room} &nbsp;<span style="font-weight:normal;color:#666;font-size:9px">${outlets.length} outlet${outlets.length!==1?'s':''}</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>
+      </div>`;
+    }).join('');
+
     const outletRows = (job.outlets || []).map(o => {
+
       const st = outletStatus(o, job.cqc_mode);
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534' : st.cls === 'warn' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
       const isOutsideTap = o.type === 'Outside Tap';
@@ -143,8 +207,12 @@ ${hasDeadLegs?`<div class="page" style="page-break-before:always"><div class="pa
 ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div><div class="section-title">Shower Head Register</div><table><thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${showerRows}</tbody></table><div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 5</div></div>`:''}
 <div class="page" style="page-break-before:always">
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
-  <div class="section-title">Indicative Schematic</div>
-  ${schemaBoxes.length>0?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${schemaBoxes}</div>`:'<p style="font-size:10px;color:#888">No outlets recorded — add outlets with locations to generate the schematic.</p>'}
+  <div class="section-title">System Overview &amp; Schematic</div>
+  <div style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafafa">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
+    <div style="font-size:10px"><span style="color:#27ae60;font-weight:bold">● ${passCount} Pass</span> &nbsp; <span style="color:#e67e22;font-weight:bold">● ${warnCount} Warning</span> &nbsp; <span style="color:#c0392b;font-weight:bold">● ${failCount} Fail</span> &nbsp;&nbsp; <span style="color:#888">${(job.outlets||[]).length} outlets across ${Object.keys(roomGroups).length} area${Object.keys(roomGroups).length!==1?'s':''}</span></div>
+  </div>
+  ${roomCardsHtml || '<p style="font-size:10px;color:#888">No outlets recorded.</p>'}
   <div class="section-title">Legal / Compliance Notes</div>
   <p style="font-size:10px">• ${compNotesBenchmark}</p>
   ${compNotes.map(n=>`<p style="font-size:10px;${n.startsWith('COMPLIANCE')?'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;':''}margin:4px 0">• ${n}</p>`).join('')}
