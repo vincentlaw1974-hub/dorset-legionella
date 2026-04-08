@@ -37,7 +37,8 @@ export default function ReportTab({ job, onPrint }) {
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
       const noteText = [o.notes, extraNote].filter(Boolean).join(' | ');
-      return `<tr><td>${o.location||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText}</td></tr>`;
+      const photoCell = o.photo_url ? `<img src="${o.photo_url}" style="width:60px;height:45px;object-fit:cover;border-radius:4px" />` : '—';
+      return `<tr><td>${o.location||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText}</td><td>${photoCell}</td></tr>`;
     }).join('');
 
     const actionRows = (job.actions || []).map(a => {
@@ -127,7 +128,7 @@ export default function ReportTab({ job, onPrint }) {
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
-  ${(job.outlets||[]).length>0?`<div class="section-title">Temperature Results</div>${tempBars}<div class="section-title">Outlet Register</div><table><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
+  ${(job.outlets||[]).length>0?`<div class="section-title">Temperature Results</div>${tempBars}<div class="section-title">Outlet Register</div><table><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 2</div>
 </div>
 <div class="page" style="page-break-before:always">
