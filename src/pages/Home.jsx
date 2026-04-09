@@ -284,7 +284,6 @@ export default function Home() {
 
             {/* Left sidebar */}
             <div className={`w-full lg:w-[280px] lg:flex-shrink-0 ${sidebarOpen ? 'block' : 'hidden'} lg:block`}>
-              <JobList jobs={jobs} currentId={localJob.id} onSelect={handleSelect} />
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
