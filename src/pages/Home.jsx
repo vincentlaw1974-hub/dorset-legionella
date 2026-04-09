@@ -226,16 +226,34 @@ export default function Home() {
       {jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pt-3">
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border transition-all flex-shrink-0 ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
-                style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
-              >
-                {t.label}
-              </button>
-            ))}
+            {activeTab === 'dashboard' ? (
+              <>
+                {[{id:'jobs',label:'📁 Jobs'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setDashSubTab(t.id)}
+                    className={`whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border transition-all flex-shrink-0 ${dashSubTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                    style={dashSubTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+                  >{t.label}</button>
+                ))}
+                {localJob && <button onClick={() => setActiveTab('overview')} className="whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 flex-shrink-0">Open Job →</button>}
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className="whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 flex-shrink-0"
+                >📊 Dashboard</button>
+                {TABS.filter(t => t.id !== 'dashboard').map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border transition-all flex-shrink-0 ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                    style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+                  >{t.label}</button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -243,23 +261,13 @@ export default function Home() {
       {/* Portfolio-level tabs — no job needed */}
       {activeTab === 'dashboard' && jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pb-24">
-          <div className="flex gap-2 mb-4">
-            {[{id:'jobs',label:'📁 Jobs'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
-              <button
-                key={t.id}
-                onClick={() => setDashSubTab(t.id)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${dashSubTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
-                style={dashSubTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
-              >{t.label}</button>
-            ))}
-          </div>
           {dashSubTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
           {dashSubTab === 'renewals' && <RenewalsTab jobs={jobs} onSelect={handleSelect} />}
           {dashSubTab === 'stats' && <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />}
         </div>
       )}
 
-      {localJob && !['dashboard'].includes(activeTab) && (
+      {localJob && activeTab !== 'dashboard' && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
           <div className="flex flex-col lg:flex-row gap-3 items-start">
 
