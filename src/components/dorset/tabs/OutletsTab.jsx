@@ -126,10 +126,16 @@ export default function OutletsTab({ job, onChange }) {
                     <button onClick={() => updateOutlet(o.id, 'photo_url', '')} className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full w-5 h-5 text-xs text-red-600 flex items-center justify-center font-bold">×</button>
                   </div>
                 ) : (
-                  <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50 inline-block">
-                    📷 Add outlet photo
-                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleOutletPhoto(o.id, e)} />
-                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50 inline-block">
+                      📷 Camera
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleOutletPhoto(o.id, e)} />
+                    </label>
+                    <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50 inline-block">
+                      🖼 Gallery
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handleOutletPhoto(o.id, e)} />
+                    </label>
+                  </div>
                 )}
               </div>
 
