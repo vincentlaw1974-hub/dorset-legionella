@@ -162,10 +162,10 @@ export default function ReportTab({ job, onPrint }) {
     }).join('');
 
     const compNotes = [];
-    if (!job.monthly_temp_log) compNotes.push('COMPLIANCE ISSUE — No monthly temperature monitoring records were found.');
-    if (!job.flushing_log) compNotes.push('COMPLIANCE ISSUE — No flushing log was found for infrequently used outlets.');
-    if (!job.shower_cleaning_log && (job.showers||[]).length > 0) compNotes.push('COMPLIANCE ISSUE — No shower head descaling or cleaning records were found.');
-    if (job.tmvs_installed && !job.tmv_service_records) compNotes.push('COMPLIANCE ISSUE — TMVs are installed but no service or maintenance records were found.');
+    if (!job.log_temps_na && !job.monthly_temp_log) compNotes.push('COMPLIANCE ISSUE — No monthly temperature monitoring records were found.');
+    if (!job.log_flush_na && !job.flushing_log) compNotes.push('COMPLIANCE ISSUE — No flushing log was found for infrequently used outlets.');
+    if (!job.log_shower_na && !job.shower_cleaning_log && (job.showers||[]).length > 0) compNotes.push('COMPLIANCE ISSUE — No shower head descaling or cleaning records were found.');
+    if (!job.log_tmv_na && job.tmvs_installed && !job.tmv_service_records) compNotes.push('COMPLIANCE ISSUE — TMVs are installed but no service or maintenance records were found.');
     if (hwTempFail) compNotes.push(`COMPLIANCE ISSUE — Hot water storage temperature was recorded at ${job.cylinder_temp}°C, which is BELOW the HSG274 requirement of >=60°C.`);
     if (hasDeadLegs) compNotes.push(`${(job.dead_legs||[]).length} dead leg(s) identified. Dead legs allow water to stagnate in the Legionella growth range (20-45°C).`);
     if (job.cqc_mode) compNotes.push('For care and nursing homes, this report supports CQC Regulation 15 and Regulation 12, but does not on its own guarantee CQC compliance.');
