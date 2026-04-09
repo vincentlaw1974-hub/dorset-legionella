@@ -25,8 +25,6 @@ import DashboardTab from '@/components/dorset/tabs/DashboardTab';
 import SchematicTab from '@/components/dorset/tabs/SchematicTab';
 
 const TABS = [
-  { id: 'jobs', label: '📁 Jobs' },
-  { id: 'renewals', label: '🔔 Renewals' },
   { id: 'dashboard', label: '📊 Dashboard' },
   { id: 'overview', label: 'Overview' },
   { id: 'management', label: 'Management' },
@@ -44,7 +42,8 @@ const TABS = [
 ];
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('jobs');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [dashSubTab, setDashSubTab] = useState('jobs');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
@@ -117,6 +116,7 @@ export default function Home() {
     }
     setCurrentId(id);
     setActiveTab('overview');
+    setDashSubTab('jobs');
     setSidebarOpen(false);
     const key = 'recentJobs';
     const recent = JSON.parse(localStorage.getItem(key) || '[]');
@@ -241,23 +241,25 @@ export default function Home() {
       )}
 
       {/* Portfolio-level tabs — no job needed */}
-      {activeTab === 'jobs' && jobs.length > 0 && (
-        <div className="max-w-6xl mx-auto px-3 pb-24">
-          <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />
-        </div>
-      )}
-      {activeTab === 'renewals' && jobs.length > 0 && (
-        <div className="max-w-6xl mx-auto px-3 pb-24">
-          <RenewalsTab jobs={jobs} onSelect={handleSelect} />
-        </div>
-      )}
       {activeTab === 'dashboard' && jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pb-24">
-          <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />
+          <div className="flex gap-2 mb-4">
+            {[{id:'jobs',label:'📁 Jobs'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setDashSubTab(t.id)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${dashSubTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
+                style={dashSubTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
+              >{t.label}</button>
+            ))}
+          </div>
+          {dashSubTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
+          {dashSubTab === 'renewals' && <RenewalsTab jobs={jobs} onSelect={handleSelect} />}
+          {dashSubTab === 'stats' && <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />}
         </div>
       )}
 
-      {localJob && !['jobs','renewals','dashboard'].includes(activeTab) && (
+      {localJob && !['dashboard'].includes(activeTab) && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
           <div className="flex flex-col lg:flex-row gap-3 items-start">
 
