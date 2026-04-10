@@ -1,23 +1,31 @@
 import React, { useRef, useEffect } from 'react';
 
-async function compressImage(url, maxWidth = 800, quality = 0.6) {
+async function compressImage(url, maxWidth = 500, quality = 0.3) {
   if (!url) return url;
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const scale = Math.min(1, maxWidth / img.width);
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(url);
-    img.src = url;
-  });
+  try {
+    const resp = await fetch(url, { mode: 'cors' });
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        URL.revokeObjectURL(blobUrl);
+        resolve(dataUrl);
+      };
+      img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(url); };
+      img.src = blobUrl;
+    });
+  } catch {
+    return url;
+  }
 }
 import { buildControlScheme, outletStatus } from '@/lib/jobUtils';
 
