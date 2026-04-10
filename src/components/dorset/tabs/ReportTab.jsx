@@ -1,4 +1,24 @@
 import React, { useRef, useEffect } from 'react';
+
+async function compressImage(url, maxWidth = 800, quality = 0.6) {
+  if (!url) return url;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const scale = Math.min(1, maxWidth / img.width);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
+}
 import { buildControlScheme, outletStatus } from '@/lib/jobUtils';
 
 function buildSchematic(job) {
@@ -29,7 +49,7 @@ export default function ReportTab({ job, onPrint }) {
   const riskBadge = (job.risk || 'LOW').toLowerCase();
   const areas = buildSchematic(job);
 
-  const buildReportHtml = () => {
+  const buildReportHtml = (ci = (u) => u) => {
     // Build schematic data
     const roomGroups = {};
     (job.outlets || []).forEach(o => {
@@ -101,7 +121,7 @@ export default function ReportTab({ job, onPrint }) {
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
       const noteText = [o.notes, extraNote].filter(Boolean).join(' | ');
-      const photoCell = o.photo_url ? `<img src="${o.photo_url}" style="width:60px;height:45px;object-fit:cover;border-radius:4px" />` : '—';
+      const photoCell = o.photo_url ? `<img src="${ci(o.photo_url)}" style="width:60px;height:45px;object-fit:cover;border-radius:4px" />` : '—';
       return `<tr><td>${o.location||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText}</td><td>${photoCell}</td></tr>`;
     }).join('');
 
@@ -115,11 +135,11 @@ export default function ReportTab({ job, onPrint }) {
     const schemaBoxes = areas.map(a => `<div style="border:2px solid ${a.issue?'#d71920':'#ccc'};border-radius:8px;padding:8px 10px;min-width:100px;text-align:center;background:${a.issue?'#fff5f5':'#fff'}"><div style="font-weight:bold;color:${a.issue?'#991b1b':'#111'}">${a.name}</div><div style="font-size:10px;color:#666">${a.types}</div><div style="font-size:10px;color:#666">${a.count} outlet${a.count!==1?'s':''}</div>${a.issue?'<div style="font-weight:bold;color:#d71920;font-size:10px">⚠ Issue flagged</div>':''}</div>`).join('');
 
     const allPhotos = (job.photos || []).filter(p => p.file_url);
-    const photoGrid = allPhotos.map(p => `<div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;break-inside:avoid"><img src="${p.file_url}" style="width:100%;height:160px;object-fit:contain;background:#f5f5f5;display:block" /><div style="padding:6px 8px;font-size:10px"><div style="font-weight:bold">${p.kind||''} — ${p.location||''}</div><div style="color:#666">${p.caption||''}</div></div></div>`).join('');
+    const photoGrid = allPhotos.map(p => `<div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;break-inside:avoid"><img src="${ci(p.file_url)}" style="width:100%;height:160px;object-fit:contain;background:#f5f5f5;display:block" /><div style="padding:6px 8px;font-size:10px"><div style="font-weight:bold">${p.kind||''} — ${p.location||''}</div><div style="color:#666">${p.caption||''}</div></div></div>`).join('');
 
-    const deadLegRows = (job.dead_legs || []).map(d => `<div style="margin-bottom:16px"><div style="background:#d71920;color:#fff;padding:5px 10px;font-weight:bold;font-size:10px;border-radius:4px 4px 0 0">Dead Leg: ${d.location||'Unknown'}</div><div style="border:1px solid #ddd;border-top:none;padding:8px 10px;font-size:10px;border-radius:0 0 4px 4px"><div>Location: ${d.location||'—'} | Pipe Material: ${d.pipe_material||'Not recorded'} | Last Actioned: ${d.last_actioned||'Not recorded'}</div><div>Description: ${d.description||'—'}</div>${d.photo_url?`<div><img src="${d.photo_url}" style="max-width:220px;max-height:160px;object-fit:contain;border-radius:4px"/></div>`:''}</div></div>`).join('');
+    const deadLegRows = (job.dead_legs || []).map(d => `<div style="margin-bottom:16px"><div style="background:#d71920;color:#fff;padding:5px 10px;font-weight:bold;font-size:10px;border-radius:4px 4px 0 0">Dead Leg: ${d.location||'Unknown'}</div><div style="border:1px solid #ddd;border-top:none;padding:8px 10px;font-size:10px;border-radius:0 0 4px 4px"><div>Location: ${d.location||'—'} | Pipe Material: ${d.pipe_material||'Not recorded'} | Last Actioned: ${d.last_actioned||'Not recorded'}</div><div>Description: ${d.description||'—'}</div>${d.photo_url?`<div><img src="${ci(d.photo_url)}" style="max-width:220px;max-height:160px;object-fit:contain;border-radius:4px"/></div>`:''}</div></div>`).join('');<div style="background:#d71920;color:#fff;padding:5px 10px;font-weight:bold;font-size:10px;border-radius:4px 4px 0 0">Dead Leg: ${d.location||'Unknown'}</div><div style="border:1px solid #ddd;border-top:none;padding:8px 10px;font-size:10px;border-radius:0 0 4px 4px"><div>Location: ${d.location||'—'} | Pipe Material: ${d.pipe_material||'Not recorded'} | Last Actioned: ${d.last_actioned||'Not recorded'}</div><div>Description: ${d.description||'—'}</div>${d.photo_url?`<div><img src="${d.photo_url}" style="max-width:220px;max-height:160px;object-fit:contain;border-radius:4px"/></div>`:''}</div></div>`).join('');
 
-    const showerRows = (job.showers || []).map(s => `<tr><td>${s.location||''}</td><td>${s.last_descale||''}</td><td>${s.condition||''}</td><td>${s.notes||''}</td><td>${s.photo_url?`<img src="${s.photo_url}" style="width:60px;height:45px;object-fit:cover;border-radius:4px"/>`:'-'}</td></tr>`).join('');
+    const showerRows = (job.showers || []).map(s => `<tr><td>${s.location||''}</td><td>${s.last_descale||''}</td><td>${s.condition||''}</td><td>${s.notes||''}</td><td>${s.photo_url?`<img src="${ci(s.photo_url)}" style="width:60px;height:45px;object-fit:cover;border-radius:4px"/>`:'-'}</td></tr>`).join('');
 
     const logRows = (job.logs || []).map(l => `<tr><td>${l.date||''}</td><td>${l.category||''}</td><td>${l.location||''}</td><td>${l.detail||''}</td><td>${l.completed_by||''}</td><td>${l.status||''}</td></tr>`).join('');
 
@@ -175,7 +195,7 @@ export default function ReportTab({ job, onPrint }) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:12mm 15mm 10mm}.page-header{border-bottom:4px solid #d71920;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}.page-header-brand h1{margin:0;font-size:26px;font-weight:900;color:#111}.page-header-brand p{margin:2px 0 0;font-size:10px;color:#555}.ref{font-size:9px;color:#888;text-align:right}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;padding-top:8px;border-top:2px solid #d71920;font-size:9px;color:#888;text-align:center}@media print{body{margin:0}}</style></head><body>
 <div class="page">
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p><p>Prepared in accordance with HSG274 and ACOP L8</p></div><div class="ref">Ref: ${job.report_ref||(job.site_name||'Report').replace(/\s+/g,'-')+'-'+(job.assessment_date||'')}</div></div>
-  ${job.cover_photo_url?`<div style="margin-bottom:14px"><img src="${job.cover_photo_url}" style="width:100%;max-height:220px;object-fit:cover;border-radius:4px;display:block"/></div>`:''}
+  ${job.cover_photo_url?`<div style="margin-bottom:14px"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:4px;display:block"/></div>`:''}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
     <div style="border:2px solid #d71920;padding:10px;border-radius:4px;background:#fff5f5 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Overall Risk</div><div style="font-size:36px;font-weight:900;color:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'}">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:4px">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px">Property: ${job.property_type||'—'}</div></div>
@@ -228,29 +248,35 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
 </body></html>`;
   };
 
-  const handlePrint = () => {
-    const html = buildReportHtml();
+  const handlePrint = async () => {
+    // Collect all image URLs
+    const allUrls = [
+      job.cover_photo_url,
+      ...(job.outlets || []).map(o => o.photo_url),
+      ...(job.dead_legs || []).map(d => d.photo_url),
+      ...(job.showers || []).map(s => s.photo_url),
+      ...(job.photos || []).map(p => p.file_url),
+    ].filter(Boolean);
+
+    // Compress all images in parallel
+    const compressed = {};
+    await Promise.all(allUrls.map(async (url) => {
+      compressed[url] = await compressImage(url, 900, 0.55);
+    }));
+
+    const ci = (url) => compressed[url] || url;
+
+    const html = buildReportHtml(ci);
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, '_blank');
     if (win) {
       win.addEventListener('load', () => {
-        // Wait longer for images to load from CDN
-        const images = win.document.querySelectorAll('img');
-        const promises = Array.from(images).map(img => {
-          if (img.complete) return Promise.resolve();
-          return new Promise(resolve => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        });
-        Promise.all(promises).then(() => {
-          setTimeout(() => {
-            win.focus();
-            win.print();
-            URL.revokeObjectURL(url);
-          }, 300);
-        });
+        setTimeout(() => {
+          win.focus();
+          win.print();
+          URL.revokeObjectURL(url);
+        }, 500);
       });
     } else {
       window.location.href = url;
