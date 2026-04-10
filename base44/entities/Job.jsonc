@@ -69,28 +69,64 @@
     "assessor": {
       "type": "string"
     },
+    "assessor_na": {
+      "type": "boolean",
+      "default": false
+    },
     "reviewer": {
       "type": "string"
+    },
+    "reviewer_na": {
+      "type": "boolean",
+      "default": false
     },
     "responsible_person": {
       "type": "string"
     },
+    "responsible_person_na": {
+      "type": "boolean",
+      "default": false
+    },
     "responsible_role": {
       "type": "string"
+    },
+    "responsible_role_na": {
+      "type": "boolean",
+      "default": false
     },
     "duty_holder": {
       "type": "string"
     },
+    "duty_holder_na": {
+      "type": "boolean",
+      "default": false
+    },
     "duty_holder_role": {
       "type": "string"
+    },
+    "duty_holder_role_na": {
+      "type": "boolean",
+      "default": false
     },
     "deputy_person": {
       "type": "string"
     },
+    "deputy_person_na": {
+      "type": "boolean",
+      "default": false
+    },
     "deputy_role": {
       "type": "string"
     },
+    "deputy_role_na": {
+      "type": "boolean",
+      "default": false
+    },
     "written_scheme": {
+      "type": "boolean",
+      "default": false
+    },
+    "written_scheme_na": {
       "type": "boolean",
       "default": false
     },
@@ -98,11 +134,23 @@
       "type": "boolean",
       "default": false
     },
+    "schematics_available_na": {
+      "type": "boolean",
+      "default": false
+    },
     "training_records": {
       "type": "boolean",
       "default": false
     },
+    "training_records_na": {
+      "type": "boolean",
+      "default": false
+    },
     "monitoring_records": {
+      "type": "boolean",
+      "default": false
+    },
+    "monitoring_records_na": {
       "type": "boolean",
       "default": false
     },
@@ -142,9 +190,17 @@
       "type": "boolean",
       "default": true
     },
+    "vulnerable_users_na": {
+      "type": "boolean",
+      "default": false
+    },
     "cqc_mode": {
       "type": "boolean",
       "default": true
+    },
+    "cqc_mode_na": {
+      "type": "boolean",
+      "default": false
     },
     "compliance_notes": {
       "type": "string"
