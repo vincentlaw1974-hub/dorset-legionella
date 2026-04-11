@@ -191,6 +191,63 @@ export default function SchematicTab({ job, onChange }) {
         </div>
       )}
 
+      {/* Holiday Park Buildings */}
+      {(job.buildings || []).length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+          <div className="font-bold text-sm mb-3">🏘️ Buildings ({job.buildings.length})</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(job.buildings || []).map(b => {
+              const bOutlets = b.outlets || [];
+              const bFail = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
+              const bWarn = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
+              const bOk = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
+              const borderCol = bFail > 0 ? '#fca5a5' : bWarn > 0 ? '#fcd34d' : bOutlets.length > 0 ? '#86efac' : '#e5e7eb';
+              const bgCol = bFail > 0 ? '#fff5f5' : bWarn > 0 ? '#fffbeb' : bOutlets.length > 0 ? '#f0fdf4' : '#fafafa';
+              const bRooms = b.rooms || [];
+              return (
+                <div key={b.id} className="border-2 rounded-xl p-3" style={{ borderColor: borderCol, background: bgCol }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold text-sm">{b.name || b.type}</div>
+                    <div className="text-xs text-gray-500">{bOutlets.length} outlets · {bRooms.length} rooms</div>
+                  </div>
+                  {/* System summary chips */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {b.has_boiler && <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">🔥 {b.boiler_count || 1} boiler{b.boiler_set_temp ? ` ${b.boiler_set_temp}°C` : ''}</span>}
+                    {b.has_hw_storage && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">♨️ HW cyl{b.hw_cylinder_temp ? ` ${b.hw_cylinder_temp}°C` : ''}</span>}
+                    {parseInt(b.cwst_count) > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🏗️ {b.cwst_count} CWST</span>}
+                    {b.has_tmvs && <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">🔧 TMVs</span>}
+                  </div>
+                  {/* Outlet chips grouped by room */}
+                  {bOutlets.length > 0 && (
+                    <div className="space-y-1">
+                      {bRooms.length > 0 ? bRooms.map(r => {
+                        const rOutlets = bOutlets.filter(o => o.location === r.name);
+                        if (rOutlets.length === 0) return null;
+                        return (
+                          <div key={r.id}>
+                            <div className="text-[10px] font-semibold text-gray-500 mb-1">{r.name}</div>
+                            <div className="flex flex-wrap gap-1">{rOutlets.map(o => <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} />)}</div>
+                          </div>
+                        );
+                      }) : <div className="flex flex-wrap gap-1">{bOutlets.map(o => <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} />)}</div>}
+                    </div>
+                  )}
+                  {bOutlets.length === 0 && <div className="text-xs text-gray-400">No outlets recorded</div>}
+                  {/* Status summary */}
+                  {bOutlets.length > 0 && (
+                    <div className="flex gap-3 mt-2 pt-2 border-t border-gray-200 text-xs">
+                      {bOk > 0 && <span className="text-green-700">✓ {bOk} pass</span>}
+                      {bWarn > 0 && <span className="text-yellow-700">⚠ {bWarn} warn</span>}
+                      {bFail > 0 && <span className="text-red-700">✕ {bFail} fail</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Dead legs */}
       {(job.dead_legs || []).length > 0 && (
         <div className="bg-white border border-red-200 rounded-2xl p-4 shadow-sm">

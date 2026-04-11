@@ -377,6 +377,75 @@
           },
           "notes": {
             "type": "string"
+          },
+          "rooms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "outlets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "hot": {
+                  "type": "string"
+                },
+                "cold": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "infrequent": {
+                  "type": "boolean"
+                },
+                "hasTmv": {
+                  "type": "boolean"
+                },
+                "photo_url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "file_url": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }

@@ -162,14 +162,14 @@ export default function BuildingsTab({ job, onChange }) {
         const tab = getTab(b.id);
         const cqc = job.cqc_mode;
         return (
-          <div key={b.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          <div key={b.id} className={`rounded-2xl shadow-sm overflow-hidden border-2 transition-all ${isOpen ? 'border-red-500' : 'border-gray-200 bg-white'}`}>
             <button onClick={() => setOpenId(isOpen ? null : b.id)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50">
+              className={`w-full flex items-center justify-between px-4 py-3 text-left ${isOpen ? 'bg-red-600 text-white' : 'bg-white hover:bg-gray-50'}`}>
               <div className="flex items-center gap-3">
-                <span className="text-xl">{typeIcon(b.type)}</span>
+              <span className="text-xl">{typeIcon(b.type)}</span>
                 <div>
-                  <div className="font-semibold text-sm">{b.name || b.type}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className={`font-semibold text-sm ${isOpen ? 'text-white' : 'text-gray-900'}`}>{b.name || b.type}</div>
+                  <div className={`text-xs ${isOpen ? 'text-red-100' : 'text-gray-500'}`}>
                     {b.type}
                     {b.has_boiler ? ` · ${b.boiler_count} boiler` : ''}
                     {b.has_hw_storage ? ` · ${b.hw_storage_count} HW cyl` : ''}
@@ -180,7 +180,7 @@ export default function BuildingsTab({ job, onChange }) {
                   </div>
                 </div>
               </div>
-              <span className="text-gray-400 text-lg">{isOpen ? '▲' : '▼'}</span>
+              <span className={`text-lg ${isOpen ? 'text-red-100' : 'text-gray-400'}`}>{isOpen ? '▲' : '▼'}</span>
             </button>
 
             {isOpen && (

@@ -52,13 +52,11 @@ export default function ReportTab({ job, onPrint }) {
     return () => window.removeEventListener('dorset:export', handler);
   }, []);
 
-  const fails = (job.outlets || []).filter(o => outletStatus(o, job.cqc_mode).cls !== 'ok').length;
   const scheme = buildControlScheme(job);
   const riskBadge = (job.risk || 'LOW').toLowerCase();
   const areas = buildSchematic(job);
 
   const buildReportHtml = (ci = (u) => u) => {
-    // Build schematic data
     const roomGroups = {};
     (job.outlets || []).forEach(o => {
       const key = o.location || 'Unspecified';
@@ -122,7 +120,6 @@ export default function ReportTab({ job, onPrint }) {
     }).join('');
 
     const outletRows = (job.outlets || []).map(o => {
-
       const st = outletStatus(o, job.cqc_mode);
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534' : st.cls === 'warn' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
       const isOutsideTap = o.type === 'Outside Tap';
@@ -140,19 +137,17 @@ export default function ReportTab({ job, onPrint }) {
 
     const schemeRows = scheme.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
 
-    const schemaBoxes = areas.map(a => `<div style="border:2px solid ${a.issue?'#d71920':'#ccc'};border-radius:8px;padding:8px 10px;min-width:100px;text-align:center;background:${a.issue?'#fff5f5':'#fff'}"><div style="font-weight:bold;color:${a.issue?'#991b1b':'#111'}">${a.name}</div><div style="font-size:10px;color:#666">${a.types}</div><div style="font-size:10px;color:#666">${a.count} outlet${a.count!==1?'s':''}</div>${a.issue?'<div style="font-weight:bold;color:#d71920;font-size:10px">⚠ Issue flagged</div>':''}</div>`).join('');
-
     const allPhotos = (job.photos || []).filter(p => p.file_url);
     const photoGrid = allPhotos.map(p => `<div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;break-inside:avoid"><img src="${ci(p.file_url)}" style="width:100%;height:160px;object-fit:contain;background:#f5f5f5;display:block" /><div style="padding:6px 8px;font-size:10px"><div style="font-weight:bold">${p.kind||''} — ${p.location||''}</div><div style="color:#666">${p.caption||''}</div></div></div>`).join('');
 
-    const deadLegRows = (job.dead_legs || []).map(d => `<div style="margin-bottom:16px"><div style="background:#d71920;color:#fff;padding:5px 10px;font-weight:bold;font-size:10px;border-radius:4px 4px 0 0">Dead Leg: ${d.location||'Unknown'}</div><div style="border:1px solid #ddd;border-top:none;padding:8px 10px;font-size:10px;border-radius:0 0 4px 4px"><div>Location: ${d.location||'\u2014'} | Pipe Material: ${d.pipe_material||'Not recorded'} | Last Actioned: ${d.last_actioned||'Not recorded'}</div><div>Description: ${d.description||'\u2014'}</div>${d.photo_url?`<div><img src="${ci(d.photo_url)}" style="max-width:220px;max-height:160px;object-fit:contain;border-radius:4px"/></div>`:''}</div></div>`).join('');
+    const deadLegRows = (job.dead_legs || []).map(d => `<div style="margin-bottom:16px"><div style="background:#d71920;color:#fff;padding:5px 10px;font-weight:bold;font-size:10px;border-radius:4px 4px 0 0">Dead Leg: ${d.location||'Unknown'}</div><div style="border:1px solid #ddd;border-top:none;padding:8px 10px;font-size:10px;border-radius:0 0 4px 4px"><div>Location: ${d.location||'—'} | Pipe Material: ${d.pipe_material||'Not recorded'} | Last Actioned: ${d.last_actioned||'Not recorded'}</div><div>Description: ${d.description||'—'}</div>${d.photo_url?`<div><img src="${ci(d.photo_url)}" style="max-width:220px;max-height:160px;object-fit:contain;border-radius:4px"/></div>`:''}</div></div>`).join('');
 
     const showerRows = (job.showers || []).map(s => `<tr><td>${s.location||''}</td><td>${s.last_descale||''}</td><td>${s.condition||''}</td><td>${s.notes||''}</td><td>${s.photo_url?`<img src="${ci(s.photo_url)}" style="width:60px;height:45px;object-fit:cover;border-radius:4px"/>`:'-'}</td></tr>`).join('');
 
     const logRows = (job.logs || []).map(l => `<tr><td>${l.date||''}</td><td>${l.category||''}</td><td>${l.location||''}</td><td>${l.detail||''}</td><td>${l.completed_by||''}</td><td>${l.status||''}</td></tr>`).join('');
 
-    const riskColor = riskBadge === 'high' ? '#fee2e2;color:#991b1b' : riskBadge === 'medium' ? '#fef3c7;color:#92400e' : '#dcfce7;color:#166534';
     const hasDeadLegs = (job.dead_legs || []).length > 0;
+    const hasBuildings = (job.buildings || []).length > 0;
     const cylTemp = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
     const hwTempFail = !isNaN(cylTemp) && cylTemp < 60;
     const targetHot = job.cqc_mode ? 55 : 50;
@@ -200,7 +195,60 @@ export default function ReportTab({ job, onPrint }) {
     compNotes.push('Providers should ensure all remedial actions are acted upon within stated timescales and that records are maintained.');
     const compNotesBenchmark = `Temperature benchmark: hot water stored at 60°C, hot outlets at least ${targetHot}°C within 1 minute, cold outlets at or below 20°C.`;
 
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:12mm 15mm 10mm}.page-header{border-bottom:4px solid #d71920;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}.page-header-brand h1{margin:0;font-size:26px;font-weight:900;color:#111}.page-header-brand p{margin:2px 0 0;font-size:10px;color:#555}.ref{font-size:9px;color:#888;text-align:right}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;padding-top:8px;border-top:2px solid #d71920;font-size:9px;color:#888;text-align:center}@media print{body{margin:0}}</style></head><body>
+    // Buildings page HTML
+    const buildingPageHtml = !hasBuildings ? '' : (() => {
+      const buildingCards = (job.buildings || []).map(b => {
+        const bOutlets = b.outlets || [];
+        const bRooms = b.rooms || [];
+        const bFail = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
+        const bWarn = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
+        const borderCol = bFail > 0 ? '#c0392b' : bWarn > 0 ? '#e67e22' : bOutlets.length > 0 ? '#27ae60' : '#ccc';
+        const bgCol = bFail > 0 ? '#fff5f5' : bWarn > 0 ? '#fffbeb' : '#f0fdf4';
+        const systemInfo = [
+          b.has_boiler ? `🔥 ${b.boiler_count || 1} boiler${b.boiler_set_temp ? ' @ '+b.boiler_set_temp+'°C' : ''}` : null,
+          b.has_hw_storage ? `♨️ HW cyl${b.hw_cylinder_temp ? ' '+b.hw_cylinder_temp+'°C' : ''}` : null,
+          parseInt(b.cwst_count) > 0 ? `🏗️ ${b.cwst_count} CWST` : null,
+          b.has_tmvs ? '🔧 TMVs' : null,
+          b.has_outside_tap ? '🌿 Outside tap' : null,
+        ].filter(Boolean).join(' &nbsp;&bull;&nbsp; ');
+        const outletsByRoom = {};
+        bOutlets.forEach(o => {
+          const key = o.location || 'General';
+          outletsByRoom[key] = outletsByRoom[key] || [];
+          outletsByRoom[key].push(o);
+        });
+        const outletHtml = Object.entries(outletsByRoom).map(([room, outs]) =>
+          `<div style="margin-bottom:6px"><div style="font-size:9px;font-weight:bold;color:#555;margin-bottom:3px">${room}</div><div style="display:flex;flex-wrap:wrap;gap:4px">${outs.map(o => {
+            const col = statusColor(o);
+            const st = outletStatus(o, job.cqc_mode);
+            return `<div style="border:2px solid ${col};border-radius:6px;padding:3px 6px;background:#fff;text-align:center;min-width:55px"><div style="font-size:12px">${outletTypeIcon(o.type)}</div><div style="font-size:8px;font-weight:bold">${o.type}</div><div style="font-size:8px;color:${col};font-weight:bold">${st.text.toUpperCase()}</div>${o.hot?`<div style="font-size:7px;color:#555">${o.hot}°C H</div>`:''}</div>`;
+          }).join('')}</div></div>`
+        ).join('');
+        // Building photos
+        const bPhotos = (b.photos || []).filter(p => p.file_url);
+        const photoHtml = bPhotos.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${bPhotos.map(p => `<div style="text-align:center"><img src="${ci(p.file_url)}" style="width:100px;height:75px;object-fit:cover;border-radius:4px;border:1px solid #ddd"/><div style="font-size:8px;color:#666">${p.kind||''}${p.caption?': '+p.caption:''}</div></div>`).join('')}</div>` : '';
+        return `<div style="border:2px solid ${borderCol};background:${bgCol};border-radius:10px;padding:10px;margin-bottom:10px;break-inside:avoid">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <div style="font-weight:bold;font-size:12px;color:${borderCol}">${b.name || b.type}</div>
+            <div style="font-size:9px;color:#666">${bRooms.length} room${bRooms.length!==1?'s':''} &bull; ${bOutlets.length} outlet${bOutlets.length!==1?'s':''}</div>
+          </div>
+          ${systemInfo ? `<div style="font-size:9px;color:#555;margin-bottom:6px">${systemInfo}</div>` : ''}
+          ${outletHtml || '<div style="font-size:9px;color:#888">No outlets recorded</div>'}
+          ${b.notes ? `<div style="font-size:9px;color:#666;margin-top:4px;border-top:1px solid #e5e7eb;padding-top:4px">${b.notes}</div>` : ''}
+          ${photoHtml}
+        </div>`;
+      }).join('');
+      return `<div class="page" style="page-break-before:always">
+        <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
+        <div class="section-title">🏘️ Buildings Register (${(job.buildings||[]).length} buildings)</div>
+        ${buildingCards}
+        <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Holiday Park Buildings Register</div>
+      </div>`;
+    })();
+
+    const CSS = `*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:12mm 15mm 10mm}.page-header{border-bottom:4px solid #d71920;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}.page-header-brand h1{margin:0;font-size:26px;font-weight:900;color:#111}.page-header-brand p{margin:2px 0 0;font-size:10px;color:#555}.ref{font-size:9px;color:#888;text-align:right}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;padding-top:8px;border-top:2px solid #d71920;font-size:9px;color:#888;text-align:center}@media print{body{margin:0}}`;
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>${CSS}</style></head><body>
 <div class="page">
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p><p>Prepared in accordance with HSG274 and ACOP L8</p></div><div class="ref">Ref: ${job.report_ref||(job.site_name||'Report').replace(/\s+/g,'-')+'-'+(job.assessment_date||'')}</div></div>
   ${job.cover_photo_url?`<div style="margin-bottom:14px"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:4px;display:block"/></div>`:''}
@@ -233,6 +281,7 @@ export default function ReportTab({ job, onPrint }) {
 </div>
 ${hasDeadLegs?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div><div class="section-title">Dead Legs / Blind Ends Register</div><p style="font-size:10px">${(job.dead_legs||[]).length} dead leg(s) identified.</p>${deadLegRows}<div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 4</div></div>`:''}
 ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div><div class="section-title">Shower Head Register</div><table><thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${showerRows}</tbody></table><div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 5</div></div>`:''}
+${buildingPageHtml}
 <div class="page" style="page-break-before:always">
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
   <div class="section-title">System Overview &amp; Schematic</div>
@@ -257,34 +306,31 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
   };
 
   const handlePrint = async () => {
-    // Collect all image URLs
     const allUrls = [
       job.cover_photo_url,
       ...(job.outlets || []).map(o => o.photo_url),
       ...(job.dead_legs || []).map(d => d.photo_url),
       ...(job.showers || []).map(s => s.photo_url),
       ...(job.photos || []).map(p => p.file_url),
+      ...(job.buildings || []).flatMap(b => [
+        ...((b.photos || []).map(p => p.file_url)),
+        ...((b.outlets || []).map(o => o.photo_url)),
+      ]),
     ].filter(Boolean);
 
-    // Compress all images in parallel
     const compressed = {};
     await Promise.all(allUrls.map(async (url) => {
       compressed[url] = await compressImage(url, 900, 0.55);
     }));
 
     const ci = (url) => compressed[url] || url;
-
     const html = buildReportHtml(ci);
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, '_blank');
     if (win) {
       win.addEventListener('load', () => {
-        setTimeout(() => {
-          win.focus();
-          win.print();
-          URL.revokeObjectURL(url);
-        }, 500);
+        setTimeout(() => { win.focus(); win.print(); URL.revokeObjectURL(url); }, 500);
       });
     } else {
       window.location.href = url;
@@ -302,9 +348,7 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
         </button>
       </div>
 
-      {/* Printable preview */}
       <div ref={printRef} className="text-sm space-y-3">
-        {/* Cover */}
         <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(180deg,#111 0%,#1d1d1d 100%)', borderBottom: '6px solid #d71920' }}>
           <div className="text-xs text-gray-400 mb-1">Legionella Risk Assessment Report</div>
           <h1 className="text-2xl font-bold" style={{ color: '#d71920' }}>{job.site_name || job.client || 'Untitled Site'}</h1>
@@ -313,6 +357,7 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
           <div className="flex flex-wrap gap-2 mt-3">
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${riskBadge}`}>Risk: {job.risk || 'LOW'}</span>
             {job.cqc_mode && <span className="px-2 py-0.5 rounded-full text-xs font-bold badge-high">CQC Mode</span>}
+            {(job.buildings||[]).length > 0 && <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">🏘️ {job.buildings.length} buildings</span>}
           </div>
           <div className="grid grid-cols-2 gap-1 mt-3 text-xs text-gray-300">
             <div>Assessment: <strong className="text-white">{job.assessment_date || '—'}</strong></div>
@@ -322,11 +367,33 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
           </div>
         </div>
 
-        {/* Summary */}
         {job.summary && <><hr /><div><strong>Executive summary</strong></div><div className="text-xs text-gray-700 whitespace-pre-line">{job.summary}</div></>}
         {job.issues_text && <><hr /><div><strong>Issues / findings</strong></div><div className="text-xs text-gray-700 whitespace-pre-line">{job.issues_text}</div></>}
 
-        {/* Schematic */}
+        {/* Buildings preview */}
+        {(job.buildings||[]).length > 0 && (
+          <>
+            <hr />
+            <div><strong>🏘️ Buildings ({job.buildings.length})</strong></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {(job.buildings||[]).map(b => {
+                const bOutlets = b.outlets || [];
+                const bFail = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
+                const bWarn = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
+                const borderCls = bFail > 0 ? 'border-red-400' : bWarn > 0 ? 'border-yellow-400' : 'border-green-300';
+                return (
+                  <div key={b.id} className={`border-2 ${borderCls} rounded-xl p-2 text-xs`}>
+                    <div className="font-bold">{b.name || b.type}</div>
+                    <div className="text-gray-500">{(b.rooms||[]).length} rooms · {bOutlets.length} outlets</div>
+                    {bFail > 0 && <div className="text-red-600 font-bold">⚠ {bFail} fail</div>}
+                    {bWarn > 0 && <div className="text-yellow-700">⚠ {bWarn} warning</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {areas.length > 0 && (
           <>
             <hr />
@@ -344,7 +411,6 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
           </>
         )}
 
-        {/* Control scheme */}
         {scheme.length > 0 && (
           <>
             <hr />
@@ -358,7 +424,6 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
           </>
         )}
 
-        {/* Outlets */}
         {(job.outlets || []).length > 0 && (
           <>
             <hr />
@@ -383,7 +448,6 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
           </>
         )}
 
-        {/* Actions */}
         {(job.actions || []).length > 0 && (
           <>
             <hr />
@@ -402,64 +466,6 @@ ${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"
                   <td className="border border-gray-200 p-1.5">{a.status}</td>
                 </tr>)}</tbody>
               </table>
-            </div>
-          </>
-        )}
-
-        {/* Dead legs */}
-        {(job.dead_legs || []).length > 0 && (
-          <>
-            <hr />
-            <div><strong>Dead legs ({(job.dead_legs || []).length})</strong></div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs mt-1">
-                <thead><tr className="bg-red-50">{['Location','Description','Action','Photo'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
-                <tbody>{(job.dead_legs || []).map(d => <tr key={d.id}>
-                  <td className="border border-gray-200 p-1.5">{d.location}</td>
-                  <td className="border border-gray-200 p-1.5">{d.description}</td>
-                  <td className="border border-gray-200 p-1.5">{d.action}</td>
-                  <td className="border border-gray-200 p-1.5">{d.photo_url && <img src={d.photo_url} alt="" className="w-16 h-12 object-cover rounded" />}</td>
-                </tr>)}</tbody>
-              </table>
-            </div>
-          </>
-        )}
-
-        {/* Showers */}
-        {(job.showers || []).length > 0 && (
-          <>
-            <hr />
-            <div><strong>Shower head register ({(job.showers || []).length})</strong></div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs mt-1">
-                <thead><tr className="bg-red-50">{['Location','Last descale','Condition','Notes','Photo'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
-                <tbody>{(job.showers || []).map(s => <tr key={s.id}>
-                  <td className="border border-gray-200 p-1.5">{s.location}</td>
-                  <td className="border border-gray-200 p-1.5">{s.last_descale}</td>
-                  <td className="border border-gray-200 p-1.5">{s.condition}</td>
-                  <td className="border border-gray-200 p-1.5">{s.notes}</td>
-                  <td className="border border-gray-200 p-1.5">{s.photo_url && <img src={s.photo_url} alt="" className="w-16 h-12 object-cover rounded" />}</td>
-                </tr>)}</tbody>
-              </table>
-            </div>
-          </>
-        )}
-
-        {/* Photos */}
-        {(job.photos || []).filter(p => p.file_url).length > 0 && (
-          <>
-            <hr />
-            <div><strong>Photographic evidence ({(job.photos || []).filter(p => p.file_url).length} photos)</strong></div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-              {(job.photos || []).filter(p => p.file_url).map(p => (
-                <div key={p.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="h-32 bg-gray-100"><img src={p.file_url} alt={p.caption} className="w-full h-full object-contain" /></div>
-                  <div className="p-2 text-xs">
-                    <div className="font-medium">{p.kind} — {p.location}</div>
-                    <div className="text-gray-500">{p.caption}</div>
-                  </div>
-                </div>
-              ))}
             </div>
           </>
         )}
