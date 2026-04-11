@@ -35,7 +35,7 @@ const NumField = ({ label, value, onChange, min = 1 }) => (
   </div>
 );
 
-const SECTION_TABS = ['System', 'Rooms', 'Outlets', 'Photos', 'Notes'];
+const SECTION_TABS = ['System', 'Rooms & Outlets', 'Photos', 'Notes'];
 
 export default function BuildingsTab({ job, onChange }) {
   const [openId, setOpenId] = useState(null);
@@ -50,6 +50,14 @@ export default function BuildingsTab({ job, onChange }) {
 
   const getTab = (id) => sectionTab[id] || 'System';
   const setTab = (id, tab) => setSectionTab(t => ({ ...t, [id]: tab }));
+
+  // Quick-add rooms by count
+  const quickAddRooms = (buildingId, count, prefix) => {
+    const b = buildings.find(b => b.id === buildingId);
+    const existing = b?.rooms || [];
+    const newRooms = Array.from({ length: count }, (_, i) => ({ id: uid(), name: `${prefix} ${i + 1}` }));
+    updateBuilding(buildingId, { rooms: [...existing, ...newRooms] });
+  };
 
   // Photo handlers
   const handlePhoto = async (buildingId, e) => {
@@ -198,8 +206,7 @@ export default function BuildingsTab({ job, onChange }) {
                     <button key={t} onClick={() => setTab(b.id, t)}
                       className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold border-b-2 whitespace-nowrap ${tab === t ? 'border-red-600 text-red-700 bg-red-50' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
                       {t}
-                      {t === 'Rooms' && (b.rooms||[]).length > 0 ? ` (${b.rooms.length})` : ''}
-                      {t === 'Outlets' && (b.outlets||[]).length > 0 ? ` (${b.outlets.length})` : ''}
+                      {t === 'Rooms & Outlets' && ((b.rooms||[]).length + (b.outlets||[]).length) > 0 ? ` (${(b.rooms||[]).length}r / ${(b.outlets||[]).length}o)` : ''}
                       {t === 'Photos' && (b.photos||[]).length > 0 ? ` (${b.photos.length})` : ''}
                     </button>
                   ))}
@@ -260,89 +267,99 @@ export default function BuildingsTab({ job, onChange }) {
                     </>
                   )}
 
-                  {/* ROOMS TAB */}
-                  {tab === 'Rooms' && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">Rooms / Areas in this building</span>
-                        <button onClick={() => addRoom(b.id)} className="text-sm px-3 py-1.5 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ Add room</button>
-                      </div>
-                      {(b.rooms || []).length === 0 && <div className="text-xs text-gray-400 py-4 text-center">No rooms added. Rooms let you assign outlets to specific areas.</div>}
-                      {(b.rooms || []).map(r => (
-                        <div key={r.id} className="flex items-center gap-2">
-                          <Input value={r.name} onChange={e => updateRoom(b.id, r.id, e.target.value)} placeholder="e.g. Bathroom, Kitchen, En-suite" className="flex-1" />
-                          <button onClick={() => removeRoom(b.id, r.id)} className="text-red-500 text-lg font-bold px-2">×</button>
+                  {tab === 'Rooms & Outlets' && (
+                    <div className="space-y-4">
+                      {/* Rooms section */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-700">🚪 Rooms / Areas</span>
+                          <button onClick={() => addRoom(b.id)} className="text-sm px-3 py-1.5 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ Add room</button>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* OUTLETS TAB */}
-                  {tab === 'Outlets' && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">Outlets in this building</span>
-                        <button onClick={() => addOutlet(b.id)} className="text-sm px-3 py-1.5 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ Add outlet</button>
-                      </div>
-                      {(b.outlets || []).length === 0 && <div className="text-xs text-gray-400 py-4 text-center">No outlets recorded for this building.</div>}
-                      {(b.outlets || []).map(o => {
-                        const st = outletStatus(o, cqc);
-                        return (
-                          <div key={o.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-gray-600">{o.location || 'Outlet'} — {o.type}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${st.cls}`}>{st.text}</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              <div>
-                                <Label>Location / Room</Label>
-                                {(b.rooms||[]).length > 0 ? (
-                                  <select value={o.location} onChange={e => updateOutlet(b.id, o.id, { location: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{ fontSize: '16px' }}>
-                                    <option value="">-- select --</option>
-                                    {(b.rooms||[]).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                                  </select>
-                                ) : (
-                                  <Input value={o.location} onChange={e => updateOutlet(b.id, o.id, { location: e.target.value })} placeholder="e.g. Bathroom" />
-                                )}
-                              </div>
-                              <div>
-                                <Label>Type</Label>
-                                <select value={o.type} onChange={e => updateOutlet(b.id, o.id, { type: e.target.value })}
-                                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{ fontSize: '16px' }}>
-                                  {OUTLET_TYPES.map(t => <option key={t}>{t}</option>)}
-                                </select>
-                              </div>
-                              {o.type !== 'Outside Tap' && <div><Label>Hot °C</Label><Input inputMode="decimal" value={o.hot} onChange={e => updateOutlet(b.id, o.id, { hot: e.target.value })} /></div>}
-                              <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(b.id, o.id, { cold: e.target.value })} /></div>
-                              <div className="col-span-full flex flex-wrap gap-4 mt-1">
-                                <Chk label="TMV fitted" checked={!!o.hasTmv} onChange={v => updateOutlet(b.id, o.id, { hasTmv: v })} />
-                                <Chk label="Infrequently used" checked={!!o.infrequent} onChange={v => updateOutlet(b.id, o.id, { infrequent: v })} />
-                              </div>
-                              <div className="col-span-full"><Label>Notes</Label><Input value={o.notes} onChange={e => updateOutlet(b.id, o.id, { notes: e.target.value })} /></div>
-                            </div>
-                            {/* Outlet photo */}
-                            <div className="flex gap-2 flex-wrap mt-1">
-                              {o.photo_url ? (
-                                <div className="relative inline-block">
-                                  <img src={o.photo_url} alt="outlet" className="h-20 w-28 object-cover rounded-xl border border-gray-200" />
-                                  <button onClick={() => updateOutlet(b.id, o.id, { photo_url: '' })} className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full w-5 h-5 text-xs text-red-600 flex items-center justify-center font-bold">×</button>
-                                </div>
-                              ) : (
-                                <>
-                                  <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50">
-                                    📷 Camera<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleOutletPhoto(b.id, o.id, e)} />
-                                  </label>
-                                  <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50">
-                                    🖼 Gallery<input type="file" accept="image/*" className="hidden" onChange={e => handleOutletPhoto(b.id, o.id, e)} />
-                                  </label>
-                                </>
-                              )}
-                              <button onClick={() => removeOutlet(b.id, o.id)} className="text-xs px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50 ml-auto">Remove</button>
-                            </div>
+                        {/* Quick-add shortcuts */}
+                        <div className="flex flex-wrap gap-2">
+                          {[['Bedroom', 1], ['Bedroom', 2], ['Bedroom', 3], ['Bathroom', 1], ['Kitchen', 1], ['En-suite', 1], ['Lounge', 1]].map(([prefix, count], i) => (
+                            <button key={i} onClick={() => quickAddRooms(b.id, count, prefix)}
+                              className="text-xs px-2 py-1 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 text-gray-600">
+                              + {count === 1 ? prefix : `${count}× ${prefix}`}
+                            </button>
+                          ))}
+                        </div>
+                        {(b.rooms || []).length === 0 && <div className="text-xs text-gray-400 py-2 text-center">No rooms added yet. Add rooms above then record outlet temperatures below.</div>}
+                        {(b.rooms || []).map(r => (
+                          <div key={r.id} className="flex items-center gap-2">
+                            <Input value={r.name} onChange={e => updateRoom(b.id, r.id, e.target.value)} placeholder="e.g. Bathroom, Kitchen, En-suite" className="flex-1" />
+                            <button onClick={() => removeRoom(b.id, r.id)} className="text-red-500 text-lg font-bold px-2">×</button>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      {/* Outlets section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-gray-700">💧 Outlets &amp; Temperatures</span>
+                          <button onClick={() => addOutlet(b.id)} className="text-sm px-3 py-1.5 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ Add outlet</button>
+                        </div>
+                        {(b.outlets || []).length === 0 && <div className="text-xs text-gray-400 py-4 text-center">No outlets recorded. Add rooms first, then record outlet temperatures here.</div>}
+                        <div className="space-y-3">
+                          {(b.outlets || []).map(o => {
+                            const st = outletStatus(o, cqc);
+                            return (
+                              <div key={o.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-gray-600">{o.location || 'Outlet'} — {o.type}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${st.cls}`}>{st.text}</span>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  <div>
+                                    <Label>Room / Location</Label>
+                                    {(b.rooms||[]).length > 0 ? (
+                                      <select value={o.location} onChange={e => updateOutlet(b.id, o.id, { location: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{ fontSize: '16px' }}>
+                                        <option value="">-- select --</option>
+                                        {(b.rooms||[]).map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                                      </select>
+                                    ) : (
+                                      <Input value={o.location} onChange={e => updateOutlet(b.id, o.id, { location: e.target.value })} placeholder="e.g. Bathroom" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label>Type</Label>
+                                    <select value={o.type} onChange={e => updateOutlet(b.id, o.id, { type: e.target.value })}
+                                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{ fontSize: '16px' }}>
+                                      {OUTLET_TYPES.map(t => <option key={t}>{t}</option>)}
+                                    </select>
+                                  </div>
+                                  {o.type !== 'Outside Tap' && <div><Label>Hot °C</Label><Input inputMode="decimal" value={o.hot} onChange={e => updateOutlet(b.id, o.id, { hot: e.target.value })} /></div>}
+                                  <div><Label>Cold °C</Label><Input inputMode="decimal" value={o.cold} onChange={e => updateOutlet(b.id, o.id, { cold: e.target.value })} /></div>
+                                  <div className="col-span-full flex flex-wrap gap-4 mt-1">
+                                    <Chk label="TMV fitted" checked={!!o.hasTmv} onChange={v => updateOutlet(b.id, o.id, { hasTmv: v })} />
+                                    <Chk label="Infrequently used" checked={!!o.infrequent} onChange={v => updateOutlet(b.id, o.id, { infrequent: v })} />
+                                  </div>
+                                  <div className="col-span-full"><Label>Notes</Label><Input value={o.notes} onChange={e => updateOutlet(b.id, o.id, { notes: e.target.value })} /></div>
+                                </div>
+                                <div className="flex gap-2 flex-wrap mt-1">
+                                  {o.photo_url ? (
+                                    <div className="relative inline-block">
+                                      <img src={o.photo_url} alt="outlet" className="h-20 w-28 object-cover rounded-xl border border-gray-200" />
+                                      <button onClick={() => updateOutlet(b.id, o.id, { photo_url: '' })} className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full w-5 h-5 text-xs text-red-600 flex items-center justify-center font-bold">×</button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50">
+                                        📷 Camera<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleOutletPhoto(b.id, o.id, e)} />
+                                      </label>
+                                      <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50">
+                                        🖼 Gallery<input type="file" accept="image/*" className="hidden" onChange={e => handleOutletPhoto(b.id, o.id, e)} />
+                                      </label>
+                                    </>
+                                  )}
+                                  <button onClick={() => removeOutlet(b.id, o.id)} className="text-xs px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50 ml-auto">Remove</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   )}
 
