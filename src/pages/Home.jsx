@@ -24,6 +24,7 @@ import RenewalsTab from '@/components/dorset/tabs/RenewalsTab';
 import DashboardTab from '@/components/dorset/tabs/DashboardTab';
 import SchematicTab from '@/components/dorset/tabs/SchematicTab';
 import BuildingsTab from '@/components/dorset/tabs/BuildingsTab';
+import StatusGroupedTab from '@/components/dorset/tabs/StatusGroupedTab';
 
 const TABS = [
   { id: 'dashboard', label: '📊 Dashboard' },
@@ -230,7 +231,7 @@ export default function Home() {
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
             {activeTab === 'dashboard' ? (
               <>
-                {[{id:'jobs',label:'📁 Jobs'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
+                {[{id:'jobs',label:'📁 Jobs'},{id:'status',label:'📋 By Status'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
                   <button
                     key={t.id}
                     onClick={() => setDashSubTab(t.id)}
@@ -264,6 +265,7 @@ export default function Home() {
       {activeTab === 'dashboard' && jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pb-24">
           {dashSubTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
+          {dashSubTab === 'status' && <StatusGroupedTab jobs={jobs} onSelect={handleSelect} />}
           {dashSubTab === 'renewals' && <RenewalsTab jobs={jobs} onSelect={handleSelect} />}
           {dashSubTab === 'stats' && <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />}
         </div>
