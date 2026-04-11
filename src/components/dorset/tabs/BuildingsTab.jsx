@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
 import { uid } from '@/lib/jobUtils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,22 @@ const NumField = ({ label, value, onChange, min = 1 }) => (
 
 export default function BuildingsTab({ job, onChange }) {
   const [openId, setOpenId] = useState(null);
+  const [uploading, setUploading] = useState({});
+
+  const handlePhoto = async (id, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(u => ({ ...u, [id]: true }));
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    updateBuilding(id, { photos: [...(buildings.find(b => b.id === id)?.photos || []), { id: uid(), file_url }] });
+    setUploading(u => ({ ...u, [id]: false }));
+    e.target.value = '';
+  };
+
+  const removePhoto = (buildingId, photoId) => {
+    const b = buildings.find(b => b.id === buildingId);
+    updateBuilding(buildingId, { photos: (b?.photos || []).filter(p => p.id !== photoId) });
+  };
 
   const buildings = job.buildings || [];
 
@@ -229,6 +246,27 @@ export default function BuildingsTab({ job, onChange }) {
                 <div>
                   <Label>Notes for this building</Label>
                   <Textarea value={b.notes} onChange={e => updateBuilding(b.id, { notes: e.target.value })} placeholder="Additional details, access notes, restrictions..." className="min-h-[60px]" />
+                </div>
+
+                {/* Photos */}
+                <div>
+                  <Label>Building photos</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {(b.photos || []).map(p => (
+                      <div key={p.id} className="relative inline-block">
+                        <img src={p.file_url} alt="" className="h-24 w-32 object-cover rounded-xl border border-gray-200" />
+                        <button onClick={() => removePhoto(b.id, p.id)} className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full w-5 h-5 text-xs text-red-600 flex items-center justify-center font-bold">×</button>
+                      </div>
+                    ))}
+                    <label className="h-24 w-32 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:bg-gray-50 text-gray-400 text-xs text-center gap-1">
+                      {uploading[b.id] ? '⏳ Uploading...' : <><span className="text-2xl">📷</span><span>Add photo</span></>}
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handlePhoto(b.id, e)} disabled={uploading[b.id]} />
+                    </label>
+                    <label className="h-24 w-32 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:bg-gray-50 text-gray-400 text-xs text-center gap-1">
+                      {uploading[b.id] ? '' : <><span className="text-2xl">🖼️</span><span>Gallery</span></>}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handlePhoto(b.id, e)} disabled={uploading[b.id]} />
+                    </label>
+                  </div>
                 </div>
 
                 <button onClick={() => removeBuilding(b.id)}
