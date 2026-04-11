@@ -23,6 +23,7 @@ import ShowersTab from '@/components/dorset/tabs/ShowersTab';
 import RenewalsTab from '@/components/dorset/tabs/RenewalsTab';
 import DashboardTab from '@/components/dorset/tabs/DashboardTab';
 import SchematicTab from '@/components/dorset/tabs/SchematicTab';
+import BuildingsTab from '@/components/dorset/tabs/BuildingsTab';
 
 const TABS = [
   { id: 'dashboard', label: '📊 Dashboard' },
@@ -30,6 +31,7 @@ const TABS = [
   { id: 'management', label: 'Management' },
   { id: 'schematic', label: '🗺 Schematic' },
   { id: 'rooms', label: 'Rooms' },
+  { id: 'buildings', label: '🏘️ Buildings', holidayParkOnly: true },
   { id: 'systems', label: 'Systems' },
   { id: 'outlets', label: 'Outlets' },
   { id: 'issues', label: 'Issues' },
@@ -244,7 +246,7 @@ export default function Home() {
                   onClick={() => setActiveTab('dashboard')}
                   className="whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 flex-shrink-0"
                 >📊 Dashboard</button>
-                {TABS.filter(t => t.id !== 'dashboard').map(t => (
+                {TABS.filter(t => t.id !== 'dashboard' && (!t.holidayParkOnly || localJob?.property_type === 'Holiday Park')).map(t => (
                   <button
                     key={t.id}
                     onClick={() => setActiveTab(t.id)}
@@ -291,6 +293,7 @@ export default function Home() {
             {/* Main content */}
             <div key={localJob.id} className="flex-1 min-w-0">
               {activeTab === 'schematic' && <SchematicTab job={localJob} onChange={handleChange} />}
+              {activeTab === 'buildings' && <BuildingsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
               {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}

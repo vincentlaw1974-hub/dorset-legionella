@@ -313,6 +313,74 @@
         }
       }
     },
+    "buildings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "has_mains_cold": {
+            "type": "boolean"
+          },
+          "cwst_count": {
+            "type": "string"
+          },
+          "cwst_capacity": {
+            "type": "string"
+          },
+          "cwst_location": {
+            "type": "string"
+          },
+          "has_hw_storage": {
+            "type": "boolean"
+          },
+          "hw_storage_count": {
+            "type": "string"
+          },
+          "hw_cylinder_temp": {
+            "type": "string"
+          },
+          "has_boiler": {
+            "type": "boolean"
+          },
+          "boiler_count": {
+            "type": "string"
+          },
+          "boiler_set_temp": {
+            "type": "string"
+          },
+          "has_tmvs": {
+            "type": "boolean"
+          },
+          "has_outside_tap": {
+            "type": "boolean"
+          },
+          "has_shower": {
+            "type": "boolean"
+          },
+          "shower_count": {
+            "type": "string"
+          },
+          "has_air_con": {
+            "type": "boolean"
+          },
+          "has_closed_system": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "outlets": {
       "type": "array",
       "items": {
