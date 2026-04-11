@@ -277,10 +277,10 @@ export default function BuildingsTab({ job, onChange }) {
                         </div>
                         {/* Quick-add shortcuts */}
                         <div className="flex flex-wrap gap-2">
-                          {[['Bedroom', 1], ['Bedroom', 2], ['Bedroom', 3], ['Bathroom', 1], ['Kitchen', 1], ['En-suite', 1], ['Lounge', 1]].map(([prefix, count], i) => (
-                            <button key={i} onClick={() => quickAddRooms(b.id, count, prefix)}
+                          {['Bathroom', 'En-suite', 'Kitchen', 'Bedroom', 'Lounge', 'Utility Room', 'Cleaner Store', 'Plant Room', 'Hallway', 'WC'].map(prefix => (
+                            <button key={prefix} onClick={() => quickAddRooms(b.id, 1, prefix)}
                               className="text-xs px-2 py-1 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 text-gray-600">
-                              + {count === 1 ? prefix : `${count}× ${prefix}`}
+                              + {prefix}
                             </button>
                           ))}
                         </div>
