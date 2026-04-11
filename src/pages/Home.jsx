@@ -46,6 +46,7 @@ const TABS = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [jobsView, setJobsView] = useState('list');
   const [dashSubTab, setDashSubTab] = useState('jobs');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -231,7 +232,7 @@ export default function Home() {
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none" style={{WebkitOverflowScrolling:'touch', maxWidth:'100vw'}}>
             {activeTab === 'dashboard' ? (
               <>
-                {[{id:'jobs',label:'📁 Jobs'},{id:'status',label:'📋 By Status'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
+                {[{id:'jobs',label:'📁 Jobs'},{id:'renewals',label:'🔔 Renewals'},{id:'stats',label:'📊 Stats'}].map(t => (
                   <button
                     key={t.id}
                     onClick={() => setDashSubTab(t.id)}
@@ -264,8 +265,16 @@ export default function Home() {
       {/* Portfolio-level tabs — no job needed */}
       {activeTab === 'dashboard' && jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pb-24">
-          {dashSubTab === 'jobs' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
-          {dashSubTab === 'status' && <StatusGroupedTab jobs={jobs} onSelect={handleSelect} />}
+          {dashSubTab === 'jobs' && (
+            <div>
+              <div className="flex gap-2 mb-3">
+                <button onClick={() => setJobsView('list')} className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${jobsView === 'list' ? 'text-white border-transparent' : 'bg-white text-gray-700 border-gray-300'}`} style={jobsView === 'list' ? { background: '#d71920' } : {}}>📁 List</button>
+                <button onClick={() => setJobsView('status')} className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${jobsView === 'status' ? 'text-white border-transparent' : 'bg-white text-gray-700 border-gray-300'}`} style={jobsView === 'status' ? { background: '#d71920' } : {}}>📋 By Status</button>
+              </div>
+              {jobsView === 'list' && <JobsListPanel jobs={jobs} currentId={localJob?.id} onSelect={handleSelect} onNew={handleNew} />}
+              {jobsView === 'status' && <StatusGroupedTab jobs={jobs} onSelect={handleSelect} />}
+            </div>
+          )}
           {dashSubTab === 'renewals' && <RenewalsTab jobs={jobs} onSelect={handleSelect} />}
           {dashSubTab === 'stats' && <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />}
         </div>
