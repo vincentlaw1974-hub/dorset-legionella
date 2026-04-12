@@ -31,35 +31,6 @@ export default function OverviewTab({ job, onChange }) {
     });
   };
 
-  const [postcode, setPostcode] = useState('');
-  const [postcodeResults, setPostcodeResults] = useState([]);
-  const [postcodeLoading, setPostcodeLoading] = useState(false);
-
-  const lookupPostcode = async () => {
-    if (!postcode.trim()) return;
-    setPostcodeLoading(true);
-    setPostcodeResults([]);
-    const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode.trim())}`);
-    const json = await res.json();
-    setPostcodeLoading(false);
-    if (json.status === 200 && json.result) {
-      const r = json.result;
-      const addr = `${r.admin_ward || ''}, ${r.admin_district || ''}, ${r.region || ''}, ${r.postcode}`.replace(/^,\s*/, '');
-      onChange({ address: addr });
-      setPostcodeResults([]);
-    } else {
-      setPostcodeResults(['Address not found']);
-    }
-  };
-
-  const handleCoverPhoto = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    onChange({ cover_photo_url: file_url });
-    e.target.value = '';
-  };
-
 
   const f = (field) => ({
     value: job[field] || '',
@@ -108,21 +79,7 @@ export default function OverviewTab({ job, onChange }) {
         <div><Label>Site name</Label><Input {...f('site_name')} /></div>
         <div>
           <Label>Address</Label>
-          <div className="flex gap-2 mb-1">
-            <input
-              type="text"
-              placeholder="Postcode lookup"
-              value={postcode}
-              onChange={e => setPostcode(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && lookupPostcode()}
-              className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-base"
-            />
-            <button type="button" onClick={lookupPostcode} disabled={postcodeLoading} className="text-sm px-3 py-2 rounded-xl bg-white border border-gray-300 font-medium whitespace-nowrap">
-              {postcodeLoading ? '...' : 'Find address'}
-            </button>
-          </div>
-          {postcodeResults.length > 0 && <div className="text-xs text-red-600 mb-1">{postcodeResults[0]}</div>}
-          <Textarea {...f('address')} className="min-h-[72px]" placeholder="Or type address manually" />
+          <Textarea {...f('address')} className="min-h-[72px]" placeholder="Enter address" />
         </div>
         <div>
           <Label>Property type</Label>

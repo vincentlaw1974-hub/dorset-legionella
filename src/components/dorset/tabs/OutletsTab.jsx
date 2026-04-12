@@ -54,14 +54,13 @@ export default function OutletsTab({ job, onChange }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
         <strong>Outlet inspection table</strong>
         <div className="flex gap-2">
-          <button onClick={addTemplateOutlets} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">📋 Add template</button>
-          <button onClick={() => setMode('grid')} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">⚡ Quick grid</button>
-          <button onClick={addOutlet} className="text-sm px-3 py-2 rounded-xl font-bold text-white hover:opacity-90" style={{background:'#d71920'}}>+ Add outlet</button>
+          <button onClick={addTemplateOutlets} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">📋 Template</button>
+          <button onClick={() => setMode('grid')} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">⚡ Grid</button>
         </div>
       </div>
 
       {(job.outlets || []).length === 0 && (
-        <div className="text-sm text-gray-400 text-center py-6">No outlets yet. Add one above.</div>
+        <div className="text-sm text-gray-400 text-center py-6">No outlets yet. Add one below.</div>
       )}
 
       <div className="space-y-3">
@@ -159,6 +158,17 @@ export default function OutletsTab({ job, onChange }) {
             </div>
           );
         })}
+      </div>
+
+      {/* Sticky Add Outlet button at bottom */}
+      <div className="sticky bottom-0 pt-3 pb-1 bg-white border-t border-gray-100 mt-4">
+        <button
+          onClick={() => { addOutlet(); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50); }}
+          className="w-full py-3 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2"
+          style={{ background: '#d71920' }}
+        >
+          + Add Outlet
+        </button>
       </div>
     </div>
   );

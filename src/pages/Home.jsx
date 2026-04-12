@@ -31,7 +31,6 @@ const TABS = [
   { id: 'dashboard', label: '📊 Dashboard' },
   { id: 'overview', label: 'Overview' },
   { id: 'management', label: 'Management' },
-  { id: 'schematic', label: '🗺 Schematic' },
   { id: 'rooms', label: 'Rooms' },
   { id: 'buildings', label: '🏘️ Buildings', holidayParkOnly: true },
   { id: 'systems', label: 'Systems' },
@@ -97,6 +96,7 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setCurrentId(created.id);
       setLocalJob(created);
+      setActiveTab('overview');
     },
   });
 
@@ -181,7 +181,7 @@ export default function Home() {
       setPendingSync(true);
       return;
     }
-    if ('photos' in changes) {
+    if ('photos' in changes || 'rooms' in changes) {
       clearTimeout(debounceRef.current);
       updateMutation.mutate({ id: jobId, data: updated });
     } else {
@@ -332,13 +332,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* FAB for mobile */}
-      <button
-        onClick={handleNew}
-        className="fixed bottom-6 right-5 z-40 lg:hidden w-14 h-14 rounded-full text-white text-2xl font-bold shadow-xl flex items-center justify-center"
-        style={{ background: '#d71920' }}
-        title="New job"
-      >+</button>
+
 
       {localJob && activeTab !== 'dashboard' && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
@@ -363,7 +357,6 @@ export default function Home() {
 
             {/* Main content */}
             <div key={localJob.id} className="flex-1 min-w-0">
-              {activeTab === 'schematic' && <SchematicTab job={localJob} onChange={handleChange} />}
               {activeTab === 'buildings' && <BuildingsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
@@ -376,7 +369,12 @@ export default function Home() {
               {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
               {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'report' && <ReportTab job={localJob} onPrint={handlePrint} />}
+              {activeTab === 'report' && (
+                <div className="space-y-3">
+                  <SchematicTab job={localJob} onChange={handleChange} />
+                  <ReportTab job={localJob} onPrint={handlePrint} />
+                </div>
+              )}
             </div>
 
           </div>
