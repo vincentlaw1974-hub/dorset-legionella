@@ -54,7 +54,11 @@ export default function OutletsTab({ job, onChange }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
         <strong>Outlet inspection table</strong>
         <div className="flex gap-2">
+          <button onClick={addTemplateOutlets} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">📋 Add template</button>
           <button onClick={() => setMode('grid')} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">⚡ Quick grid</button>
+          <button onClick={addOutlet} className="text-sm px-3 py-2 rounded-xl font-bold text-white hover:opacity-90" style={{background:'#d71920'}}>+ Add outlet</button>
+        </div>
+      </div>
 
       {(job.outlets || []).length === 0 && (
         <div className="text-sm text-gray-400 text-center py-6">No outlets yet. Add one above.</div>
