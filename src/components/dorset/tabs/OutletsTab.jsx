@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { uid, templateOutlets, outletStatus } from '@/lib/jobUtils';
+import OutletsQuickGrid from './OutletsQuickGrid';
 import { base44 } from '@/api/base44Client';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 const outletTypes = ['WHB','Shower','Bath','Kitchen Sink','Cleaner Sink','Pot Wash','Outside Tap','Other'];
 
 export default function OutletsTab({ job, onChange }) {
+  const [mode, setMode] = useState('form'); // 'form' | 'grid'
   const updateOutlet = (id, field, value) => {
     const outlets = (job.outlets || []).map(o => o.id === id ? { ...o, [field]: value } : o);
     onChange({ outlets });
@@ -36,15 +38,23 @@ export default function OutletsTab({ job, onChange }) {
     e.target.value = '';
   };
 
+  if (mode === 'grid') {
+    return (
+      <div className="space-y-3">
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => setMode('form')} className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50">📋 Detailed form</button>
+        </div>
+        <OutletsQuickGrid job={job} onChange={onChange} />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
         <strong>Outlet inspection table</strong>
         <div className="flex gap-2">
-          <button onClick={addOutlet} className="text-sm px-3 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>Add outlet</button>
-          <button onClick={addTemplateOutlets} className="text-sm px-3 py-2 rounded-xl font-bold bg-white border border-gray-300 text-gray-900">Add template outlets</button>
-        </div>
-      </div>
+          <button onClick={() => setMode('grid')} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">⚡ Quick grid</button>
 
       {(job.outlets || []).length === 0 && (
         <div className="text-sm text-gray-400 text-center py-6">No outlets yet. Add one above.</div>

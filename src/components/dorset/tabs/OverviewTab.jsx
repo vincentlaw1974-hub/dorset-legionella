@@ -68,6 +68,12 @@ export default function OverviewTab({ job, onChange }) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+      {/* Customer link chip */}
+      {job.customer_name && (
+        <a href="/customers" className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-3 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all">
+          🏢 {job.customer_name} <span className="text-blue-400">→ View customer</span>
+        </a>
+      )}
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <strong>Executive summary &amp; site details</strong>
         <select

@@ -52,6 +52,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [tabMemory, setTabMemory] = useState({});
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -142,7 +143,8 @@ export default function Home() {
       setLocalJob(nextJob);
     }
     setCurrentId(id);
-    setActiveTab('overview');
+    // Restore remembered tab for this job, or default to overview
+    setActiveTab(tabMemory[id] || 'overview');
     setDashSubTab('jobs');
     setSidebarOpen(false);
     const key = 'recentJobs';
@@ -157,6 +159,12 @@ export default function Home() {
     createMutation.mutate({ ...blankJob(), site_name: siteName.trim() });
   };
 
+  // Remember the active tab per job
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (currentId) setTabMemory(m => ({ ...m, [currentId]: tab }));
+  };
+
   const handleChange = useCallback((changes) => {
     const current = localJobRef.current;
     if (!current) return;
@@ -168,7 +176,6 @@ export default function Home() {
     localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
-    // Always persist draft to localStorage immediately (works offline)
     try { localStorage.setItem(`job_draft_${jobId}`, JSON.stringify(updated)); } catch {}
     if (!navigator.onLine) {
       setPendingSync(true);
@@ -260,6 +267,17 @@ export default function Home() {
         </div>
       )}
 
+      {/* Renewals banner */}
+      {activeTab === 'dashboard' && jobs.some(j => j.review_due && new Date(j.review_due) < new Date(Date.now() + 30*24*60*60*1000)) && (
+        <div className="max-w-6xl mx-auto px-3 pt-3">
+          <button onClick={() => setDashSubTab('renewals')} className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-all">
+            <span>🔔</span>
+            <span>{jobs.filter(j => j.review_due && new Date(j.review_due) < new Date(Date.now() + 30*24*60*60*1000)).length} job{jobs.filter(j => j.review_due && new Date(j.review_due) < new Date(Date.now() + 30*24*60*60*1000)).length !== 1 ? 's' : ''} due for review within 30 days — click to view</span>
+            <span className="ml-auto text-amber-600">→</span>
+          </button>
+        </div>
+      )}
+
       {/* Global tabs — always visible when jobs exist */}
       {jobs.length > 0 && (
         <div className="max-w-6xl mx-auto px-3 pt-3">
@@ -274,18 +292,18 @@ export default function Home() {
                     style={dashSubTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
                   >{t.label}</button>
                 ))}
-                {localJob && <button onClick={() => setActiveTab('overview')} className="whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 flex-shrink-0">Open Job →</button>}
+                {localJob && <button onClick={() => handleTabChange('overview')} className="whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 flex-shrink-0">Open Job →</button>}
               </>
             ) : (
               <>
                 <button
-                  onClick={() => setActiveTab('dashboard')}
+                  onClick={() => handleTabChange('dashboard')}
                   className="whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 flex-shrink-0"
                 >📊 Dashboard</button>
                 {TABS.filter(t => t.id !== 'dashboard' && (!t.holidayParkOnly || localJob?.property_type === 'Holiday Park')).map(t => (
                   <button
                     key={t.id}
-                    onClick={() => setActiveTab(t.id)}
+                    onClick={() => handleTabChange(t.id)}
                     className={`whitespace-nowrap px-4 py-3 rounded-full text-sm font-semibold border transition-all flex-shrink-0 ${activeTab === t.id ? 'text-white border-transparent' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`}
                     style={activeTab === t.id ? { background: '#d71920', borderColor: '#d71920' } : {}}
                   >{t.label}</button>
@@ -313,6 +331,14 @@ export default function Home() {
           {dashSubTab === 'stats' && <DashboardTab jobs={jobs} onSelect={handleSelect} onTabChange={setActiveTab} />}
         </div>
       )}
+
+      {/* FAB for mobile */}
+      <button
+        onClick={handleNew}
+        className="fixed bottom-6 right-5 z-40 lg:hidden w-14 h-14 rounded-full text-white text-2xl font-bold shadow-xl flex items-center justify-center"
+        style={{ background: '#d71920' }}
+        title="New job"
+      >+</button>
 
       {localJob && activeTab !== 'dashboard' && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">

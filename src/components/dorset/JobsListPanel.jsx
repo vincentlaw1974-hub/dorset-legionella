@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 
+function jobProgress(j) {
+  const steps = [
+    !!j.assessment_date,
+    !!(j.site_name || j.client),
+    (j.outlets || []).length > 0 && (j.outlets || []).some(o => o.hot || o.cold),
+    !!(j.summary || (j.actions || []).length > 0),
+  ];
+  return steps;
+}
+
 const STATUS_FILTERS = ['All', 'In Progress', 'Completed', 'Reviewed', 'Future'];
 
 function getRenewalDate(job) {
@@ -181,6 +191,11 @@ export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${(j.risk || 'low').toLowerCase()}`}>{j.risk || 'LOW'}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${j.status === 'Completed' ? 'bg-gray-200 text-gray-600' : j.status === 'Reviewed' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-800'}`}>{j.status || 'In Progress'}</span>
+                  <div className="flex gap-0.5 mt-0.5" title="Progress: Date / Site / Outlets / Summary">
+                    {jobProgress(j).map((done, i) => (
+                      <span key={i} className={`w-2 h-2 rounded-full ${done ? 'bg-green-400' : 'bg-gray-200'}`} />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

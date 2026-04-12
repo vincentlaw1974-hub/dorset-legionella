@@ -78,13 +78,14 @@ function PropertyForm({ initial = {}, customers = [], onSave, onCancel }) {
   );
 }
 
-function NewJobForm({ customer, onSave, onCancel }) {
-  const [siteName, setSiteName] = useState('');
-  const [propertyType, setPropertyType] = useState('Commercial');
+function NewJobForm({ customer, property, onSave, onCancel }) {
+  const [siteName, setSiteName] = useState(property?.site_name || '');
+  const [propertyType, setPropertyType] = useState(property?.property_type || 'Commercial');
   return (
     <div className="space-y-3">
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-sm text-blue-800">
         Creating job for <strong>{customer.name}</strong>{customer.company ? ` (${customer.company})` : ''}
+        {property ? <span> — site: <strong>{property.site_name}</strong></span> : ''}
       </div>
       <div>
         <Label>Site name *</Label>
@@ -100,7 +101,7 @@ function NewJobForm({ customer, onSave, onCancel }) {
       <div className="flex gap-2 justify-end pt-2">
         <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50">Cancel</button>
         <button
-          onClick={() => siteName.trim() && onSave({ ...blankJob(), site_name: siteName.trim(), client: customer.name, property_type: propertyType, customer_id: customer.id, customer_name: customer.name })}
+          onClick={() => siteName.trim() && onSave({ ...blankJob(), site_name: siteName.trim(), client: customer.name, address: property?.address || '', property_type: propertyType, customer_id: customer.id, customer_name: customer.name })}
           className="px-4 py-2 rounded-xl text-white text-sm font-bold" style={{ background: '#d71920' }}>
           Create job
         </button>
@@ -305,6 +306,7 @@ export default function Customers() {
                           <div className="text-xs text-gray-500">{p.address}{p.property_type ? ` · ${p.property_type}` : ''}</div>
                         </div>
                         <div className="flex gap-1 ml-4">
+                          <button onClick={() => setModal({ type: 'new-job', customer: selectedCustomer, property: p })} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700 font-bold hover:bg-red-100">+ Job</button>
                           <button onClick={() => setModal({ type: 'edit-property', data: p })} className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Edit</button>
                           <button onClick={() => setConfirmDelete({ type: 'property', id: p.id, name: p.site_name })} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">Del</button>
                         </div>
@@ -346,7 +348,7 @@ export default function Customers() {
       )}
       {modal?.type === 'new-job' && (
         <Modal title="New Job" onClose={() => setModal(null)}>
-          <NewJobForm customer={modal.customer} onSave={d => createJob.mutate(d)} onCancel={() => setModal(null)} />
+          <NewJobForm customer={modal.customer} property={modal.property} onSave={d => createJob.mutate(d)} onCancel={() => setModal(null)} />
         </Modal>
       )}
 
