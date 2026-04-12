@@ -59,7 +59,8 @@ export default function Home() {
     queryFn: () => base44.entities.Job.list('-created_date'),
   });
 
-  const [currentId, setCurrentId] = useState(null);
+  const urlJobId = new URLSearchParams(window.location.search).get('job');
+  const [currentId, setCurrentId] = useState(urlJobId || null);
   const [localJob, setLocalJob] = useState(null);
   const debounceRef = useRef(null);
   const localJobRef = useRef(null);

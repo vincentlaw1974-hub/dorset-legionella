@@ -2,6 +2,12 @@
   "name": "Job",
   "type": "object",
   "properties": {
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
     "client": {
       "type": "string"
     },
