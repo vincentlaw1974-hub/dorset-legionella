@@ -46,7 +46,7 @@ export default function JobsListPanel({ jobs, currentId, onSelect, onNew }) {
   const [search, setSearch] = useState('');
   const recentIds = JSON.parse(localStorage.getItem('recentJobs') || '[]');
   const recentJobs = recentIds.map(id => jobs.find(j => j.id === id)).filter(Boolean).slice(0, 3);
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('In Progress');
   const [sortBy, setSortBy] = useState('date');
 
   const renewalJobs = jobs

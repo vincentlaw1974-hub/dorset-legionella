@@ -176,7 +176,7 @@ export default function Home() {
       setPendingSync(true);
       return;
     }
-    if ('photos' in changes || 'rooms' in changes) {
+    if ('photos' in changes || 'rooms' in changes || 'buildings' in changes) {
       clearTimeout(debounceRef.current);
       updateMutation.mutate({ id: jobId, data: updated });
     } else {
