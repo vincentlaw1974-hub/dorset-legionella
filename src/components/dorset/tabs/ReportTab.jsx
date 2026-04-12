@@ -29,6 +29,15 @@ async function compressImage(url, maxWidth = 500, quality = 0.3) {
 }
 import { buildControlScheme, outletStatus } from '@/lib/jobUtils';
 
+// Flatten all outlets: top-level + building outlets (with building name prefix)
+function getAllOutlets(job) {
+  const topLevel = (job.outlets || []).map(o => ({ ...o, displayLocation: o.location || '' }));
+  const buildingOuts = (job.buildings || []).flatMap(b =>
+    (b.outlets || []).map(o => ({ ...o, displayLocation: `${b.name || b.type} — ${o.location || ''}`.trim().replace(/\s*—\s*$/, '') }))
+  );
+  return [...topLevel, ...buildingOuts];
+}
+
 function buildSchematic(job) {
   const groups = {};
   (job.outlets || []).forEach(o => {
@@ -57,9 +66,10 @@ export default function ReportTab({ job, onPrint }) {
   const areas = buildSchematic(job);
 
   const buildReportHtml = (ci = (u) => u) => {
+    const allOutlets = getAllOutlets(job);
     const roomGroups = {};
-    (job.outlets || []).forEach(o => {
-      const key = o.location || 'Unspecified';
+    allOutlets.forEach(o => {
+      const key = o.displayLocation || 'Unspecified';
       if (!roomGroups[key]) roomGroups[key] = [];
       roomGroups[key].push(o);
     });
@@ -93,9 +103,9 @@ export default function ReportTab({ job, onPrint }) {
       </div>`
     ).join('');
 
-    const passCount = (job.outlets||[]).filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
-    const warnCount = (job.outlets||[]).filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
-    const failCount = (job.outlets||[]).filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
+    const passCount = allOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
+    const warnCount = allOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
+    const failCount = allOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
 
     const roomCardsHtml = Object.entries(roomGroups).map(([room, outlets]) => {
       const roomFail = outlets.some(o => outletStatus(o, job.cqc_mode).cls === 'fail');
@@ -119,7 +129,7 @@ export default function ReportTab({ job, onPrint }) {
       </div>`;
     }).join('');
 
-    const outletRows = (job.outlets || []).map(o => {
+    const outletRows = allOutlets.map(o => {
       const st = outletStatus(o, job.cqc_mode);
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534' : st.cls === 'warn' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
       const isOutsideTap = o.type === 'Outside Tap';
@@ -127,7 +137,7 @@ export default function ReportTab({ job, onPrint }) {
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
       const noteText = [o.notes, extraNote].filter(Boolean).join(' | ');
       const photoCell = o.photo_url ? `<img src="${ci(o.photo_url)}" style="width:60px;height:45px;object-fit:cover;border-radius:4px" />` : '—';
-      return `<tr><td>${o.location||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText}</td><td>${photoCell}</td></tr>`;
+      return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText}</td><td>${photoCell}</td></tr>`;
     }).join('');
 
     const actionRows = (job.actions || []).map(a => {
@@ -173,7 +183,7 @@ export default function ReportTab({ job, onPrint }) {
       matrixHtml += `<tr>${cols}</tr>`;
     }
 
-    const tempBars = (job.outlets || []).map(o => {
+    const tempBars = allOutlets.map(o => {
       const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
       const st = outletStatus(o, job.cqc_mode);
       const color = st.cls === 'ok' ? '#27ae60' : st.cls === 'warn' ? '#e67e22' : '#c0392b';
@@ -181,7 +191,7 @@ export default function ReportTab({ job, onPrint }) {
       const coldWidth = !isNaN(cold) ? Math.min((cold / 70) * 100, 100) : 0;
       const hotLabel = !isNaN(hot) && o.type !== 'Outside Tap' ? `${hot}°C` : '';
       const coldLabel = !isNaN(cold) ? `${cold}°C` : '';
-      return `<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:bold;margin-bottom:3px">${o.location||''} (${o.type||''})</div><div style="display:flex;align-items:center;gap:6px"><div style="width:${hotWidth}%;max-width:60%;height:18px;background:${color};border-radius:3px;display:inline-block"></div><span style="font-size:10px;font-weight:bold">${hotLabel}</span><div style="width:${coldWidth}%;max-width:20%;height:18px;background:${color};border-radius:3px;display:inline-block"></div><span style="font-size:10px">${coldLabel}</span></div></div>`;
+      return `<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:bold;margin-bottom:3px">${o.displayLocation||''} (${o.type||''})</div><div style="display:flex;align-items:center;gap:6px"><div style="width:${hotWidth}%;max-width:60%;height:18px;background:${color};border-radius:3px;display:inline-block"></div><span style="font-size:10px;font-weight:bold">${hotLabel}</span><div style="width:${coldWidth}%;max-width:20%;height:18px;background:${color};border-radius:3px;display:inline-block"></div><span style="font-size:10px">${coldLabel}</span></div></div>`;
     }).join('');
 
     const compNotes = [];
@@ -268,7 +278,7 @@ export default function ReportTab({ job, onPrint }) {
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
-  ${(job.outlets||[]).length>0?`<div class="section-title">Temperature Results</div>${tempBars}<div class="section-title">Outlet Register</div><table><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
+  ${allOutlets.length>0?`<div class="section-title">Temperature Results</div>${tempBars}<div class="section-title">Outlet Register (${allOutlets.length} outlets)</div><table><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 2</div>
 </div>
 <div class="page" style="page-break-before:always">
@@ -287,7 +297,7 @@ ${buildingPageHtml}
   <div class="section-title">System Overview &amp; Schematic</div>
   <div style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafafa">
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
-    <div style="font-size:10px"><span style="color:#27ae60;font-weight:bold">● ${passCount} Pass</span> &nbsp; <span style="color:#e67e22;font-weight:bold">● ${warnCount} Warning</span> &nbsp; <span style="color:#c0392b;font-weight:bold">● ${failCount} Fail</span> &nbsp;&nbsp; <span style="color:#888">${(job.outlets||[]).length} outlets across ${Object.keys(roomGroups).length} area${Object.keys(roomGroups).length!==1?'s':''}</span></div>
+    <div style="font-size:10px"><span style="color:#27ae60;font-weight:bold">● ${passCount} Pass</span> &nbsp; <span style="color:#e67e22;font-weight:bold">● ${warnCount} Warning</span> &nbsp; <span style="color:#c0392b;font-weight:bold">● ${failCount} Fail</span> &nbsp;&nbsp; <span style="color:#888">${allOutlets.length} outlets across ${Object.keys(roomGroups).length} area${Object.keys(roomGroups).length!==1?'s':''}</span></div>
   </div>
   ${roomCardsHtml || '<p style="font-size:10px;color:#888">No outlets recorded.</p>'}
   <div class="section-title">Legal / Compliance Notes</div>
@@ -424,17 +434,17 @@ ${buildingPageHtml}
           </>
         )}
 
-        {(job.outlets || []).length > 0 && (
+        {getAllOutlets(job).length > 0 && (
           <>
             <hr />
-            <div><strong>Outlets ({(job.outlets || []).length})</strong></div>
+            <div><strong>Outlets ({getAllOutlets(job).length})</strong></div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-xs mt-1">
                 <thead><tr className="bg-red-50">{['Location','Type','Hot °C','Cold °C','Status','Notes','Photo'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
-                <tbody>{(job.outlets || []).map(o => {
+                <tbody>{getAllOutlets(job).map(o => {
                   const st = outletStatus(o, job.cqc_mode);
-                  return <tr key={o.id}>
-                    <td className="border border-gray-200 p-1.5">{o.location}</td>
+                  return <tr key={o.id + (o.displayLocation||'')}>
+                    <td className="border border-gray-200 p-1.5">{o.displayLocation}</td>
                     <td className="border border-gray-200 p-1.5">{o.type}</td>
                     <td className="border border-gray-200 p-1.5">{o.hot}</td>
                     <td className="border border-gray-200 p-1.5">{o.cold}</td>
