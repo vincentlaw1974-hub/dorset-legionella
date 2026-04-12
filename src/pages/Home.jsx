@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { blankJob, reportChecks, buildControlScheme, calculateRisk } from '@/lib/jobUtils';
+import { saveDraft, clearDraft, getDraft } from '@/lib/syncManager';
 
 import Header from '@/components/dorset/Header';
 import JobList from '@/components/dorset/JobList';
@@ -71,20 +72,15 @@ export default function Home() {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
       // Check if there's a newer local draft (written while offline)
       let jobToLoad = selectedJob;
-      try {
-        const draft = localStorage.getItem(`job_draft_${selectedJob.id}`);
-        if (draft) {
-          const parsed = JSON.parse(draft);
-          // Only use draft if it's different from server (user had offline edits)
-          jobToLoad = parsed;
-          // Immediately sync draft back to server if online
-          if (navigator.onLine) {
-            base44.entities.Job.update(selectedJob.id, parsed)
-              .then(() => { try { localStorage.removeItem(`job_draft_${selectedJob.id}`); } catch {} })
-              .catch(() => {});
-          }
+      const draft = getDraft(selectedJob.id);
+      if (draft) {
+        jobToLoad = draft;
+        if (navigator.onLine) {
+          base44.entities.Job.update(selectedJob.id, draft)
+            .then(() => clearDraft(selectedJob.id))
+            .catch(() => {});
         }
-      } catch {}
+      }
       setLocalJob(jobToLoad);
       localJobRef.current = jobToLoad;
     }
@@ -109,8 +105,7 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setSaveState('saved');
       setPendingSync(false);
-      // Clear local draft on successful save
-      try { localStorage.removeItem(`job_draft_${id}`); } catch {}
+      clearDraft(id);
       setTimeout(() => setSaveState('idle'), 2000);
     },
     onError: () => {
@@ -176,7 +171,7 @@ export default function Home() {
     localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
-    try { localStorage.setItem(`job_draft_${jobId}`, JSON.stringify(updated)); } catch {}
+    saveDraft(jobId, updated);
     if (!navigator.onLine) {
       setPendingSync(true);
       return;
