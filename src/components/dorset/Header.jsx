@@ -95,6 +95,7 @@ export default function Header({ onNew, onDelete, onDuplicate, saveState, hasJob
             {showMore && (
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 min-w-[160px] py-1 overflow-hidden">
                 <button onClick={() => { setShowInvite(true); setShowMore(false); }} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 text-gray-800">👤 Invite user</button>
+                <a href="/customers" className="block w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 text-gray-800">🏢 Customers</a>
                 {hasJob && onDuplicate && (
                   <button onClick={() => { onDuplicate(); setShowMore(false); }} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 text-gray-800">📋 Duplicate job</button>
                 )}

@@ -1,0 +1,40 @@
+{
+  "name": "Property",
+  "type": "object",
+  "properties": {
+    "site_name": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "Nursing Home",
+        "Care Home",
+        "Holiday Park",
+        "Factory Unit",
+        "Domestic",
+        "Commercial",
+        "Doctors Surgery",
+        "Dental Surgery",
+        "Other"
+      ],
+      "default": "Commercial"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Optional \u2014 link to a Customer record"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "site_name"
+  ]
+}
