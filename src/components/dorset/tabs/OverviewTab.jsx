@@ -32,6 +32,13 @@ export default function OverviewTab({ job, onChange }) {
   };
 
 
+  const handleCoverPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    onChange({ cover_photo_url: file_url });
+  };
+
   const f = (field) => ({
     value: job[field] || '',
     onChange: (e) => onChange({ [field]: e.target.value })
