@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { uid } from '@/lib/jobUtils';
-import { base44 } from '@/api/base44Client';
+import { savePhotoImmediately } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
@@ -13,12 +13,18 @@ export default function PhotosTab({ job, onChange }) {
 
   const upload = async (files) => {
     setUploading(true);
-    const newPhotos = [...(job.photos || [])];
     for (const file of files) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      newPhotos.push({ id: uid(), file_url, kind: 'General', location: '', caption: '' });
+      const newId = uid();
+      await savePhotoImmediately(
+        file,
+        (dataUrl) => {
+          onChange(prev => ({ photos: [...((prev || job).photos || []), { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' }] }));
+        },
+        (cdnUrl) => {
+          onChange(prev => ({ photos: ((prev || job).photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) }));
+        }
+      );
     }
-    onChange({ photos: newPhotos });
     setUploading(false);
   };
 

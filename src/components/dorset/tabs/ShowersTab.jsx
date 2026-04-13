@@ -3,7 +3,7 @@ import { uid, today } from '@/lib/jobUtils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { base44 } from '@/api/base44Client';
+import { savePhotoImmediately } from '@/lib/photoUpload';
 import { Loader2 } from 'lucide-react';
 
 const conditions = ['Good', 'Fair', 'Poor – scale/biofilm present', 'Replaced this visit'];
@@ -29,8 +29,11 @@ export default function ShowersTab({ job, onChange }) {
   const handlePhoto = async (id, file) => {
     if (!file) return;
     setUploading(id);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    update(id, 'photo_url', file_url);
+    await savePhotoImmediately(
+      file,
+      (dataUrl) => update(id, 'photo_url', dataUrl),
+      (cdnUrl)  => update(id, 'photo_url', cdnUrl)
+    );
     setUploading(null);
   };
 

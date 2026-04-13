@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { uid } from '@/lib/jobUtils';
-import { base44 } from '@/api/base44Client';
+import { savePhotoImmediately } from '@/lib/photoUpload';
 import { Loader2, X } from 'lucide-react';
 
 export default function IssuesTab({ job, onChange }) {
@@ -14,12 +14,14 @@ export default function IssuesTab({ job, onChange }) {
     if (!files.length) return;
     e.target.value = '';
     setUploading(true);
-    const newPhotos = [...(job.photos || [])];
     for (const file of files) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      newPhotos.push({ id: uid(), file_url, kind: 'Defect', location: '', caption: '' });
+      const newId = uid();
+      await savePhotoImmediately(
+        file,
+        (dataUrl) => onChange(prev => ({ photos: [...((prev || job).photos || []), { id: newId, file_url: dataUrl, kind: 'Defect', location: '', caption: '' }] })),
+        (cdnUrl)  => onChange(prev => ({ photos: ((prev || job).photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) }))
+      );
     }
-    onChange({ photos: newPhotos });
     setUploading(false);
   };
 

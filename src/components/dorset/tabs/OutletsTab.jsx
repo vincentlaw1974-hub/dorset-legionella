@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { uid, templateOutlets, outletStatus } from '@/lib/jobUtils';
 import OutletsQuickGrid from './OutletsQuickGrid';
-import { base44 } from '@/api/base44Client';
+import { savePhotoImmediately } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,8 +33,11 @@ export default function OutletsTab({ job, onChange }) {
   const handleOutletPhoto = async (id, e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    updateOutlet(id, 'photo_url', file_url);
+    await savePhotoImmediately(
+      file,
+      (dataUrl) => updateOutlet(id, 'photo_url', dataUrl),
+      (cdnUrl)  => updateOutlet(id, 'photo_url', cdnUrl)
+    );
     e.target.value = '';
   };
 

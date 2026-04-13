@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { savePhotoImmediately } from '@/lib/photoUpload';
 import { uid, outletStatus } from '@/lib/jobUtils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -64,9 +64,18 @@ export default function BuildingsTab({ job, onChange }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(u => ({ ...u, [buildingId]: true }));
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const b = buildings.find(b => b.id === buildingId);
-    updateBuilding(buildingId, { photos: [...(b?.photos || []), { id: uid(), file_url, kind: 'General', caption: '' }] });
+    const newId = uid();
+    await savePhotoImmediately(
+      file,
+      (dataUrl) => {
+        const b = buildings.find(b => b.id === buildingId);
+        updateBuilding(buildingId, { photos: [...(b?.photos || []), { id: newId, file_url: dataUrl, kind: 'General', caption: '' }] });
+      },
+      (cdnUrl) => {
+        const b = buildings.find(b => b.id === buildingId);
+        updateBuilding(buildingId, { photos: (b?.photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) });
+      }
+    );
     setUploading(u => ({ ...u, [buildingId]: false }));
     e.target.value = '';
   };
@@ -109,8 +118,11 @@ export default function BuildingsTab({ job, onChange }) {
   const handleOutletPhoto = async (buildingId, outletId, e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    updateOutlet(buildingId, outletId, { photo_url: file_url });
+    await savePhotoImmediately(
+      file,
+      (dataUrl) => updateOutlet(buildingId, outletId, { photo_url: dataUrl }),
+      (cdnUrl)  => updateOutlet(buildingId, outletId, { photo_url: cdnUrl })
+    );
     e.target.value = '';
   };
 
