@@ -50,13 +50,13 @@ export function stripBase64(job) {
     cwst_photo_url: clean(job.cwst_photo_url),
     cylinder_photo_url: clean(job.cylinder_photo_url),
     plant_room_photo_url: clean(job.plant_room_photo_url),
-    photos: (job.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) })).filter(p => p.file_url),
+    photos: (job.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) || '' })),
     outlets: (job.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
     dead_legs: (job.dead_legs || []).map(d => ({ ...d, photo_url: clean(d.photo_url) })),
     showers: (job.showers || []).map(s => ({ ...s, photo_url: clean(s.photo_url) })),
     buildings: (job.buildings || []).map(b => ({
       ...b,
-      photos: (b.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) })).filter(p => p.file_url),
+      photos: (b.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) || '' })),
       outlets: (b.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
     })),
   };
