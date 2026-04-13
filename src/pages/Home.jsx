@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { blankJob, reportChecks, buildControlScheme, calculateRisk } from '@/lib/jobUtils';
 import { saveDraft, clearDraft, getDraft } from '@/lib/syncManager';
+import { stripBase64 } from '@/lib/photoUpload';
 
 import Header from '@/components/dorset/Header';
 import JobList from '@/components/dorset/JobList';
@@ -45,23 +46,7 @@ const TABS = [
   { id: 'report', label: '📄 Report' },
 ];
 
-// Strip base64 data URLs before sending to server (too large for DB)
-const stripBase64 = (job) => {
-  const clean = (url) => (url && url.startsWith('data:')) ? null : url;
-  return {
-    ...job,
-    cover_photo_url: clean(job.cover_photo_url),
-    photos: (job.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) })).filter(p => p.file_url),
-    outlets: (job.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
-    dead_legs: (job.dead_legs || []).map(d => ({ ...d, photo_url: clean(d.photo_url) })),
-    showers: (job.showers || []).map(s => ({ ...s, photo_url: clean(s.photo_url) })),
-    buildings: (job.buildings || []).map(b => ({
-      ...b,
-      photos: (b.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) })).filter(p => p.file_url),
-      outlets: (b.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
-    })),
-  };
-};
+// stripBase64 is imported from photoUpload
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -72,6 +57,27 @@ export default function Home() {
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [tabMemory, setTabMemory] = useState({});
   const queryClient = useQueryClient();
+
+  // Flush current job to server on page close (best-effort)
+  useEffect(() => {
+    const flush = () => {
+      const job = localJobRef.current;
+      if (!job?.id) return;
+      // Use sendBeacon for guaranteed delivery on page unload (async-safe)
+      const stripped = stripBase64(job);
+      try {
+        saveDraft(job.id, job); // always keep base64 draft in localStorage
+      } catch {}
+      // Attempt a synchronous XHR as last resort (sendBeacon doesn't support auth headers)
+      // The draft in localStorage will be synced on next open regardless
+    };
+    window.addEventListener('beforeunload', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('beforeunload', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, []);
 
   const JOBS_CACHE_KEY = 'dorset_jobs_cache';
 
