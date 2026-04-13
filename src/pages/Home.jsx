@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { blankJob, reportChecks, buildControlScheme, calculateRisk } from '@/lib/jobUtils';
-import { saveDraft, clearDraft, getDraft } from '@/lib/syncManager';
+import { saveDraft, clearDraft, getDraft, syncAllPendingDrafts } from '@/lib/syncManager';
 import { stripBase64 } from '@/lib/photoUpload';
 
 import Header from '@/components/dorset/Header';
@@ -156,7 +156,10 @@ export default function Home() {
       setTimeout(() => setSaveState('idle'), 2000);
     },
     onError: () => {
+      setSaveState('idle');
       setPendingSync(true);
+      // Explicitly save draft so retry loop can pick it up
+      if (localJobRef.current) saveDraft(localJobRef.current.id, localJobRef.current);
     },
   });
 
@@ -268,11 +271,22 @@ export default function Home() {
     updateMutation.mutate({ id: updated.id, data: updated });
   }, [localJob, updateMutation]);
 
-  const handleRetrySync = useCallback(() => {
-    if (localJobRef.current) {
-      updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
+  const handleRetrySync = useCallback(async () => {
+    const result = await syncAllPendingDrafts();
+    if (result.synced > 0) {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setPendingSync(false);
     }
-  }, [updateMutation]);
+  }, [queryClient]);
+
+  // Auto-retry every 30s when there are pending changes and we appear online
+  useEffect(() => {
+    if (!pendingSync) return;
+    const interval = setInterval(() => {
+      if (navigator.onLine) handleRetrySync();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [pendingSync, handleRetrySync]);
 
   const handleDuplicate = useCallback(() => {
     if (!localJob) return;
