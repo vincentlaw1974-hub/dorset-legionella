@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { uid } from '@/lib/jobUtils';
-import { savePhotoImmediately } from '@/lib/photoUpload';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Loader2, X } from 'lucide-react';
 
 export default function IssuesTab({ job, onChange }) {
@@ -16,11 +16,12 @@ export default function IssuesTab({ job, onChange }) {
     setUploading(true);
     for (const file of files) {
       const newId = uid();
-      await savePhotoImmediately(
-        file,
-        (dataUrl) => onChange(prev => ({ photos: [...((prev || job).photos || []), { id: newId, file_url: dataUrl, kind: 'Defect', location: '', caption: '' }] })),
-        (cdnUrl)  => onChange(prev => ({ photos: ((prev || job).photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) }))
-      );
+      const dataUrl = await fileToDataUrl(file);
+      const newPhotos = [...(job.photos || []), { id: newId, file_url: dataUrl, kind: 'Defect', location: '', caption: '' }];
+      onChange({ photos: newPhotos });
+      uploadToCdn(file).then(cdnUrl => {
+        if (cdnUrl) onChange({ photos: (job.photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) });
+      });
     }
     setUploading(false);
   };

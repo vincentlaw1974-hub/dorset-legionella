@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { uid, templateOutlets, outletStatus } from '@/lib/jobUtils';
 import OutletsQuickGrid from './OutletsQuickGrid';
-import { savePhotoImmediately } from '@/lib/photoUpload';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,12 +33,10 @@ export default function OutletsTab({ job, onChange }) {
   const handleOutletPhoto = async (id, e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await savePhotoImmediately(
-      file,
-      (dataUrl) => updateOutlet(id, 'photo_url', dataUrl),
-      (cdnUrl)  => updateOutlet(id, 'photo_url', cdnUrl)
-    );
+    const dataUrl = await fileToDataUrl(file);
+    updateOutlet(id, 'photo_url', dataUrl);
     e.target.value = '';
+    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) updateOutlet(id, 'photo_url', cdnUrl); });
   };
 
   if (mode === 'grid') {

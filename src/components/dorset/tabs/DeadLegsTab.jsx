@@ -3,7 +3,7 @@ import { uid } from '@/lib/jobUtils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { savePhotoImmediately } from '@/lib/photoUpload';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Loader2 } from 'lucide-react';
 
 export default function DeadLegsTab({ job, onChange }) {
@@ -27,12 +27,10 @@ export default function DeadLegsTab({ job, onChange }) {
   const handlePhoto = async (id, file) => {
     if (!file) return;
     setUploading(id);
-    await savePhotoImmediately(
-      file,
-      (dataUrl) => update(id, 'photo_url', dataUrl),
-      (cdnUrl)  => update(id, 'photo_url', cdnUrl)
-    );
+    const dataUrl = await fileToDataUrl(file);
+    update(id, 'photo_url', dataUrl);
     setUploading(null);
+    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) update(id, 'photo_url', cdnUrl); });
   };
 
   return (

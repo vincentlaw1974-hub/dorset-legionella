@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { uid } from '@/lib/jobUtils';
-import { savePhotoImmediately } from '@/lib/photoUpload';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
@@ -15,15 +15,14 @@ export default function PhotosTab({ job, onChange }) {
     setUploading(true);
     for (const file of files) {
       const newId = uid();
-      await savePhotoImmediately(
-        file,
-        (dataUrl) => {
-          onChange(prev => ({ photos: [...((prev || job).photos || []), { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' }] }));
-        },
-        (cdnUrl) => {
-          onChange(prev => ({ photos: ((prev || job).photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) }));
-        }
-      );
+      const dataUrl = await fileToDataUrl(file);
+      // Save immediately as base64 — works offline
+      const currentPhotos = [...(job.photos || []), { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' }];
+      onChange({ photos: currentPhotos });
+      // Upgrade to CDN in background
+      uploadToCdn(file).then(cdnUrl => {
+        if (cdnUrl) onChange({ photos: (job.photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) });
+      });
     }
     setUploading(false);
   };
