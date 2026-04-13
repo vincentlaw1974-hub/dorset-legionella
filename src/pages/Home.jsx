@@ -214,10 +214,9 @@ export default function Home() {
       setPendingSync(true);
       return;
     }
-    if ('photos' in changes || 'rooms' in changes || 'buildings' in changes || changes.__photoUpgrade || changes.__arrayPatch || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
-      clearTimeout(debounceRef.current);
-      updateMutation.mutate({ id: jobId, data: stripBase64(updated) });
-    } else {
+    // For __arrayPatch: only save immediately to server if value is a CDN url (not base64)
+    const isBase64Patch = changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:');
+    if (!isBase64Patch && ('photos' in changes || 'rooms' in changes || 'buildings' in changes || changes.__photoUpgrade || changes.__arrayPatch || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade)) {
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (localJobRef.current?.id === jobId) {

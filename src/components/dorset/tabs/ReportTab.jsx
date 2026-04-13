@@ -3,9 +3,15 @@ import React, { useRef, useEffect } from 'react';
 async function compressImage(url, maxWidth = 500, quality = 0.3) {
   if (!url) return url;
   try {
-    const resp = await fetch(url, { mode: 'cors' });
-    const blob = await resp.blob();
-    const blobUrl = URL.createObjectURL(blob);
+    // data URLs don't need fetching — use them directly
+    const isDataUrl = url.startsWith('data:');
+    let objectUrl = null;
+    if (!isDataUrl) {
+      const resp = await fetch(url, { mode: 'cors' });
+      const blob = await resp.blob();
+      objectUrl = URL.createObjectURL(blob);
+    }
+    const src = objectUrl || url;
     return await new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -17,11 +23,11 @@ async function compressImage(url, maxWidth = 500, quality = 0.3) {
         canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        URL.revokeObjectURL(blobUrl);
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
         resolve(dataUrl);
       };
-      img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(url); };
-      img.src = blobUrl;
+      img.onerror = () => { if (objectUrl) URL.revokeObjectURL(objectUrl); resolve(url); };
+      img.src = src;
     });
   } catch {
     return url;
