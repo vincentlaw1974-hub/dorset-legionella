@@ -19,7 +19,7 @@ export default function ShowersTab({ job, onChange }) {
   };
 
   const update = (id, field, value) => {
-    onChange({ showers: showers.map(s => s.id === id ? { ...s, [field]: value } : s) });
+    onChange({ __arrayPatch: { key: 'showers', id, field, value } });
   };
 
   const remove = (id) => {
@@ -73,19 +73,22 @@ export default function ShowersTab({ job, onChange }) {
                 <label className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
                   <input type="checkbox" checked={!!s.descale_not_known} onChange={e => {
                     const notKnown = e.target.checked;
-                    const reportDate = job.assessment_date || today();
-                    const d = new Date(reportDate);
-                    d.setMonth(d.getMonth() + 3);
-                    const nextStr = d.toISOString().slice(0,10);
-                    onChange({ showers: showers.map(sh => sh.id === s.id ? { ...sh, descale_not_known: notKnown, last_descale: notKnown ? '' : sh.last_descale, next_descale: notKnown ? nextStr : sh.next_descale } : sh) });
+                    update(s.id, 'descale_not_known', notKnown);
+                    if (notKnown) {
+                      update(s.id, 'last_descale', '');
+                      const reportDate = job.assessment_date || today();
+                      const d = new Date(reportDate);
+                      d.setMonth(d.getMonth() + 3);
+                      update(s.id, 'next_descale', d.toISOString().slice(0,10));
+                    }
                   }} className="w-4 h-4 accent-red-600" />
                   Date not known
                 </label>
                 {!s.descale_not_known && (
                   <Input type="date" value={s.last_descale} onChange={e => {
                     const val = e.target.value;
-                    const next = val ? new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0,10) : '';
-                    onChange({ showers: showers.map(sh => sh.id === s.id ? { ...sh, last_descale: val, next_descale: next } : sh) });
+                    update(s.id, 'last_descale', val);
+                    if (val) update(s.id, 'next_descale', new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0,10));
                   }} />
                 )}
               </div>
