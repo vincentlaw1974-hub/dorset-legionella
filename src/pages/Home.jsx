@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { blankJob, reportChecks, buildControlScheme, calculateRisk } from '@/lib/jobUtils';
-import { saveDraft, clearDraft, getDraft, syncAllPendingDrafts } from '@/lib/syncManager';
+import { saveDraft, clearDraft, getDraft, syncAllPendingDrafts, getAllPendingDraftIds } from '@/lib/syncManager';
 import { stripBase64 } from '@/lib/photoUpload';
 
 import Header from '@/components/dorset/Header';
@@ -146,6 +146,21 @@ export default function Home() {
   const [saveState, setSaveState] = useState('idle');
   const [pendingSync, setPendingSync] = useState(false);
 
+  // Auto-retry: every 8 seconds, if there are pending drafts and we're online, push them
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!navigator.onLine) return;
+      const ids = getAllPendingDraftIds();
+      if (ids.length === 0) { setPendingSync(false); return; }
+      const { synced } = await syncAllPendingDrafts();
+      if (synced > 0) {
+        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        setPendingSync(getAllPendingDraftIds().length > 0);
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [queryClient]);
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
     onSuccess: (_, { id }) => {
@@ -279,14 +294,7 @@ export default function Home() {
     }
   }, [queryClient]);
 
-  // Auto-retry every 30s when there are pending changes and we appear online
-  useEffect(() => {
-    if (!pendingSync) return;
-    const interval = setInterval(() => {
-      if (navigator.onLine) handleRetrySync();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [pendingSync, handleRetrySync]);
+
 
   const handleDuplicate = useCallback(() => {
     if (!localJob) return;
