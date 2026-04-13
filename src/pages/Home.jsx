@@ -239,7 +239,7 @@ export default function Home() {
     }
     // For __arrayPatch: only save immediately to server if value is a CDN url (not base64)
     const isBase64Patch = changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:');
-    if (!isBase64Patch && ('photos' in changes || 'rooms' in changes || 'buildings' in changes || changes.__photoUpgrade || changes.__arrayPatch || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade)) {
+    if (!isBase64Patch) {
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (localJobRef.current?.id === jobId) {
