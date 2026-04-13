@@ -20,7 +20,7 @@ export async function uploadToCdn(file) {
   try {
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     return file_url;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -40,7 +40,7 @@ export async function uploadDataUrlToCdn(dataUrl) {
 }
 
 /**
- * Strip base64 data URLs from a job before saving to server.
+ * Strip base64 data URLs from a job before saving to server (DB can't store them).
  */
 export function stripBase64(job) {
   const clean = (url) => (url && url.startsWith('data:')) ? null : url;
