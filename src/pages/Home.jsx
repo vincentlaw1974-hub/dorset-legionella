@@ -107,6 +107,22 @@ export default function Home() {
   const debounceRef = useRef(null);
   const localJobRef = useRef(null);
 
+  // Real-time subscription: update jobs list and current job when another device saves
+  useEffect(() => {
+    const unsubscribe = base44.entities.Job.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      // If the updated job is currently open and we don't have a local draft, reload it
+      if (event.type === 'update' && event.id === localJobRef.current?.id) {
+        const hasDraft = !!getDraft(event.id);
+        if (!hasDraft && event.data) {
+          setLocalJob(event.data);
+          localJobRef.current = event.data;
+        }
+      }
+    });
+    return unsubscribe;
+  }, [queryClient]);
+
   const selectedJob = jobs.find(j => j.id === (currentId || jobs[0]?.id)) || jobs[0] || null;
 
   useEffect(() => {
