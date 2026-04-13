@@ -45,6 +45,24 @@ const TABS = [
   { id: 'report', label: '📄 Report' },
 ];
 
+// Strip base64 data URLs before sending to server (too large for DB)
+const stripBase64 = (job) => {
+  const clean = (url) => (url && url.startsWith('data:')) ? null : url;
+  return {
+    ...job,
+    cover_photo_url: clean(job.cover_photo_url),
+    photos: (job.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) })).filter(p => p.file_url),
+    outlets: (job.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
+    dead_legs: (job.dead_legs || []).map(d => ({ ...d, photo_url: clean(d.photo_url) })),
+    showers: (job.showers || []).map(s => ({ ...s, photo_url: clean(s.photo_url) })),
+    buildings: (job.buildings || []).map(b => ({
+      ...b,
+      photos: (b.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) })).filter(p => p.file_url),
+      outlets: (b.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
+    })),
+  };
+};
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [jobsView, setJobsView] = useState('list');
@@ -128,7 +146,7 @@ export default function Home() {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
       if (localJobRef.current) {
-        updateMutation.mutate({ id: localJobRef.current.id, data: localJobRef.current });
+        updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
       }
     }
     // Find the job and set it immediately to avoid any stale state
@@ -160,7 +178,8 @@ export default function Home() {
     if (currentId) setTabMemory(m => ({ ...m, [currentId]: tab }));
   };
 
-  const handleChange = useCallback((changes) => {
+
+    const handleChange = useCallback((changes) => {
     const current = localJobRef.current;
     if (!current) return;
     let updated;
@@ -195,14 +214,14 @@ export default function Home() {
       setPendingSync(true);
       return;
     }
-    if ('photos' in changes || 'rooms' in changes || 'buildings' in changes) {
+    if ('photos' in changes || 'rooms' in changes || 'buildings' in changes || changes.__photoUpgrade || changes.__arrayPatch || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
       clearTimeout(debounceRef.current);
-      updateMutation.mutate({ id: jobId, data: updated });
+      updateMutation.mutate({ id: jobId, data: stripBase64(updated) });
     } else {
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (localJobRef.current?.id === jobId) {
-          updateMutation.mutate({ id: jobId, data: localJobRef.current });
+          updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
         }
       }, 800);
     }
@@ -218,7 +237,7 @@ export default function Home() {
 
   const handleRetrySync = useCallback(() => {
     if (localJobRef.current) {
-      updateMutation.mutate({ id: localJobRef.current.id, data: localJobRef.current });
+      updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
     }
   }, [updateMutation]);
 
