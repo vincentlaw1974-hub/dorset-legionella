@@ -73,9 +73,26 @@ export default function Home() {
   const [tabMemory, setTabMemory] = useState({});
   const queryClient = useQueryClient();
 
+  const JOBS_CACHE_KEY = 'dorset_jobs_cache';
+
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['jobs'],
-    queryFn: () => base44.entities.Job.list('-created_date'),
+    queryFn: async () => {
+      const result = await base44.entities.Job.list('-created_date');
+      try { localStorage.setItem(JOBS_CACHE_KEY, JSON.stringify(result)); } catch {}
+      return result;
+    },
+    // Seed from localStorage if offline / first render
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem(JOBS_CACHE_KEY);
+        return cached ? JSON.parse(cached) : undefined;
+      } catch { return undefined; }
+    },
+    initialDataUpdatedAt: () => {
+      // Treat cached data as 5 min old so it refetches when online
+      return Date.now() - 5 * 60 * 1000;
+    },
   });
 
   const urlJobId = new URLSearchParams(window.location.search).get('job');
