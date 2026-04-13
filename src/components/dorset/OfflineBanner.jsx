@@ -17,6 +17,21 @@ export default function OfflineBanner({ pendingSync, onRetry }) {
     onRetry?.();
   }, [onRetry]);
 
+  // Listen for Background Sync completion messages from the service worker
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handleMessage = (event) => {
+      if (event.data?.type === 'SYNC_COMPLETE' && event.data.synced > 0) {
+        setSyncResult({ synced: event.data.synced });
+        setJustReturned(true);
+        onRetry?.();
+        setTimeout(() => setJustReturned(false), 4000);
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+  }, [onRetry]);
+
   useEffect(() => {
     const handleOnline = () => {
       setOnline(true);
