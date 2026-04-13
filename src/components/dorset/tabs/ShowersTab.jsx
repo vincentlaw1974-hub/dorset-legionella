@@ -30,7 +30,8 @@ export default function ShowersTab({ job, onChange }) {
     if (!file) return;
     setUploading(id);
     const dataUrl = await fileToDataUrl(file);
-    update(id, 'photo_url', dataUrl);
+    // Use __arrayPatch to avoid stale closure overwriting other shower data
+    onChange({ __arrayPatch: { key: 'showers', id, field: 'photo_url', value: dataUrl } });
     setUploading(null);
     uploadToCdn(file).then(cdnUrl => { if (cdnUrl) onChange({ __arrayPatch: { key: 'showers', id, field: 'photo_url', value: cdnUrl } }); });
   };
@@ -113,11 +114,21 @@ export default function ShowersTab({ job, onChange }) {
                   <button onClick={() => update(s.id, 'photo_url', '')} className="text-xs text-red-600 underline">Remove photo</button>
                 </div>
               ) : (
-                <div>
-                  <input ref={el => fileRefs.current[s.id] = el} type="file" accept="image/*" className="hidden" onChange={e => handlePhoto(s.id, e.target.files[0])} />
-                  <button onClick={() => fileRefs.current[s.id]?.click()} disabled={uploading === s.id} className="text-sm px-3 py-1.5 rounded-xl bg-white border border-gray-300 font-medium hover:bg-gray-50 flex items-center gap-1">
-                    {uploading === s.id ? <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</> : 'Add photo'}
-                  </button>
+                <div className="flex gap-2 flex-wrap items-center">
+                  {uploading === s.id ? (
+                    <span className="text-sm text-gray-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Saving photo…</span>
+                  ) : (
+                    <>
+                      <label className="text-sm px-3 py-1.5 rounded-xl bg-white border border-gray-300 font-medium cursor-pointer hover:bg-gray-50 inline-block">
+                        📷 Camera
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handlePhoto(s.id, e.target.files[0]); e.target.value = ''; }} />
+                      </label>
+                      <label className="text-sm px-3 py-1.5 rounded-xl bg-white border border-gray-300 font-medium cursor-pointer hover:bg-gray-50 inline-block">
+                        🖼 Gallery
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { handlePhoto(s.id, e.target.files[0]); e.target.value = ''; }} />
+                      </label>
+                    </>
+                  )}
                 </div>
               )}
             </div>
