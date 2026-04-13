@@ -179,8 +179,9 @@ export default function Home() {
       setLocalJob(nextJob);
     }
     setCurrentId(id);
-    // Restore remembered tab for this job, or default to overview
-    setActiveTab(tabMemory[id] || 'overview');
+    // Restore remembered tab for this job, or default to overview (never restore dashboard)
+    const remembered = tabMemory[id];
+    setActiveTab(remembered && remembered !== 'dashboard' ? remembered : 'overview');
     setDashSubTab('jobs');
     setSidebarOpen(false);
     const key = 'recentJobs';
