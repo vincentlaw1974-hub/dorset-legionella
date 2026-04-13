@@ -79,8 +79,17 @@ export default function OfflineBanner({ pendingSync, onRetry }) {
   if (pendingSync) {
     return (
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white" style={{ background: '#d97706', maxWidth: '90vw' }}>
-        <span className="text-lg">🔄</span>
-        <div>Syncing unsaved changes...</div>
+        <span className="text-lg">⚠️</span>
+        <div>
+          <div>Unsaved changes pending</div>
+          <div className="text-xs font-normal opacity-80">Will sync automatically when online</div>
+        </div>
+        {online && (
+          <button
+            onClick={onRetry}
+            className="ml-2 px-3 py-1 rounded-xl bg-white text-orange-700 font-bold text-xs hover:bg-orange-50"
+          >Retry now</button>
+        )}
       </div>
     );
   }

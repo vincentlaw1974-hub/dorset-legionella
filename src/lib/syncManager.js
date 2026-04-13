@@ -6,7 +6,7 @@
  * - The SW sync tag 'sync-jobs' handles the fallback when the tab is closed
  */
 import { base44 } from '@/api/base44Client';
-import { uploadDataUrlToCdn } from './photoUpload';
+import { uploadDataUrlToCdn, stripBase64 } from './photoUpload';
 
 const DRAFT_PREFIX = 'job_draft_';
 const IDB_NAME = 'dorset-sync';
@@ -90,7 +90,7 @@ export async function syncAllPendingDrafts() {
     try {
       draft = await resolveBase64Photos(draft);
       saveDraft(id, draft); // save back with CDN urls
-      await base44.entities.Job.update(id, draft);
+      await base44.entities.Job.update(id, stripBase64(draft));
       clearDraft(id);
       synced++;
     } catch {

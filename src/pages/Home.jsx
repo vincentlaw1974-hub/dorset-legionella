@@ -111,18 +111,25 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
-      // Always trust server data on load. Only use draft if we're offline
-      // and there's a draft (meaning changes were made while offline).
-      let jobToLoad = selectedJob;
-      if (!navigator.onLine) {
-        const draft = getDraft(selectedJob.id);
-        if (draft) jobToLoad = draft;
+      const draft = getDraft(selectedJob.id);
+      if (draft) {
+        // Always load from draft — it represents unsaved offline changes
+        setLocalJob(draft);
+        localJobRef.current = draft;
+        // If we're online, push the draft to the server immediately
+        if (navigator.onLine) {
+          base44.entities.Job.update(draft.id, stripBase64(draft))
+            .then(() => {
+              clearDraft(draft.id);
+              queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            })
+            .catch(() => {}); // stays in draft on failure, will retry on next reconnect
+        }
       } else {
-        // Clear any stale draft for this job since server data is fresh
-        clearDraft(selectedJob.id);
+        // No draft — server data is authoritative
+        setLocalJob(selectedJob);
+        localJobRef.current = selectedJob;
       }
-      setLocalJob(jobToLoad);
-      localJobRef.current = jobToLoad;
     }
   }, [selectedJob?.id]);
 
@@ -171,11 +178,13 @@ export default function Home() {
         updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
       }
     }
-    // Find the job and set it immediately to avoid any stale state
+    // Find the job — prefer draft if one exists (offline changes)
     const nextJob = jobs.find(j => j.id === id);
     if (nextJob) {
-      localJobRef.current = nextJob;
-      setLocalJob(nextJob);
+      const draft = getDraft(id);
+      const jobToLoad = draft || nextJob;
+      localJobRef.current = jobToLoad;
+      setLocalJob(jobToLoad);
     }
     setCurrentId(id);
     // Restore remembered tab for this job, or default to overview (never restore dashboard)
@@ -237,9 +246,11 @@ export default function Home() {
       setPendingSync(true);
       return;
     }
-    // For __arrayPatch: only save immediately to server if value is a CDN url (not base64)
-    const isBase64Patch = changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:');
-    if (!isBase64Patch) {
+    // Skip server save if the value is base64 (wait for CDN upload to complete first)
+    const isBase64Value =
+      (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
+      Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
+    if (!isBase64Value) {
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (localJobRef.current?.id === jobId) {
