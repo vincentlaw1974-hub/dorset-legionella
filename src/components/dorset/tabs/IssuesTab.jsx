@@ -20,7 +20,7 @@ export default function IssuesTab({ job, onChange }) {
       const newPhotos = [...(job.photos || []), { id: newId, file_url: dataUrl, kind: 'Defect', location: '', caption: '' }];
       onChange({ photos: newPhotos });
       uploadToCdn(file).then(cdnUrl => {
-        if (cdnUrl) onChange({ photos: (job.photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) });
+        if (cdnUrl) onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
       });
     }
     setUploading(false);

@@ -30,7 +30,7 @@ export default function DeadLegsTab({ job, onChange }) {
     const dataUrl = await fileToDataUrl(file);
     update(id, 'photo_url', dataUrl);
     setUploading(null);
-    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) update(id, 'photo_url', cdnUrl); });
+    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) onChange({ __arrayPatch: { key: 'dead_legs', id, field: 'photo_url', value: cdnUrl } }); });
   };
 
   return (

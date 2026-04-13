@@ -19,9 +19,9 @@ export default function PhotosTab({ job, onChange }) {
       // Save immediately as base64 — works offline
       const currentPhotos = [...(job.photos || []), { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' }];
       onChange({ photos: currentPhotos });
-      // Upgrade to CDN in background
+      // Upgrade to CDN in background — use safe patch to avoid stale closure
       uploadToCdn(file).then(cdnUrl => {
-        if (cdnUrl) onChange({ photos: (job.photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) });
+        if (cdnUrl) onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
       });
     }
     setUploading(false);

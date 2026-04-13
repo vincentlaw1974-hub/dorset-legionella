@@ -163,7 +163,26 @@ export default function Home() {
   const handleChange = useCallback((changes) => {
     const current = localJobRef.current;
     if (!current) return;
-    let updated = { ...current, ...changes };
+    let updated;
+
+    // Safe patch: upgrade a single photo's url by id (avoids stale closure overwriting new photos)
+    if (changes.__photoUpgrade) {
+      const { id, url } = changes.__photoUpgrade;
+      updated = { ...current, photos: (current.photos || []).map(p => p.id === id ? { ...p, file_url: url } : p) };
+    } else if (changes.__arrayPatch) {
+      // Patch a single item in a top-level array (outlets, showers, dead_legs)
+      const { key, id, field, value } = changes.__arrayPatch;
+      updated = { ...current, [key]: (current[key] || []).map(item => item.id === id ? { ...item, [field]: value } : item) };
+    } else if (changes.__buildingPhotoUpgrade) {
+      const { buildingId, photoId, url } = changes.__buildingPhotoUpgrade;
+      updated = { ...current, buildings: (current.buildings || []).map(b => b.id === buildingId ? { ...b, photos: (b.photos || []).map(p => p.id === photoId ? { ...p, file_url: url } : p) } : b) };
+    } else if (changes.__buildingOutletPhotoUpgrade) {
+      const { buildingId, outletId, url } = changes.__buildingOutletPhotoUpgrade;
+      updated = { ...current, buildings: (current.buildings || []).map(b => b.id === buildingId ? { ...b, outlets: (b.outlets || []).map(o => o.id === outletId ? { ...o, photo_url: url } : o) } : b) };
+    } else {
+      updated = { ...current, ...changes };
+    }
+
     if (!updated.risk_override) {
       updated.risk = calculateRisk(updated);
     }

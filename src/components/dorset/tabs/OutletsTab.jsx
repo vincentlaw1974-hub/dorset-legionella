@@ -36,7 +36,7 @@ export default function OutletsTab({ job, onChange }) {
     const dataUrl = await fileToDataUrl(file);
     updateOutlet(id, 'photo_url', dataUrl);
     e.target.value = '';
-    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) updateOutlet(id, 'photo_url', cdnUrl); });
+    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) onChange({ __arrayPatch: { key: 'outlets', id, field: 'photo_url', value: cdnUrl } }); });
   };
 
   if (mode === 'grid') {

@@ -71,10 +71,7 @@ export default function BuildingsTab({ job, onChange }) {
     setUploading(u => ({ ...u, [buildingId]: false }));
     e.target.value = '';
     uploadToCdn(file).then(cdnUrl => {
-      if (cdnUrl) {
-        const b2 = buildings.find(b => b.id === buildingId);
-        updateBuilding(buildingId, { photos: (b2?.photos || []).map(p => p.id === newId ? { ...p, file_url: cdnUrl } : p) });
-      }
+      if (cdnUrl) onChange({ __buildingPhotoUpgrade: { buildingId, photoId: newId, url: cdnUrl } });
     });
   };
   const updatePhoto = (buildingId, photoId, changes) => {
@@ -119,7 +116,7 @@ export default function BuildingsTab({ job, onChange }) {
     const dataUrl = await fileToDataUrl(file);
     updateOutlet(buildingId, outletId, { photo_url: dataUrl });
     e.target.value = '';
-    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) updateOutlet(buildingId, outletId, { photo_url: cdnUrl }); });
+    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) onChange({ __buildingOutletPhotoUpgrade: { buildingId, outletId, url: cdnUrl } }); });
   };
 
   const addBuilding = (type = 'Lodge') => {
