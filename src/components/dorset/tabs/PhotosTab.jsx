@@ -17,8 +17,8 @@ export default function PhotosTab({ job, onChange }) {
       const newId = uid();
       const dataUrl = await fileToDataUrl(file);
       // Save immediately as base64 — works offline
-      const currentPhotos = [...(job.photos || []), { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' }];
-      onChange({ photos: currentPhotos });
+      // Use __arrayPatch-style approach via a dedicated photo add
+      onChange({ __addPhoto: { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' } });
       // Upgrade to CDN in background — use safe patch to avoid stale closure
       uploadToCdn(file).then(cdnUrl => {
         if (cdnUrl) onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });

@@ -250,8 +250,11 @@ export default function Home() {
     if (!current) return;
     let updated;
 
+    // Add a single new photo without overwriting concurrent additions
+    if (changes.__addPhoto) {
+      updated = { ...current, photos: [...(current.photos || []), changes.__addPhoto] };
     // Safe patch: upgrade a single photo's url by id (avoids stale closure overwriting new photos)
-    if (changes.__photoUpgrade) {
+    } else if (changes.__photoUpgrade) {
       const { id, url } = changes.__photoUpgrade;
       updated = { ...current, photos: (current.photos || []).map(p => p.id === id ? { ...p, file_url: url } : p) };
     } else if (changes.__arrayPatch) {
@@ -282,15 +285,24 @@ export default function Home() {
     }
     // Skip server save if the value is base64 (wait for CDN upload to complete first)
     const isBase64Value =
+      (changes.__addPhoto && changes.__addPhoto.file_url?.startsWith('data:')) ||
       (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
       Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
     if (!isBase64Value) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
+      // Photo CDN upgrades and building photo upgrades: save immediately, don't debounce
+      if (changes.__photoUpgrade || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
+        clearTimeout(debounceRef.current);
         if (localJobRef.current?.id === jobId) {
           updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
         }
-      }, 800);
+      } else {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+          if (localJobRef.current?.id === jobId) {
+            updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
+          }
+        }, 800);
+      }
     }
   }, [updateMutation]);
 
