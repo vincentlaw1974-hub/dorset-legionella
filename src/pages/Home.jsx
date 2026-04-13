@@ -111,16 +111,15 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
-      // Check if there's a newer local draft (written while offline)
+      // Always trust server data on load. Only use draft if we're offline
+      // and there's a draft (meaning changes were made while offline).
       let jobToLoad = selectedJob;
-      const draft = getDraft(selectedJob.id);
-      if (draft) {
-        jobToLoad = draft;
-        if (navigator.onLine) {
-          base44.entities.Job.update(selectedJob.id, draft)
-            .then(() => clearDraft(selectedJob.id))
-            .catch(() => {});
-        }
+      if (!navigator.onLine) {
+        const draft = getDraft(selectedJob.id);
+        if (draft) jobToLoad = draft;
+      } else {
+        // Clear any stale draft for this job since server data is fresh
+        clearDraft(selectedJob.id);
       }
       setLocalJob(jobToLoad);
       localJobRef.current = jobToLoad;
