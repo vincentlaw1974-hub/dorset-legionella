@@ -33,11 +33,15 @@ function OutletChip({ outlet, cqc_mode }) {
   );
 }
 
-function SystemNode({ label, icon, detail, color = '#e5e7eb' }) {
+function SystemNode({ label, icon, detail, color = '#e5e7eb', photoUrl }) {
   return (
     <div className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl border-2 text-center min-w-[90px]"
       style={{ borderColor: color, background: color + '22' }}>
-      <span className="text-2xl">{icon}</span>
+      {photoUrl ? (
+        <img src={photoUrl} alt={label} className="w-14 h-10 object-cover rounded-lg border border-gray-200" />
+      ) : (
+        <span className="text-2xl">{icon}</span>
+      )}
       <span className="text-xs font-bold text-gray-700">{label}</span>
       {detail && <span className="text-[10px] text-gray-500">{detail}</span>}
     </div>
@@ -101,7 +105,7 @@ export default function SchematicTab({ job, onChange }) {
           <div className="text-gray-400 font-bold text-lg">→</div>
           {job.cwst_present && (
             <>
-              <SystemNode label="Cold Tank" icon="🪣" detail={job.cwst_location || ''} color="#60a5fa" />
+              <SystemNode label="Cold Tank" icon="🪣" detail={job.cwst_location || ''} color="#60a5fa" photoUrl={job.cwst_photo_url} />
               <div className="text-gray-400 font-bold text-lg">→</div>
             </>
           )}
@@ -109,6 +113,7 @@ export default function SchematicTab({ job, onChange }) {
             label={job.hw_not_stored ? 'Combi/Boiler' : 'HW Cylinder'}
             icon="♨️"
             detail={job.cylinder_temp ? `${job.cylinder_temp}°C` : job.hw_boiler_set_temp ? `Set ${job.hw_boiler_set_temp}°C` : ''}
+            photoUrl={job.cylinder_photo_url}
             color={(() => {
               const t = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
               return !isNaN(t) && t < 60 ? '#ef4444' : '#f97316';

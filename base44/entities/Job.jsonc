@@ -257,6 +257,10 @@
       "type": "boolean",
       "default": false
     },
+    "cwst_photo_url": {
+      "type": "string",
+      "description": "Photo of the cold water storage tank"
+    },
     "cylinder_temp": {
       "type": "string"
     },
@@ -266,6 +270,14 @@
     },
     "hw_boiler_set_temp": {
       "type": "string"
+    },
+    "cylinder_photo_url": {
+      "type": "string",
+      "description": "Photo of the hot water cylinder or boiler"
+    },
+    "plant_room_photo_url": {
+      "type": "string",
+      "description": "Photo of the plant room / general system"
     },
     "last_flush_date": {
       "type": "string"

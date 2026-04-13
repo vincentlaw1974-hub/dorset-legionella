@@ -1,7 +1,41 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
+
+function SystemPhotoUpload({ label, url, fieldName, onChange }) {
+  const inputRef = useRef();
+  const [uploading, setUploading] = useState(false);
+  const handle = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const dataUrl = await fileToDataUrl(file);
+    onChange({ [fieldName]: dataUrl });
+    const cdnUrl = await uploadToCdn(file);
+    if (cdnUrl) onChange({ [fieldName]: cdnUrl });
+    setUploading(false);
+    e.target.value = '';
+  };
+  return (
+    <div>
+      <Label>{label}</Label>
+      {url ? (
+        <div className="relative">
+          <img src={url} alt={label} className="w-full rounded-xl border border-gray-200 mt-1" style={{ maxHeight: 180, objectFit: 'cover' }} />
+          <button onClick={() => onChange({ [fieldName]: null })} className="absolute top-2 right-2 bg-white border border-gray-300 rounded-full px-2 py-0.5 text-xs text-red-600 font-bold shadow">✕ Remove</button>
+        </div>
+      ) : (
+        <button onClick={() => inputRef.current.click()} disabled={uploading}
+          className="mt-1 w-full flex items-center justify-center gap-2 py-4 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-red-400 hover:text-red-500 transition-all">
+          {uploading ? '⏳ Uploading…' : '📷 Add photo'}
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={handle} className="hidden" />
+    </div>
+  );
+}
 
 export default function SystemsTab({ job, onChange }) {
   const f = (field) => ({
@@ -37,6 +71,7 @@ export default function SystemsTab({ job, onChange }) {
           {job.cwst_present && (
             <>
               <div><Label>CWST location</Label><Input {...f('cwst_location')} /></div>
+              <div className="col-span-full"><SystemPhotoUpload label="CWST photo" url={job.cwst_photo_url} fieldName="cwst_photo_url" onChange={onChange} /></div>
               <div>
                 <Label>CWST temperature °C <span className="text-xs text-gray-400">(must be &lt;20°C)</span></Label>
                 <Input
@@ -70,6 +105,14 @@ export default function SystemsTab({ job, onChange }) {
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <strong>Hot water storage</strong>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          <div className="col-span-full">
+            <SystemPhotoUpload
+              label={job.hw_not_stored ? 'Boiler photo' : 'HW cylinder / calorifier photo'}
+              url={job.cylinder_photo_url}
+              fieldName="cylinder_photo_url"
+              onChange={onChange}
+            />
+          </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer col-span-full">
             <input type="checkbox" {...cb('hw_not_stored')} className="w-4 h-4 accent-red-600" />
             Hot water not stored (combi boiler / inline heater)
