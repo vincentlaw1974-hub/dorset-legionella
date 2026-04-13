@@ -72,7 +72,7 @@ export function buildControlScheme(job) {
   const rows = [
     ['Management review of records and results', 'Six monthly', 'Responsible person to review records and adverse trends', rp, 'Compliance review'],
     ['Review of appointments, training and competency', 'Six monthly', 'Confirm Duty Holder / Responsible Person structure remains valid', dh, 'Management review'],
-    ['Risk assessment and written scheme review', 'At least every two years or sooner on change', 'Review on system/use/personnel changes or adverse findings', dh, 'Assessment review'],
+    ['Risk assessment and written scheme review', `At least every ${job.reassessment_interval === '12' ? '12 months' : 'two years'} or sooner on change`, 'Review on system/use/personnel changes or adverse findings', dh, 'Assessment review'],
     ['Refresh training for involved personnel', 'At least every three years', 'Maintain competency records', dh, 'Training records'],
     ['Hot water sentinel temperatures', 'Monthly', `At least ${targetTemp}°C within one minute`, rp, 'Temperature log'],
     ['Cold water sentinel temperatures', 'Monthly', 'Below 20°C within two minutes', rp, 'Temperature log'],
