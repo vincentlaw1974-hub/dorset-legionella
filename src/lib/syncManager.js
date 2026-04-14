@@ -81,9 +81,10 @@ async function resolveBase64Photos(draft) {
 // ── Main sync (called in-app on reconnect) ────────────────────────────────────
 export async function syncAllPendingDrafts() {
   const ids = getAllPendingDraftIds();
-  if (ids.length === 0) return { synced: 0, failed: 0 };
+  if (ids.length === 0) return { synced: 0, failed: 0, resolvedDrafts: {} };
 
   let synced = 0, failed = 0;
+  const resolvedDrafts = {};
   await Promise.all(ids.map(async (id) => {
     let draft = getDraft(id);
     if (!draft) return;
@@ -92,12 +93,13 @@ export async function syncAllPendingDrafts() {
       saveDraft(id, draft); // save back with CDN urls
       await base44.entities.Job.update(id, stripBase64(draft));
       clearDraft(id);
+      resolvedDrafts[id] = draft; // return resolved draft so caller can update UI state
       synced++;
     } catch {
       failed++;
     }
   }));
-  return { synced, failed };
+  return { synced, failed, resolvedDrafts };
 }
 
 // ── IndexedDB helpers (used by SW Background Sync) ────────────────────────────

@@ -168,10 +168,16 @@ export default function Home() {
       if (!navigator.onLine) return;
       const ids = getAllPendingDraftIds();
       if (ids.length === 0) { setPendingSync(false); return; }
-      const { synced } = await syncAllPendingDrafts();
+      const { synced, resolvedDrafts } = await syncAllPendingDrafts();
       if (synced > 0) {
         queryClient.invalidateQueries({ queryKey: ['jobs'] });
         setPendingSync(getAllPendingDraftIds().length > 0);
+        const currentId = localJobRef.current?.id;
+        if (currentId && resolvedDrafts?.[currentId]) {
+          const resolved = resolvedDrafts[currentId];
+          localJobRef.current = resolved;
+          setLocalJob(resolved);
+        }
       }
     }, 8000);
     return () => clearInterval(interval);
@@ -319,6 +325,13 @@ export default function Home() {
     if (result.synced > 0) {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setPendingSync(false);
+      // Update localJob with CDN urls if the current job was synced
+      const currentId = localJobRef.current?.id;
+      if (currentId && result.resolvedDrafts?.[currentId]) {
+        const resolved = result.resolvedDrafts[currentId];
+        localJobRef.current = resolved;
+        setLocalJob(resolved);
+      }
     }
   }, [queryClient]);
 
