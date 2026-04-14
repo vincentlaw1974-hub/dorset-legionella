@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { templateOutlets, uid } from '@/lib/jobUtils';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,8 +35,14 @@ export default function OverviewTab({ job, onChange }) {
   const handleCoverPhoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    onChange({ cover_photo_url: file_url });
+    e.target.value = '';
+    // Save as base64 immediately (works offline)
+    const dataUrl = await fileToDataUrl(file);
+    onChange({ cover_photo_url: dataUrl });
+    // Upgrade to CDN in background
+    uploadToCdn(file).then(cdnUrl => {
+      if (cdnUrl) onChange({ cover_photo_url: cdnUrl });
+    });
   };
 
   const f = (field) => ({

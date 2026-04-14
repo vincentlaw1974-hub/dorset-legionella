@@ -70,7 +70,7 @@ export default function PhotosTab({ job, onChange }) {
 
       <div className="space-y-4">
         {(job.photos || []).map(p => {
-          const ready = (p.location || '').trim() && (p.caption || '').trim() && (p.kind || '').trim();
+          const ready = (p.location || '').trim() && (p.kind || '').trim();
           return (
             <div key={p.id} className="border border-gray-200 rounded-2xl p-3">
               {p.file_url && (
@@ -102,7 +102,7 @@ export default function PhotosTab({ job, onChange }) {
                 </div>
               </div>
               <div className={`text-xs mt-2 font-medium ${ready ? 'text-green-700' : 'text-amber-600'}`}>
-                {ready ? '✓ Ready for report' : '⚠ Add kind, location and caption'}
+                {ready ? '✓ Ready for report' : '⚠ Add kind and location'}
               </div>
               <button onClick={() => removePhoto(p.id)} className="mt-3 w-full py-3 rounded-xl bg-white text-red-600 border border-red-200 font-bold text-sm">
                 Remove photo
