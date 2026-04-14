@@ -71,6 +71,18 @@ export default function ReportTab({ job, onPrint }) {
   const riskBadge = (job.risk || 'LOW').toLowerCase();
   const areas = buildSchematic(job);
 
+  // Auto-correct common typos in text fields before rendering
+  const fixTypos = (str) => {
+    if (!str) return str;
+    return str
+      .replace(/\bPant Room\b/g, 'Plant Room')
+      .replace(/\bpant room\b/g, 'plant room')
+      .replace(/\bMangement\b/g, 'Management')
+      .replace(/\bmangement\b/g, 'management');
+  };
+
+  const reportRef = job.report_ref || (job.site_name || 'Report').replace(/\s+/g, '-') + '-' + (job.assessment_date || '');
+
   const buildReportHtml = (ci = (u) => u) => {
     const allOutlets = getAllOutlets(job);
     const roomGroups = {};
@@ -148,7 +160,7 @@ export default function ReportTab({ job, onPrint }) {
 
     const actionRows = (job.actions || []).map(a => {
       const pColor = a.priority === '1' ? '#fee2e2;color:#991b1b' : a.priority === '2' ? '#fef3c7;color:#92400e' : '#f5f5f5;color:#333';
-      return `<tr><td>${a.ref||''}</td><td>${a.system||''}</td><td><span style="background:${pColor};padding:2px 6px;border-radius:4px;font-weight:bold">${a.priority||''}</span></td><td>${a.responsible_person||''}</td><td>${a.deadline||''}</td><td>${a.observation||''}</td><td>${a.action||''}</td><td>${a.status||''}</td></tr>`;
+      return `<tr><td>${a.ref||''}</td><td>${fixTypos(a.system)||''}</td><td><span style="background:${pColor};padding:2px 6px;border-radius:4px;font-weight:bold">${a.priority||''}</span></td><td>${a.responsible_person||''}</td><td>${a.deadline||''}</td><td>${fixTypos(a.observation)||''}</td><td>${fixTypos(a.action)||''}</td><td>${a.status||''}</td></tr>`;
     }).join('');
 
     const schemeRows = scheme.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
@@ -255,7 +267,7 @@ export default function ReportTab({ job, onPrint }) {
         </div>`;
       }).join('');
       return `<div class="page" style="page-break-before:always">
-        <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
+        <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
         <div class="section-title">🏘️ Buildings Register (${(job.buildings||[]).length} buildings)</div>
         ${buildingCards}
         <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Holiday Park Buildings Register</div>
@@ -266,7 +278,7 @@ export default function ReportTab({ job, onPrint }) {
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>${CSS}</style></head><body>
 <div class="page">
-  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p><p>Prepared in accordance with HSG274 and ACOP L8</p></div><div class="ref">Ref: ${job.report_ref||(job.site_name||'Report').replace(/\s+/g,'-')+'-'+(job.assessment_date||'')}</div></div>
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p><p>Prepared in accordance with HSG274 and ACOP L8</p></div><div class="ref">Ref: ${reportRef}</div></div>
   ${job.cover_photo_url?`<div style="margin-bottom:14px"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:4px;display:block"/></div>`:''}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
@@ -275,31 +287,31 @@ export default function ReportTab({ job, onPrint }) {
   <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:6px">Compliance Scorecard</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="border:1px solid ${c.pass?'#a3d9b1':'#f5c6c6'};background:${c.pass?'#eafaf1':'#fef0f0'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:80px"><div style="font-size:13px;font-weight:900;color:${c.pass?'#27ae60':'#c0392b'}">${c.pass?'PASS':'FAIL'}</div><div style="font-size:9px;color:#444">${c.label}</div></div>`).join('')}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div>${job.summary?`<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.6;white-space:pre-line">${job.summary}</div>`:'<div style="font-size:10px;color:#888">No summary entered.</div>'}</div>
+    <div>${job.summary?`<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.summary)}</div>`:'<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No summary entered — add one in the Overview tab before sending to client.</div>'}</div>
     <div><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div><table style="width:120px;border-collapse:collapse">${matrixHtml}</table><div style="font-size:9px;color:#555;margin-top:2px;text-align:center">Low &nbsp;&nbsp; Med &nbsp;&nbsp; High<br>Likelihood -></div></div>
   </div>
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 1</div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
   ${allOutlets.length>0?`<div class="section-title">Temperature Results</div>${tempBars}<div class="section-title">Outlet Register (${allOutlets.length} outlets)</div><table><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 2</div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="section-title">Issues / Findings</div>
-  <div style="font-size:10px;line-height:1.6;white-space:pre-line">${job.issues_text||'No issues entered.'}</div>
+  ${job.issues_text ? `<div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.issues_text)}</div>` : `<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No issues entered — add findings in the Issues tab before sending to client.</div>`}
   ${(job.actions||[]).length>0?`<div class="section-title">Remedial Actions</div><table><thead><tr><th>Ref</th><th>System</th><th>Priority</th><th>Responsible</th><th>Deadline</th><th>Observation</th><th>Action</th><th>Status</th></tr></thead><tbody>${actionRows}</tbody></table>`:'<div style="font-size:10px;color:#888;margin-top:4px">No remedial actions recorded.</div>'}
   ${scheme.length>0?`<div class="section-title">Control Scheme</div><table><thead><tr><th>Task</th><th>Frequency</th><th>Requirement</th><th>Responsible</th><th>Record</th></tr></thead><tbody>${schemeRows}</tbody></table>`:''}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 3</div>
 </div>
-${hasDeadLegs?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div><div class="section-title">Dead Legs / Blind Ends Register</div><p style="font-size:10px">${(job.dead_legs||[]).length} dead leg(s) identified.</p>${deadLegRows}<div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 4</div></div>`:''}
-${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div><div class="section-title">Shower Head Register</div><table><thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${showerRows}</tbody></table><div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 5</div></div>`:''}
+${hasDeadLegs?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div><div class="section-title">Dead Legs / Blind Ends Register</div><p style="font-size:10px">${(job.dead_legs||[]).length} dead leg(s) identified.</p>${deadLegRows}<div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 4</div></div>`:''}
+${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div><div class="section-title">Shower Head Register</div><table><thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${showerRows}</tbody></table><div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 5</div></div>`:''}
 ${buildingPageHtml}
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="section-title">System Overview &amp; Schematic</div>
   <div style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafafa">
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
@@ -312,7 +324,7 @@ ${buildingPageHtml}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 6</div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${job.report_ref||''}</div></div>
+  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="section-title">Site Logbook</div>
   ${(job.logs||[]).length>0?`<table><thead><tr><th>Date</th><th>Category</th><th>Location</th><th>Detail</th><th>Completed by</th><th>Status</th></tr></thead><tbody>${logRows}</tbody></table>`:'<p style="font-size:10px;color:#888">No log entries.</p>'}
   ${allPhotos.length>0?`<div class="section-title">Photo Evidence</div><div class="photo-grid">${photoGrid}</div>`:''}
@@ -383,8 +395,18 @@ ${buildingPageHtml}
           </div>
         </div>
 
-        {job.summary && <><hr /><div><strong>Executive summary</strong></div><div className="text-xs text-gray-700 whitespace-pre-line">{job.summary}</div></>}
-        {job.issues_text && <><hr /><div><strong>Issues / findings</strong></div><div className="text-xs text-gray-700 whitespace-pre-line">{job.issues_text}</div></>}
+        <hr />
+        <div><strong>Executive summary</strong></div>
+        {job.summary
+          ? <div className="text-xs text-gray-700 whitespace-pre-line">{job.summary}</div>
+          : <div className="text-xs font-semibold text-red-700 bg-red-50 border-l-4 border-red-500 px-3 py-2 rounded">⚠ No summary entered — add one in the Overview tab before sending to client.</div>
+        }
+        <hr />
+        <div><strong>Issues / findings</strong></div>
+        {job.issues_text
+          ? <div className="text-xs text-gray-700 whitespace-pre-line">{job.issues_text}</div>
+          : <div className="text-xs font-semibold text-red-700 bg-red-50 border-l-4 border-red-500 px-3 py-2 rounded">⚠ No issues entered — add findings in the Issues tab before sending to client.</div>
+        }
 
         {/* Buildings preview */}
         {(job.buildings||[]).length > 0 && (
