@@ -162,7 +162,7 @@ export default function Home() {
   const [saveState, setSaveState] = useState('idle');
   const [pendingSync, setPendingSync] = useState(false);
 
-  // Auto-retry: every 8 seconds, if there are pending drafts and we're online, push them
+  // Auto-retry: every 60 seconds, if there are pending drafts and we're online, push them
   useEffect(() => {
     const interval = setInterval(async () => {
       if (!navigator.onLine) return;
@@ -179,7 +179,7 @@ export default function Home() {
           setLocalJob(resolved);
         }
       }
-    }, 8000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [queryClient]);
 
@@ -194,8 +194,11 @@ export default function Home() {
     },
     onError: () => {
       setSaveState('idle');
-      setPendingSync(true);
-      // Explicitly save draft so retry loop can pick it up
+      // Only show pending banner if we're actually offline — not for rate limit / transient errors
+      if (!navigator.onLine) {
+        setPendingSync(true);
+      }
+      // Always keep draft so changes aren't lost
       if (localJobRef.current) saveDraft(localJobRef.current.id, localJobRef.current);
     },
   });
