@@ -184,13 +184,19 @@ export default function Home() {
       clearDraft(id);
       setTimeout(() => setSaveState('idle'), 2000);
     },
-    onError: () => {
+    onError: (err) => {
       setSaveState('idle');
+      const status = err?.status || err?.response?.status;
+      // If the job no longer exists, clear the stale draft and don't show pending banner
+      if (status === 404) {
+        if (localJobRef.current) clearDraft(localJobRef.current.id);
+        return;
+      }
       // Only show pending banner if we're actually offline — not for rate limit / transient errors
       if (!navigator.onLine) {
         setPendingSync(true);
       }
-      // Always keep draft so changes aren't lost
+      // Keep draft so changes aren't lost (but not for 404s)
       if (localJobRef.current) saveDraft(localJobRef.current.id, localJobRef.current);
     },
   });
