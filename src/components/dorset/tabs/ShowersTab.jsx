@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { uid, today } from '@/lib/jobUtils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ const conditions = ['Good', 'Fair', 'Poor – scale/biofilm present', 'Replaced 
 
 export default function ShowersTab({ job, onChange }) {
   const [uploading, setUploading] = React.useState(null);
-  const fileRefs = React.useRef({});
   const showers = job.showers || [];
   const rooms = (job.rooms || []).map(r => r.name).filter(Boolean);
 
@@ -18,8 +17,9 @@ export default function ShowersTab({ job, onChange }) {
     onChange({ showers: [...showers, { id: uid(), location: '', last_descale: today(), condition: 'Good', notes: '', photo_url: '' }] });
   };
 
-  const update = (id, field, value) => {
-    onChange({ __arrayPatch: { key: 'showers', id, field, value } });
+  // Batch update one shower by merging fields — avoids multiple rapid __arrayPatch races
+  const updateShower = (id, fields) => {
+    onChange({ showers: showers.map(s => s.id === id ? { ...s, ...fields } : s) });
   };
 
   const remove = (id) => {
@@ -30,10 +30,11 @@ export default function ShowersTab({ job, onChange }) {
     if (!file) return;
     setUploading(id);
     const dataUrl = await fileToDataUrl(file);
-    // Use __arrayPatch to avoid stale closure overwriting other shower data
-    onChange({ __arrayPatch: { key: 'showers', id, field: 'photo_url', value: dataUrl } });
+    onChange({ showers: (job.showers || []).map(s => s.id === id ? { ...s, photo_url: dataUrl } : s) });
     setUploading(null);
-    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) onChange({ __arrayPatch: { key: 'showers', id, field: 'photo_url', value: cdnUrl } }); });
+    uploadToCdn(file).then(cdnUrl => {
+      if (cdnUrl) onChange({ __arrayPatch: { key: 'showers', id, field: 'photo_url', value: cdnUrl } });
+    });
   };
 
   return (
@@ -55,58 +56,64 @@ export default function ShowersTab({ job, onChange }) {
       <div className="space-y-3">
         {showers.map(s => (
           <div key={s.id} className="border border-gray-200 rounded-2xl p-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Location</Label>
                 {rooms.length > 0 ? (
-                  <select value={s.location} onChange={e => update(s.id, 'location', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
+                  <select value={s.location} onChange={e => updateShower(s.id, { location: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
                     <option value="">Select room...</option>
                     {rooms.map(r => <option key={r}>{r}</option>)}
                     <option value="__other">Other</option>
                   </select>
                 ) : (
-                  <Input value={s.location} onChange={e => update(s.id, 'location', e.target.value)} placeholder="e.g. Room 1 Ensuite" />
+                  <Input value={s.location} onChange={e => updateShower(s.id, { location: e.target.value })} placeholder="e.g. Room 1 Ensuite" />
                 )}
               </div>
               <div>
+                <Label>Condition</Label>
+                <select value={s.condition} onChange={e => updateShower(s.id, { condition: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                  {conditions.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
                 <Label>Last descale date</Label>
-                <label className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs mb-1 cursor-pointer">
                   <input type="checkbox" checked={!!s.descale_not_known} onChange={e => {
                     const notKnown = e.target.checked;
-                    update(s.id, 'descale_not_known', notKnown);
                     if (notKnown) {
-                      update(s.id, 'last_descale', '');
                       const reportDate = job.assessment_date || today();
                       const d = new Date(reportDate);
                       d.setMonth(d.getMonth() + 3);
-                      update(s.id, 'next_descale', d.toISOString().slice(0,10));
+                      // Batch all related fields in one onChange call
+                      updateShower(s.id, { descale_not_known: true, last_descale: '', next_descale: d.toISOString().slice(0, 10) });
+                    } else {
+                      updateShower(s.id, { descale_not_known: false });
                     }
-                  }} className="w-4 h-4 accent-red-600" />
+                  }} className="w-3.5 h-3.5 accent-red-600" />
                   Date not known
                 </label>
                 {!s.descale_not_known && (
-                  <Input type="date" value={s.last_descale} onChange={e => {
+                  <Input type="date" value={s.last_descale || ''} onChange={e => {
                     const val = e.target.value;
-                    update(s.id, 'last_descale', val);
-                    if (val) update(s.id, 'next_descale', new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0,10));
+                    const next = val ? new Date(new Date(val).setMonth(new Date(val).getMonth() + 3)).toISOString().slice(0, 10) : '';
+                    updateShower(s.id, { last_descale: val, next_descale: next });
                   }} />
                 )}
               </div>
               <div>
                 <Label>Next descale due <span className="text-xs text-gray-400">(auto: +3 months)</span></Label>
-                <Input type="date" value={s.next_descale || ''} onChange={e => update(s.id, 'next_descale', e.target.value)} />
+                <Input type="date" value={s.next_descale || ''} onChange={e => updateShower(s.id, { next_descale: e.target.value })} />
                 {s.next_descale && new Date(s.next_descale) < new Date() && (
                   <div className="text-xs text-red-600 mt-1 font-bold">⚠ Descale overdue</div>
                 )}
               </div>
-              <div>
-                <Label>Condition</Label>
-                <select value={s.condition} onChange={e => update(s.id, 'condition', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base" style={{fontSize:'16px'}}>
-                  {conditions.map(c => <option key={c}>{c}</option>)}
-                </select>
-              </div>
             </div>
-            <div className="mt-2"><Label>Notes</Label><Textarea value={s.notes} onChange={e => update(s.id, 'notes', e.target.value)} className="min-h-[50px]" /></div>
+
+            <div className="mt-2">
+              <Label>Notes</Label>
+              <Textarea value={s.notes || ''} onChange={e => updateShower(s.id, { notes: e.target.value })} className="min-h-[50px]" />
+            </div>
+
             <div className="mt-2">
               {s.photo_url ? (
                 <div>
@@ -114,27 +121,22 @@ export default function ShowersTab({ job, onChange }) {
                   <div className="w-full aspect-video bg-gray-100 rounded-xl overflow-hidden mt-1 mb-1">
                     <img src={s.photo_url} alt="Shower head" className="w-full h-full object-contain" />
                   </div>
-                  <button onClick={() => update(s.id, 'photo_url', '')} className="text-xs text-red-600 underline">Remove photo</button>
+                  <button onClick={() => updateShower(s.id, { photo_url: '' })} className="text-xs text-red-600 underline">Remove photo</button>
                 </div>
               ) : (
-                <div className="flex gap-2 flex-wrap items-center">
+                <div className="flex gap-2 items-center">
                   {uploading === s.id ? (
                     <span className="text-sm text-gray-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Saving photo…</span>
                   ) : (
-                    <>
-                      <label className="text-sm px-3 py-1.5 rounded-xl bg-white border border-gray-300 font-medium cursor-pointer hover:bg-gray-50 inline-block">
-                        📷 Camera
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handlePhoto(s.id, e.target.files[0]); e.target.value = ''; }} />
-                      </label>
-                      <label className="text-sm px-3 py-1.5 rounded-xl bg-white border border-gray-300 font-medium cursor-pointer hover:bg-gray-50 inline-block">
-                        🖼 Gallery
-                        <input type="file" accept="image/*" className="hidden" onChange={e => { handlePhoto(s.id, e.target.files[0]); e.target.value = ''; }} />
-                      </label>
-                    </>
+                    <label className="text-sm px-3 py-1.5 rounded-xl bg-white border border-gray-300 font-medium cursor-pointer hover:bg-gray-50 inline-block">
+                      📷 Add photo
+                      <input type="file" accept="image/*" className="hidden" onChange={e => { handlePhoto(s.id, e.target.files[0]); e.target.value = ''; }} />
+                    </label>
                   )}
                 </div>
               )}
             </div>
+
             <div className="mt-2">
               <button onClick={() => remove(s.id)} className="text-sm px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50">Remove</button>
             </div>

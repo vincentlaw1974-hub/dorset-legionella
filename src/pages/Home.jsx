@@ -52,7 +52,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [jobsView, setJobsView] = useState('list');
   const [dashSubTab, setDashSubTab] = useState('jobs');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [tabMemory, setTabMemory] = useState({});
@@ -227,7 +226,6 @@ export default function Home() {
     const remembered = tabMemory[id];
     setActiveTab(remembered && remembered !== 'dashboard' ? remembered : 'overview');
     setDashSubTab('jobs');
-    setSidebarOpen(false);
     const key = 'recentJobs';
     const recent = JSON.parse(localStorage.getItem(key) || '[]');
     const updated = [id, ...recent.filter(r => r !== id)].slice(0, 3);
@@ -462,21 +460,10 @@ export default function Home() {
 
       {localJob && activeTab !== 'dashboard' && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
-          <div className="flex flex-col lg:flex-row gap-3 items-start">
-
-            {/* Mobile sidebar toggle */}
-            <div className="lg:hidden mb-2">
-              <button
-                onClick={() => setSidebarOpen(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold shadow-sm"
-              >
-                <span>📋 {localJob?.site_name || localJob?.client || 'Current job'}</span>
-                <span className="text-gray-400">{sidebarOpen ? '▲ Hide' : '▼ Details'}</span>
-              </button>
-            </div>
+          <div className="flex flex-row gap-3 items-start">
 
             {/* Left sidebar */}
-            <div className={`w-full lg:w-[280px] lg:flex-shrink-0 ${sidebarOpen ? 'block' : 'hidden'} lg:block`}>
+            <div className="w-[280px] flex-shrink-0">
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
