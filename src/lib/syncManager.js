@@ -95,7 +95,11 @@ export async function syncAllPendingDrafts() {
       clearDraft(id);
       resolvedDrafts[id] = draft; // return resolved draft so caller can update UI state
       synced++;
-    } catch {
+    } catch (err) {
+      // If the job no longer exists on the server (404), clear the stale draft
+      if (err?.message?.includes('404') || err?.status === 404) {
+        clearDraft(id);
+      }
       failed++;
     }
   }));

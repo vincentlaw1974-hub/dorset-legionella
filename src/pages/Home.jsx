@@ -107,18 +107,11 @@ export default function Home() {
   const debounceRef = useRef(null);
   const localJobRef = useRef(null);
 
-  // Real-time subscription: update jobs list and current job when another device saves
+  // Real-time subscription: update jobs list when another device saves
+  // Do NOT overwrite localJob from subscription — it causes status reversion bugs
   useEffect(() => {
-    const unsubscribe = base44.entities.Job.subscribe((event) => {
+    const unsubscribe = base44.entities.Job.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      // If the updated job is currently open and we don't have a local draft, reload it
-      if (event.type === 'update' && event.id === localJobRef.current?.id) {
-        const hasDraft = !!getDraft(event.id);
-        if (!hasDraft && event.data) {
-          setLocalJob(event.data);
-          localJobRef.current = event.data;
-        }
-      }
     });
     return unsubscribe;
   }, [queryClient]);
@@ -310,7 +303,7 @@ export default function Home() {
           if (localJobRef.current?.id === jobId) {
             updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
           }
-        }, 800);
+        }, 3000);
       }
     }
   }, [updateMutation]);
