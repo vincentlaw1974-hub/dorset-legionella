@@ -466,16 +466,17 @@ export default function Home() {
 
       {localJob && activeTab !== 'dashboard' && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
-          <div className="flex flex-row gap-3 items-start">
+          {/* Mobile: stacked. Desktop: side-by-side */}
+          <div className="flex flex-col lg:flex-row gap-3 items-start">
 
-            {/* Left sidebar */}
-            <div className="w-[280px] flex-shrink-0">
+            {/* Sidebar — full width on mobile, fixed 280px on desktop */}
+            <div className="w-full lg:w-[280px] lg:flex-shrink-0">
               <MetricsBar job={localJob} />
               <ReportChecks job={localJob} />
             </div>
 
             {/* Main content */}
-            <div key={localJob.id} className="flex-1 min-w-0">
+            <div key={localJob.id} className="w-full lg:flex-1 min-w-0">
               {activeTab === 'buildings' && <BuildingsTab job={localJob} onChange={handleChange} />}
               {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
               {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
