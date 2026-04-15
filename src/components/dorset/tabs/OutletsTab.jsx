@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { uid, templateOutlets, outletStatus } from '@/lib/jobUtils';
+import { uid, outletStatus } from '@/lib/jobUtils';
 import OutletsQuickGrid from './OutletsQuickGrid';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,6 @@ export default function OutletsTab({ job, onChange }) {
   const addOutlet = () => {
     const outlets = [...(job.outlets || []), { id: uid(), location: '', type: 'WHB', hot: '', cold: '', notes: '', infrequent: false }];
     onChange({ outlets });
-  };
-
-  const addTemplateOutlets = () => {
-    const name = job.property_type in templateOutlets ? job.property_type : 'Nursing Home';
-    const newOnes = templateOutlets[name].map(([location, type]) => ({ id: uid(), location, type, hot: '', cold: '', notes: '', infrequent: false }));
-    onChange({ outlets: [...(job.outlets || []), ...newOnes] });
   };
 
   const removeOutlet = (id) => {
@@ -44,10 +38,7 @@ export default function OutletsTab({ job, onChange }) {
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
         <strong>Outlet inspection table</strong>
-        <div className="flex gap-2">
-          <button onClick={addTemplateOutlets} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">📋 Template</button>
-          <button onClick={() => setMode('grid')} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">⚡ Grid</button>
-        </div>
+        <button onClick={() => setMode('grid')} className="text-sm px-3 py-2 rounded-xl font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">⚡ Grid</button>
       </div>
 
       {(job.outlets || []).length === 0 && (

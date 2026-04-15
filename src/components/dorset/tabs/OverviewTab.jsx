@@ -1,35 +1,15 @@
 import React, { useRef, useState } from 'react';
-import { templateOutlets, uid } from '@/lib/jobUtils';
+import { uid } from '@/lib/jobUtils';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const templates = ['Blank', 'Nursing Home', 'Care Home', 'Holiday Park', 'Factory Unit', 'Domestic'];
 const ASSESSORS = ['Vincent White', 'Ben White', 'Jake Robbins', 'Chris Hooker', 'Dominic Lowey-Parsons'];
 
 export default function OverviewTab({ job, onChange }) {
   const coverRef = useRef();
-
-  const handleTemplate = (name) => {
-    if (name === 'Blank') {
-      onChange({ template: 'Blank' });
-      return;
-    }
-    const outlets = (templateOutlets[name] || []).map(([location, type]) => ({
-      id: uid(), location, type, hot: '', cold: '', notes: '', designation: '', infrequent: false
-    }));
-    onChange({
-      template: name,
-      property_type: name,
-      cqc_mode: ['Nursing Home', 'Care Home'].includes(name),
-      vulnerable_users: ['Nursing Home', 'Care Home', 'Holiday Park'].includes(name),
-      tmvs_installed: name !== 'Domestic',
-      risk: ['Nursing Home', 'Care Home'].includes(name) ? 'MEDIUM' : 'LOW',
-      outlets,
-    });
-  };
 
 
   const handleCoverPhoto = async (e) => {
@@ -60,13 +40,6 @@ export default function OverviewTab({ job, onChange }) {
       )}
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <strong>Executive summary &amp; site details</strong>
-        <select
-          value={job.template || 'Blank'}
-          onChange={e => handleTemplate(e.target.value)}
-          className="text-sm border border-gray-300 rounded-xl px-3 py-2 max-w-[220px]"
-        >
-          {templates.map(t => <option key={t}>{t}</option>)}
-        </select>
       </div>
       {/* Status selector */}
       <div className="flex gap-2 mb-4 flex-wrap">
