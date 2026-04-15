@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { uid, templateOutlets, outletStatus } from '@/lib/jobUtils';
 import OutletsQuickGrid from './OutletsQuickGrid';
-import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,15 +27,6 @@ export default function OutletsTab({ job, onChange }) {
 
   const removeOutlet = (id) => {
     onChange({ outlets: (job.outlets || []).filter(o => o.id !== id) });
-  };
-
-  const handleOutletPhoto = async (id, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const dataUrl = await fileToDataUrl(file);
-    updateOutlet(id, 'photo_url', dataUrl);
-    e.target.value = '';
-    uploadToCdn(file).then(cdnUrl => { if (cdnUrl) onChange({ __arrayPatch: { key: 'outlets', id, field: 'photo_url', value: cdnUrl } }); });
   };
 
   if (mode === 'grid') {
@@ -130,27 +120,6 @@ export default function OutletsTab({ job, onChange }) {
               <div className="mt-2">
                 <Label>Notes</Label>
                 <Textarea value={o.notes} onChange={e => updateOutlet(o.id, 'notes', e.target.value)} className="min-h-[60px]" />
-              </div>
-
-              {/* Outlet photo */}
-              <div className="mt-2">
-                {o.photo_url ? (
-                  <div className="relative inline-block">
-                    <img src={o.photo_url} alt="outlet" className="h-24 w-32 object-cover rounded-xl border border-gray-200" />
-                    <button onClick={() => updateOutlet(o.id, 'photo_url', '')} className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full w-5 h-5 text-xs text-red-600 flex items-center justify-center font-bold">×</button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2 flex-wrap">
-                    <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50 inline-block">
-                      📷 Camera
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleOutletPhoto(o.id, e)} />
-                    </label>
-                    <label className="text-xs px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium cursor-pointer hover:bg-gray-50 inline-block">
-                      🖼 Gallery
-                      <input type="file" accept="image/*" className="hidden" onChange={e => handleOutletPhoto(o.id, e)} />
-                    </label>
-                  </div>
-                )}
               </div>
 
               <div className="mt-2">
