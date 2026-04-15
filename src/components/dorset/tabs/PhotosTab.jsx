@@ -1,25 +1,70 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { uid } from '@/lib/jobUtils';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { base44 } from '@/api/base44Client';
 
 const photoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
 
+// Use AI to guess room + kind from filename, given the list of known rooms
+async function detectPhotoMeta(filename, rooms) {
+  const roomNames = rooms.map(r => r.name);
+  try {
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are helping tag photos for a Legionella risk assessment report.
+Given a photo filename: "${filename}"
+And the list of rooms at this site: ${JSON.stringify(roomNames)}
+
+Respond with JSON only:
+{
+  "location": "<best matching room name from the list, or empty string if none match>",
+  "kind": "<one of: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General>",
+  "caption": "<short descriptive caption based on the filename>"
+}
+
+Rules:
+- Match location to the closest room name if the filename mentions a room, number, or area.
+- Pick the most appropriate kind based on keywords in the filename.
+- Keep caption under 10 words.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          location: { type: 'string' },
+          kind: { type: 'string' },
+          caption: { type: 'string' }
+        }
+      }
+    });
+    return result;
+  } catch {
+    return { location: '', kind: 'General', caption: '' };
+  }
+}
+
 export default function PhotosTab({ job, onChange }) {
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const cameraRef = useRef();
   const uploadRef = useRef();
 
-  const upload = async (files) => {
+  const upload = async (files, useAI = false) => {
     setUploading(true);
     for (const file of files) {
       const newId = uid();
       const dataUrl = await fileToDataUrl(file);
-      // Save immediately as base64 — works offline
-      // Use __arrayPatch-style approach via a dedicated photo add
-      onChange({ __addPhoto: { id: newId, file_url: dataUrl, kind: 'General', location: '', caption: '' } });
-      // Upgrade to CDN in background — use safe patch to avoid stale closure
+
+      let meta = { kind: 'General', location: '', caption: '' };
+      if (useAI && (job.rooms || []).length > 0) {
+        meta = await detectPhotoMeta(file.name, job.rooms || []);
+        // Clamp kind to valid options
+        if (!photoKinds.includes(meta.kind)) meta.kind = 'General';
+        // Clamp location to known rooms
+        const knownRooms = (job.rooms || []).map(r => r.name);
+        if (!knownRooms.includes(meta.location)) meta.location = '';
+      }
+
+      onChange({ __addPhoto: { id: newId, file_url: dataUrl, kind: meta.kind, location: meta.location, caption: meta.caption } });
       uploadToCdn(file).then(cdnUrl => {
         if (cdnUrl) onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
       });
@@ -29,9 +74,16 @@ export default function PhotosTab({ job, onChange }) {
 
   const handleInput = (e) => {
     const files = [...e.target.files];
-    if (files.length > 0) upload(files);
+    if (files.length > 0) upload(files, false);
     e.target.value = '';
   };
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+    if (files.length > 0) upload(files, true);
+  }, [job.rooms]);
 
   const updatePhoto = (id, field, value) => {
     onChange({ photos: (job.photos || []).map(p => p.id === id ? { ...p, [field]: value } : p) });
@@ -44,6 +96,22 @@ export default function PhotosTab({ job, onChange }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
       <strong className="block mb-3">Photos</strong>
+
+      {/* Drag and drop zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`mb-4 border-2 border-dashed rounded-2xl p-6 text-center transition-all ${dragOver ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-gray-50'}`}
+      >
+        <div className="text-3xl mb-1">🖼️</div>
+        <div className="text-sm font-semibold text-gray-700">Drag &amp; drop photos here</div>
+        <div className="text-xs text-gray-500 mt-1">
+          {(job.rooms || []).length > 0
+            ? '✨ AI will detect the room and type from the filename'
+            : 'Add rooms first to enable AI auto-tagging'}
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <button
@@ -66,7 +134,7 @@ export default function PhotosTab({ job, onChange }) {
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleInput} className="hidden" />
       <input ref={uploadRef} type="file" accept="image/*" multiple onChange={handleInput} className="hidden" />
 
-      {uploading && <div className="text-sm text-gray-500 mb-3">Uploading…</div>}
+      {uploading && <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">✨ AI is tagging photos from filenames…</div>}
 
       <div className="space-y-4">
         {(job.photos || []).map(p => {
