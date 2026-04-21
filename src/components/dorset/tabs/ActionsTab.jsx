@@ -39,24 +39,28 @@ export default function ActionsTab({ job, onChange }) {
         {(job.actions || []).map(a => (
           <div key={a.id} className="border border-gray-200 rounded-2xl p-4">
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <div><Label>Ref</Label><Input className="h-12 text-base" value={a.ref} onChange={e => updateAction(a.id, 'ref', e.target.value)} /></div>
+              <div><Label>Ref</Label><Input className="h-12 text-base" placeholder="e.g. A1" value={a.ref} onChange={e => updateAction(a.id, 'ref', e.target.value)} /></div>
               <div>
                 <Label>Priority</Label>
                 <select value={a.priority} onChange={e => updateAction(a.id, 'priority', e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-3 text-base">
-                  {['1','2','3','4','O'].map(p => <option key={p}>{p}</option>)}
+                  <option value="1">1 — Immediate</option>
+                  <option value="2">2 — ASAP</option>
+                  <option value="3">3 — Planned</option>
+                  <option value="4">4 — Future</option>
+                  <option value="O">O — Observation</option>
                 </select>
               </div>
             </div>
-            <div className="mb-3"><Label>System</Label><Input className="h-12 text-base" value={a.system} onChange={e => updateAction(a.id, 'system', e.target.value)} /></div>
+            <div className="mb-3"><Label>System</Label><Input className="h-12 text-base" placeholder="e.g. Hot Water, Cold Water, Showers, TMVs" value={a.system} onChange={e => updateAction(a.id, 'system', e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <div><Label>Responsible</Label><Input className="h-12 text-base" value={a.responsible_person || ''} onChange={e => updateAction(a.id, 'responsible_person', e.target.value)} /></div>
+              <div><Label>Responsible</Label><Input className="h-12 text-base" placeholder="e.g. Management, Contractor" value={a.responsible_person || ''} onChange={e => updateAction(a.id, 'responsible_person', e.target.value)} /></div>
               <div><Label>Deadline</Label><Input type="date" className="h-12 text-base" value={a.deadline || ''} onChange={e => updateAction(a.id, 'deadline', e.target.value)} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <div><Label>Status</Label><Input className="h-12 text-base" value={a.status} onChange={e => updateAction(a.id, 'status', e.target.value)} /></div>
+              <div><Label>Status</Label><Input className="h-12 text-base" placeholder="e.g. Open, In Progress, Completed" value={a.status} onChange={e => updateAction(a.id, 'status', e.target.value)} /></div>
             </div>
-            <div className="mb-3"><Label>Observation</Label><Textarea className="text-base min-h-[80px]" value={a.observation} onChange={e => updateAction(a.id, 'observation', e.target.value)} /></div>
-            <div className="mb-3"><Label>Action required</Label><Textarea className="text-base min-h-[80px]" value={a.action} onChange={e => updateAction(a.id, 'action', e.target.value)} /></div>
+            <div className="mb-3"><Label>Observation</Label><Textarea className="text-base min-h-[80px]" placeholder="What was found during the assessment, e.g. No temperature monitoring records available" value={a.observation} onChange={e => updateAction(a.id, 'observation', e.target.value)} /></div>
+            <div className="mb-3"><Label>Action required</Label><Textarea className="text-base min-h-[80px]" placeholder="What needs to be done, e.g. Implement monthly temperature monitoring and retain records on site" value={a.action} onChange={e => updateAction(a.id, 'action', e.target.value)} /></div>
             <button onClick={() => removeAction(a.id)} className="w-full py-3 rounded-xl bg-white text-red-600 border border-red-200 font-bold text-sm">Remove action</button>
           </div>
         ))}
