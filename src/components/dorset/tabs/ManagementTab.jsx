@@ -74,6 +74,11 @@ export default function ManagementTab({ job, onChange }) {
         </div>
         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-gray-700">
           The Duty Holder is responsible for ensuring risks from Legionella are assessed and controlled. The Responsible Person oversees implementation and operation of the written scheme. The assessor provides assessment and recommendations only.
+          {job.property_type === 'Dental Surgery' && (
+            <div className="mt-2 pt-2 border-t border-red-200 text-xs text-red-800 font-medium">
+              🦷 Dental Surgery: The Registered Manager (CQC) has a specific duty of care under HTM 01-05 to ensure water supply and DUWL systems comply with ACoP L8 and HTM 04-01. Risk assessment must be reviewed at least every 2 years.
+            </div>
+          )}
         </div>
       </div>
 
@@ -86,6 +91,8 @@ export default function ManagementTab({ job, onChange }) {
           {naCheckbox('monitoring_records', 'Monitoring records available')}
           {naCheckbox('vulnerable_users', 'Vulnerable users/residents present')}
           {naCheckbox('cqc_mode', 'Care/CQC support mode')}
+          {job.property_type === 'Dental Surgery' && naCheckbox('dental_htm0105_compliant', 'HTM 01-05 written scheme includes DUWL controls')}
+          {job.property_type === 'Dental Surgery' && naCheckbox('dental_cqc_registered', 'CQC registered dental practice')}
         </div>
         <div className="mt-3">
           <Label>Compliance notes</Label>

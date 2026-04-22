@@ -181,6 +181,92 @@ export default function SystemsTab({ job, onChange }) {
         </div>
       </div>
 
+      {job.property_type === 'Dental Surgery' && (
+        <div className="bg-white border border-red-200 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <strong>🦷 Dental Surgery — HTM 01-05 Requirements</strong>
+          </div>
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3">
+            Dental practices must comply with HTM 01-05 (Decontamination in Primary Care Dental Practices) and ACoP L8. Dental Unit Water Lines (DUWLs) present a specific Legionella risk and require separate controls from the domestic water system.
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Number of dental chairs / DUWLs</Label>
+              <Input value={job.duwl_count || ''} onChange={e => onChange({ duwl_count: e.target.value })} placeholder="e.g. 3" />
+            </div>
+            <div>
+              <Label>DUWL water supply type</Label>
+              <select value={job.duwl_water_type || ''} onChange={e => onChange({ duwl_water_type: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                <option value="">-- select --</option>
+                <option value="Distilled water (self-contained bottle)">Distilled water (self-contained bottle) ✓ Recommended</option>
+                <option value="RO water (self-contained bottle)">RO water (self-contained bottle) ✓ Recommended</option>
+                <option value="Mains-fed">Mains-fed ⚠ Higher risk</option>
+                <option value="Municipal water with inline filter">Municipal water with inline filter</option>
+              </select>
+              {(job.duwl_water_type === 'Mains-fed') && (
+                <div className="text-xs text-red-600 mt-1 font-bold">⚠ HTM 01-05 recommends distilled or RO water in self-contained bottles for DUWLs</div>
+              )}
+            </div>
+            <div>
+              <Label>DUWL decontamination product used</Label>
+              <Input value={job.duwl_decon_product || ''} onChange={e => onChange({ duwl_decon_product: e.target.value })} placeholder="e.g. Alpron, Oxygenal 6, Safewater" />
+            </div>
+            <div>
+              <Label>DUWL decontamination frequency</Label>
+              <select value={job.duwl_decon_freq || ''} onChange={e => onChange({ duwl_decon_freq: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                <option value="">-- select --</option>
+                <option value="Daily">Daily ✓ Recommended</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly ⚠ Not recommended</option>
+                <option value="Not done">Not done ✗ Non-compliant</option>
+              </select>
+              {job.duwl_decon_freq === 'Not done' && <div className="text-xs text-red-600 mt-1 font-bold">✗ Non-compliant — DUWL decontamination is required under HTM 01-05</div>}
+            </div>
+            <div>
+              <Label>Last DUWL microbiological test date</Label>
+              <Input type="date" value={job.duwl_last_test || ''} onChange={e => onChange({ duwl_last_test: e.target.value })} />
+              {job.duwl_last_test && new Date(job.duwl_last_test) < new Date(new Date().setMonth(new Date().getMonth() - 3)) && (
+                <div className="text-xs text-amber-700 mt-1 font-bold">⚠ Last DUWL test over 3 months ago — quarterly testing recommended</div>
+              )}
+              {!job.duwl_last_test && <div className="text-xs text-red-600 mt-1">⚠ No DUWL test date recorded</div>}
+            </div>
+            <div>
+              <Label>DUWL test result (CFU/ml)</Label>
+              <Input value={job.duwl_test_result || ''} onChange={e => onChange({ duwl_test_result: e.target.value })} placeholder="Target: <200 CFU/ml (ADA/CDC standard)" />
+              {job.duwl_test_result && parseInt(job.duwl_test_result) > 200 && (
+                <div className="text-xs text-red-600 mt-1 font-bold">⚠ DUWL result above 200 CFU/ml — immediate remedial action required</div>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 divide-y divide-gray-100">
+            <div className="text-xs font-semibold text-gray-600 pb-2">HTM 01-05 Compliance checks:</div>
+            {[
+              ['duwl_daily_flush', 'DUWLs flushed for 2 minutes at start of day (purge)'],
+              ['duwl_patient_flush', 'DUWLs flushed 20–30 seconds between each patient'],
+              ['duwl_decon_records', 'DUWL decontamination records in place'],
+              ['duwl_test_records', 'Quarterly DUWL microbiological test records in place'],
+              ['duwl_antiretraction', 'Anti-retraction valves fitted on all dental units'],
+              ['dental_written_scheme', 'Written scheme covers DUWLs specifically'],
+              ['dental_staff_training', 'Staff trained on DUWL decontamination procedure'],
+            ].map(([field, label]) => (
+              <label key={field} className="flex items-center gap-2 text-sm cursor-pointer py-2">
+                <input
+                  type="checkbox"
+                  checked={!!job[field]}
+                  onChange={e => onChange({ [field]: e.target.checked })}
+                  className="w-4 h-4 accent-red-600"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <div className="mt-3">
+            <Label>Dental water system notes</Label>
+            <Textarea value={job.dental_notes || ''} onChange={e => onChange({ dental_notes: e.target.value })} placeholder="DUWL condition, maintenance history, any non-conformances noted..." />
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <strong>Risk scoring overview</strong>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
