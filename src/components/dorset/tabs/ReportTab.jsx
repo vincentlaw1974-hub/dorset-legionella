@@ -302,7 +302,7 @@ export default function ReportTab({ job, onPrint }) {
 <div class="page" style="page-break-before:always">
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="section-title">Issues / Findings</div>
-  ${job.issues_text ? `<div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.issues_text)}</div>` : `<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No issues entered — add findings in the Issues tab before sending to client.</div>`}
+  ${job.issues_text ? `<div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.issues_text)}</div>` : `<div style="font-size:10px;color:#555">No specific issues were identified during this assessment.</div>`}
   ${(job.actions||[]).length>0?`<div class="section-title">Remedial Actions</div><table><thead><tr><th>Ref</th><th>System</th><th>Priority</th><th>Responsible</th><th>Deadline</th><th>Observation</th><th>Action</th><th>Status</th></tr></thead><tbody>${actionRows}</tbody></table>`:'<div style="font-size:10px;color:#888;margin-top:4px">No remedial actions recorded.</div>'}
   ${scheme.length>0?`<div class="section-title">Control Scheme</div><table><thead><tr><th>Task</th><th>Frequency</th><th>Requirement</th><th>Responsible</th><th>Record</th></tr></thead><tbody>${schemeRows}</tbody></table>`:''}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 3</div>
@@ -405,7 +405,7 @@ ${buildingPageHtml}
         <div><strong>Issues / findings</strong></div>
         {job.issues_text
           ? <div className="text-xs text-gray-700 whitespace-pre-line">{job.issues_text}</div>
-          : <div className="text-xs font-semibold text-red-700 bg-red-50 border-l-4 border-red-500 px-3 py-2 rounded">⚠ No issues entered — add findings in the Issues tab before sending to client.</div>
+          : <div className="text-xs text-gray-500">No specific issues were identified during this assessment.</div>
         }
 
         {/* Buildings preview */}
