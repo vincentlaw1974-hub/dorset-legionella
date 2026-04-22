@@ -279,7 +279,7 @@ export default function ReportTab({ job, onPrint }) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>${CSS}</style></head><body>
 <div class="page">
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p><p>Prepared in accordance with HSG274 and ACOP L8</p></div><div class="ref">Ref: ${reportRef}</div></div>
-  ${job.cover_photo_url?`<div style="margin-bottom:14px"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:4px;display:block"/></div>`:''}
+  ${job.cover_photo_url?`<div style="margin-bottom:14px"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:260px;object-fit:contain;background:#f5f5f5;border-radius:4px;display:block"/></div>`:''}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
     <div style="border:2px solid #d71920;padding:10px;border-radius:4px;background:#fff5f5 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Overall Risk</div><div style="font-size:36px;font-weight:900;color:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'}">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:4px">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px">Property: ${job.property_type||'—'}</div></div>
@@ -381,7 +381,7 @@ ${buildingPageHtml}
           <div className="text-xs text-gray-400 mb-1">Legionella Risk Assessment Report</div>
           <h1 className="text-2xl font-bold" style={{ color: '#d71920' }}>{job.site_name || job.client || 'Untitled Site'}</h1>
           <div className="text-gray-300 text-xs mt-1">{job.address}</div>
-          {job.cover_photo_url && <img src={job.cover_photo_url} alt="Cover" className="w-full rounded-xl mt-3" style={{height:'280px',objectFit:'cover',objectPosition:'center'}} />}
+          {job.cover_photo_url && <img src={job.cover_photo_url} alt="Cover" className="w-full rounded-xl mt-3" style={{maxHeight:'320px',objectFit:'contain',background:'#1d1d1d'}} />}
           <div className="flex flex-wrap gap-2 mt-3">
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${riskBadge}`}>Risk: {job.risk || 'LOW'}</span>
             {job.cqc_mode && <span className="px-2 py-0.5 rounded-full text-xs font-bold badge-high">CQC Mode</span>}
