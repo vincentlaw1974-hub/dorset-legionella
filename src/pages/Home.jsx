@@ -307,7 +307,7 @@ export default function Home() {
           if (localJobRef.current?.id === jobId) {
             updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
           }
-        }, 3000);
+        }, 1500);
       }
     }
   }, [updateMutation]);

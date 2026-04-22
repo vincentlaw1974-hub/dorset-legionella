@@ -1,16 +1,13 @@
-import React, { useRef, useState } from 'react';
-import { uid } from '@/lib/jobUtils';
+import React, { useRef } from 'react';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ASSESSORS = ['Vincent White', 'Ben White', 'Jake Robbins', 'Chris Hooker', 'Dominic Lowey-Parsons'];
 
 export default function OverviewTab({ job, onChange }) {
   const coverRef = useRef();
-
 
   const handleCoverPhoto = async (e) => {
     const file = e.target.files?.[0];
