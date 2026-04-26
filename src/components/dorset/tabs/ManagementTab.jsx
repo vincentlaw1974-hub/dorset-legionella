@@ -58,6 +58,42 @@ export default function ManagementTab({ job, onChange }) {
     );
   };
 
+  const isDomestic = job.property_type === 'Domestic';
+
+  if (isDomestic) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
+          <strong className="block mb-1">🏠 Residential / Domestic property</strong>
+          For a low-risk residential rental property with a combi-boiler, a formal written scheme is not required. This assessment confirms that simple control measures are in place as required by HSG274 Part 2.
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+          <strong>Simple control measures</strong>
+          <div className="mt-3 divide-y divide-gray-100">
+            {naCheckbox('monthly_temp_log', 'Temperature checks carried out periodically')}
+            {naCheckbox('shower_cleaning_log', 'Shower head cleaned and descaled regularly')}
+            {naCheckbox('flushing_log', 'Unused taps/outlets flushed weekly')}
+            {naCheckbox('vulnerable_users', 'Vulnerable occupants present (elderly, immunocompromised)')}
+          </div>
+          <div className="mt-3">
+            <Label>Control notes</Label>
+            <Textarea {...f('compliance_notes')} placeholder="Any observations about control measures, condition of fittings, landlord instructions, etc." />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+          <strong>Responsible person</strong>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            {naInput('duty_holder', 'Landlord / Duty Holder')}
+            {naInput('responsible_person', 'Managing Agent (if applicable)')}
+            {naInput('assessor', 'Assessor')}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
