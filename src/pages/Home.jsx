@@ -120,11 +120,14 @@ export default function Home() {
   useEffect(() => {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
       const draft = getDraft(selectedJob.id);
-      if (draft) {
-        // Always load from draft — it represents unsaved offline changes
+      // Only use draft if it is NEWER than the server copy (avoids stale drafts from before fixes)
+      const serverUpdated = selectedJob.updated_date ? new Date(selectedJob.updated_date).getTime() : 0;
+      const draftUpdated = draft?.updated_date ? new Date(draft.updated_date).getTime() : 0;
+      const useDraft = draft && draftUpdated >= serverUpdated;
+      if (useDraft) {
+        // Draft is newer — load it and push to server
         setLocalJob(draft);
         localJobRef.current = draft;
-        // If we're online, push the draft to the server immediately
         if (navigator.onLine) {
           base44.entities.Job.update(draft.id, stripBase64(draft))
             .then(() => {
@@ -134,7 +137,8 @@ export default function Home() {
             .catch(() => {}); // stays in draft on failure, will retry on next reconnect
         }
       } else {
-        // No draft — server data is authoritative
+        // Server data is authoritative (draft is stale or missing)
+        if (draft) clearDraft(selectedJob.id); // discard stale draft
         setLocalJob(selectedJob);
         localJobRef.current = selectedJob;
       }
@@ -219,11 +223,14 @@ export default function Home() {
         updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
       }
     }
-    // Find the job — prefer draft if one exists (offline changes)
+    // Find the job — prefer draft only if it is NEWER than server data
     const nextJob = jobs.find(j => j.id === id);
     if (nextJob) {
       const draft = getDraft(id);
-      const jobToLoad = draft || nextJob;
+      const serverUpdated = nextJob.updated_date ? new Date(nextJob.updated_date).getTime() : 0;
+      const draftUpdated = draft?.updated_date ? new Date(draft.updated_date).getTime() : 0;
+      const jobToLoad = (draft && draftUpdated >= serverUpdated) ? draft : nextJob;
+      if (draft && draftUpdated < serverUpdated) clearDraft(id); // discard stale draft
       localJobRef.current = jobToLoad;
       setLocalJob(jobToLoad);
     }
