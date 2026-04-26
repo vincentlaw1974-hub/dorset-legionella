@@ -58,7 +58,8 @@ export default function ManagementTab({ job, onChange }) {
     );
   };
 
-  const isDomestic = (job.property_type || '').toLowerCase() === 'domestic';
+  const propertyType = job.property_type || '';
+  const isDomestic = propertyType.toLowerCase() === 'domestic';
 
   if (isDomestic) {
     return (
