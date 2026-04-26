@@ -35,6 +35,8 @@ async function compressImage(url, maxWidth = 500, quality = 0.3) {
 }
 import { buildControlScheme, outletStatus } from '@/lib/jobUtils';
 
+const isDomesticJob = (job) => (job.property_type || '').toLowerCase() === 'domestic';
+
 // Flatten all outlets: top-level + building outlets (with building name prefix)
 function getAllOutlets(job) {
   const topLevel = (job.outlets || []).map(o => ({ ...o, displayLocation: o.location || '' }));
@@ -48,7 +50,7 @@ function buildSchematic(job) {
   const groups = {};
   (job.outlets || []).forEach(o => {
     const key = o.location || 'Area';
-    const { cls } = outletStatus(o, job.cqc_mode);
+    const { cls } = outletStatus(o, job.cqc_mode, isDomesticJob(job));
     groups[key] = groups[key] || { count: 0, issue: false, types: new Set() };
     groups[key].count++;
     groups[key].types.add(o.type || 'Outlet');
@@ -98,7 +100,7 @@ export default function ReportTab({ job, onPrint }) {
     };
 
     const statusColor = (o) => {
-      const st = outletStatus(o, job.cqc_mode);
+      const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
       return st.cls === 'ok' ? '#27ae60' : st.cls === 'warn' ? '#e67e22' : '#c0392b';
     };
 
@@ -131,7 +133,7 @@ export default function ReportTab({ job, onPrint }) {
       const borderCol = roomFail ? '#c0392b' : roomWarn ? '#e67e22' : '#10b981';
       const bgCol = roomFail ? '#fff5f5' : roomWarn ? '#fffbeb' : '#f0fdf4';
       const chips = outlets.map(o => {
-        const st = outletStatus(o, job.cqc_mode);
+        const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
         const col = statusColor(o);
         return `<div style="border:2px solid ${col};border-radius:8px;padding:5px 8px;background:#fff;text-align:center;min-width:70px">
           <div style="font-size:14px">${outletTypeIcon(o.type)}</div>
@@ -148,7 +150,7 @@ export default function ReportTab({ job, onPrint }) {
     }).join('');
 
     const outletRows = allOutlets.map(o => {
-      const st = outletStatus(o, job.cqc_mode);
+      const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534' : st.cls === 'warn' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
       const isOutsideTap = o.type === 'Outside Tap';
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
@@ -203,7 +205,7 @@ export default function ReportTab({ job, onPrint }) {
 
     const tempBars = allOutlets.map(o => {
       const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
-      const st = outletStatus(o, job.cqc_mode);
+      const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
       const color = st.cls === 'ok' ? '#27ae60' : st.cls === 'warn' ? '#e67e22' : '#c0392b';
       const hotWidth = !isNaN(hot) && o.type !== 'Outside Tap' ? Math.min((hot / 70) * 100, 100) : 0;
       const coldWidth = !isNaN(cold) ? Math.min((cold / 70) * 100, 100) : 0;
@@ -248,7 +250,7 @@ export default function ReportTab({ job, onPrint }) {
         const outletHtml = Object.entries(outletsByRoom).map(([room, outs]) =>
           `<div style="margin-bottom:6px"><div style="font-size:9px;font-weight:bold;color:#555;margin-bottom:3px">${room}</div><div style="display:flex;flex-wrap:wrap;gap:4px">${outs.map(o => {
             const col = statusColor(o);
-            const st = outletStatus(o, job.cqc_mode);
+            const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
             return `<div style="border:2px solid ${col};border-radius:6px;padding:3px 6px;background:#fff;text-align:center;min-width:55px"><div style="font-size:12px">${outletTypeIcon(o.type)}</div><div style="font-size:8px;font-weight:bold">${o.type}</div><div style="font-size:8px;color:${col};font-weight:bold">${st.text.toUpperCase()}</div>${o.hot?`<div style="font-size:7px;color:#555">${o.hot}°C H</div>`:''}</div>`;
           }).join('')}</div></div>`
         ).join('');
@@ -470,7 +472,7 @@ ${buildingPageHtml}
               <table className="w-full border-collapse text-xs mt-1">
                 <thead><tr className="bg-red-50">{['Location','Type','Hot °C','Cold °C','Status','Notes','Photo'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
                 <tbody>{getAllOutlets(job).map(o => {
-                  const st = outletStatus(o, job.cqc_mode);
+                  const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
                   return <tr key={o.id + (o.displayLocation||'')}>
                     <td className="border border-gray-200 p-1.5">{o.displayLocation}</td>
                     <td className="border border-gray-200 p-1.5">{o.type}</td>

@@ -37,7 +37,7 @@ export function blankJob() {
   };
 }
 
-export function outletStatus(o, cqcMode) {
+export function outletStatus(o, cqcMode, isDomestic = false) {
   const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
   const isOutsideTap = o.type === 'Outside Tap';
 
@@ -52,8 +52,13 @@ export function outletStatus(o, cqcMode) {
 
   if (o.hasTmv) {
     if (!isNaN(hot)) {
-      if (hot > 46) return { text: 'Too hot', cls: 'fail' };
-      if (hot < 38) return { text: 'Too cold', cls: 'fail' };
+      // Domestic: only flag if clearly too cold (<38°C). No upper limit — TMV may not fully blend.
+      if (isDomestic) {
+        if (hot < 38) return { text: 'Too cold', cls: 'fail' };
+      } else {
+        if (hot > 46) return { text: 'Too hot', cls: 'fail' };
+        if (hot < 38) return { text: 'Too cold', cls: 'fail' };
+      }
     }
     return { text: 'Pass', cls: 'ok' };
   }
@@ -111,7 +116,7 @@ export function calculateRisk(job) {
   outlets.forEach(o => {
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
     if (o.type !== 'Outside Tap') {
-      if (o.hasTmv) { if (!isNaN(hot) && (hot < 38 || hot > 46)) tempFails++; }
+      if (o.hasTmv) { if (!isNaN(hot) && (hot < 38 || (!isDomestic && hot > 46))) tempFails++; }
       else { const t = o.type === 'Pot Wash' ? 60 : hotTarget; if (!isNaN(hot) && hot < t) tempFails++; }
     }
     if (!isNaN(cold) && cold > 20) tempFails++;
@@ -123,7 +128,7 @@ export function calculateRisk(job) {
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
     if (o.type === 'Outside Tap') return false;
     const hotUrgent = o.hasTmv
-      ? (!isNaN(hot) && (hot < 38 || hot > 46))
+      ? (!isNaN(hot) && (hot < 38 || (!isDomestic && hot > 46)))
       : (!isNaN(hot) && hot < 45);
     return hotUrgent || (!isNaN(cold) && cold >= 25);
   });

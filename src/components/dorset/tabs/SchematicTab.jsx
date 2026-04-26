@@ -12,8 +12,8 @@ const OUTLET_ICONS = {
   'Other': '💧',
 };
 
-function OutletChip({ outlet, cqc_mode }) {
-  const st = outletStatus(outlet, cqc_mode);
+function OutletChip({ outlet, cqc_mode, isDomestic }) {
+  const st = outletStatus(outlet, cqc_mode, isDomestic);
   const bgMap = { ok: '#dcfce7', warn: '#fef3c7', fail: '#fee2e2' };
   const borderMap = { ok: '#86efac', warn: '#fcd34d', fail: '#fca5a5' };
   const textMap = { ok: '#166534', warn: '#92400e', fail: '#991b1b' };
@@ -50,6 +50,7 @@ function SystemNode({ label, icon, detail, color = '#e5e7eb', photoUrl }) {
 
 export default function SchematicTab({ job, onChange }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const isDomestic = (job.property_type || '').toLowerCase() === 'domestic';
 
   const rooms = job.rooms || [];
   const outlets = job.outlets || [];
@@ -83,16 +84,16 @@ export default function SchematicTab({ job, onChange }) {
 
   // Room risk colour
   const roomRisk = (outs) => {
-    if (outs.some(o => outletStatus(o, job.cqc_mode).cls === 'fail')) return { bg: '#fee2e2', border: '#fca5a5', dot: '#dc2626' };
-    if (outs.some(o => outletStatus(o, job.cqc_mode).cls === 'warn')) return { bg: '#fffbeb', border: '#fcd34d', dot: '#d97706' };
+    if (outs.some(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'fail')) return { bg: '#fee2e2', border: '#fca5a5', dot: '#dc2626' };
+    if (outs.some(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'warn')) return { bg: '#fffbeb', border: '#fcd34d', dot: '#d97706' };
     if (outs.length === 0) return { bg: '#f9fafb', border: '#e5e7eb', dot: '#9ca3af' };
     return { bg: '#f0fdf4', border: '#86efac', dot: '#16a34a' };
   };
 
   const totalOutlets = outlets.length;
-  const failCount = outlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
-  const warnCount = outlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
-  const okCount = outlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
+  const failCount = outlets.filter(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'fail').length;
+  const warnCount = outlets.filter(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'warn').length;
+  const okCount = outlets.filter(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'ok').length;
 
   return (
     <div className="space-y-4">
@@ -170,7 +171,7 @@ export default function SchematicTab({ job, onChange }) {
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {roomOutlets.map(o => (
-                      <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} />
+                      <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} isDomestic={isDomestic} />
                     ))}
                   </div>
                 )}
@@ -188,7 +189,7 @@ export default function SchematicTab({ job, onChange }) {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {ungrouped.map(o => (
-                  <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} />
+                  <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} isDomestic={isDomestic} />
                 ))}
               </div>
             </div>
@@ -203,9 +204,9 @@ export default function SchematicTab({ job, onChange }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(job.buildings || []).map(b => {
               const bOutlets = b.outlets || [];
-              const bFail = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
-              const bWarn = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
-              const bOk = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
+              const bFail = bOutlets.filter(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'fail').length;
+              const bWarn = bOutlets.filter(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'warn').length;
+              const bOk = bOutlets.filter(o => outletStatus(o, job.cqc_mode, isDomestic).cls === 'ok').length;
               const borderCol = bFail > 0 ? '#fca5a5' : bWarn > 0 ? '#fcd34d' : bOutlets.length > 0 ? '#86efac' : '#e5e7eb';
               const bgCol = bFail > 0 ? '#fff5f5' : bWarn > 0 ? '#fffbeb' : bOutlets.length > 0 ? '#f0fdf4' : '#fafafa';
               const bRooms = b.rooms || [];
@@ -231,10 +232,10 @@ export default function SchematicTab({ job, onChange }) {
                         return (
                           <div key={r.id}>
                             <div className="text-[10px] font-semibold text-gray-500 mb-1">{r.name}</div>
-                            <div className="flex flex-wrap gap-1">{rOutlets.map(o => <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} />)}</div>
+                            <div className="flex flex-wrap gap-1">{rOutlets.map(o => <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} isDomestic={isDomestic} />)}</div>
                           </div>
                         );
-                      }) : <div className="flex flex-wrap gap-1">{bOutlets.map(o => <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} />)}</div>}
+                      }) : <div className="flex flex-wrap gap-1">{bOutlets.map(o => <OutletChip key={o.id} outlet={o} cqc_mode={job.cqc_mode} isDomestic={isDomestic} />)}</div>}
                     </div>
                   )}
                   {bOutlets.length === 0 && <div className="text-xs text-gray-400">No outlets recorded</div>}

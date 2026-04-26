@@ -47,7 +47,7 @@ export default function OutletsTab({ job, onChange }) {
 
       <div className="space-y-3">
         {(job.outlets || []).map(o => {
-          const st = outletStatus(o, job.cqc_mode);
+          const st = outletStatus(o, job.cqc_mode, (job.property_type || '').toLowerCase() === 'domestic');
           return (
             <div key={o.id} className="border border-gray-200 rounded-2xl p-3">
               <div className="flex items-center justify-between mb-2">
