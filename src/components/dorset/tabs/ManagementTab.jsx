@@ -62,6 +62,34 @@ export default function ManagementTab({ job, onChange }) {
   const isDomestic = propertyType.toLowerCase() === 'domestic';
 
   if (isDomestic) {
+    // Helper for domestic that uses the correct NA field names matching the Job entity
+    const domesticCheck = (field, naField, label) => {
+      const isNA = !!job[naField];
+      return (
+        <div key={field} className="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
+          <label className={`flex items-center gap-2 text-sm cursor-pointer ${isNA ? 'opacity-40' : ''}`}>
+            <input
+              type="checkbox"
+              checked={!!job[field] && !isNA}
+              disabled={isNA}
+              onChange={e => onChange({ [field]: e.target.checked })}
+              className="w-4 h-4 accent-red-600"
+            />
+            {label}
+          </label>
+          <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer ml-3 whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={isNA}
+              onChange={e => onChange({ [naField]: e.target.checked, ...(e.target.checked ? { [field]: false } : {}) })}
+              className="w-3.5 h-3.5 accent-gray-400"
+            />
+            N/A
+          </label>
+        </div>
+      );
+    };
+
     return (
       <div className="space-y-3">
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
@@ -72,10 +100,10 @@ export default function ManagementTab({ job, onChange }) {
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <strong>Simple control measures</strong>
           <div className="mt-3 divide-y divide-gray-100">
-            {naCheckbox('monthly_temp_log', 'Temperature checks carried out periodically')}
-            {naCheckbox('shower_cleaning_log', 'Shower head cleaned and descaled regularly')}
-            {naCheckbox('flushing_log', 'Unused taps/outlets flushed weekly')}
-            {naCheckbox('vulnerable_users', 'Vulnerable occupants present (elderly, immunocompromised)')}
+            {domesticCheck('monthly_temp_log', 'log_temps_na', 'Temperature checks carried out periodically')}
+            {domesticCheck('shower_cleaning_log', 'log_shower_na', 'Shower head cleaned and descaled regularly')}
+            {domesticCheck('flushing_log', 'log_flush_na', 'Unused taps/outlets flushed weekly')}
+            {domesticCheck('vulnerable_users', 'vulnerable_users_na', 'Vulnerable occupants present (elderly, immunocompromised)')}
           </div>
           <div className="mt-3">
             <Label>Control notes</Label>
