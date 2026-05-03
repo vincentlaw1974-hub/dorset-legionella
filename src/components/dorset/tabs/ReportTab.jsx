@@ -411,32 +411,28 @@ ${buildingPageHtml}
   </div>
 
   <div class="section-title">Assessor Declaration</div>
-  <p style="font-size:10px;margin-bottom:10px">I confirm that this risk assessment has been conducted with reasonable skill and care, that the findings represent an accurate record of the conditions observed at the time of the survey, and that the recommendations made are consistent with current legislative requirements and recognised industry guidance.</p>
+  <p style="font-size:10px;margin-bottom:10px">This risk assessment has been conducted with reasonable skill and care. The findings represent an accurate record of the conditions observed at the time of the survey, and the recommendations made are consistent with current legislative requirements and recognised industry guidance. This report is issued electronically and does not require a wet signature.</p>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
     <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Assessor</div>
-      <div style="font-size:10px;font-weight:bold">${job.assessor || '________________________________'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &amp; date</div>
+      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">ASSESSOR</div>
+      <div style="font-size:11px;font-weight:bold;color:#111">${job.assessor || '—'}</div>
+      <div style="font-size:9px;color:#666;margin-top:2px">Assessment date: ${job.assessment_date || '—'}</div>
     </div>
     <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Peer Reviewer / Authoriser</div>
-      <div style="font-size:10px;font-weight:bold">${job.reviewer || '________________________________'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &amp; date</div>
+      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">PEER REVIEWER / AUTHORISER</div>
+      <div style="font-size:11px;font-weight:bold;color:#111">${job.reviewer || '—'}</div>
+      <div style="font-size:9px;color:#666;margin-top:2px">Report ref: ${reportRef}</div>
     </div>
     <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Duty Holder / Client Acknowledgement</div>
-      <div style="font-size:10px;font-weight:bold">${job.duty_holder || '________________________________'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &amp; date confirming receipt</div>
+      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">DUTY HOLDER / CLIENT</div>
+      <div style="font-size:11px;font-weight:bold;color:#111">${job.duty_holder || '—'}</div>
+      <div style="font-size:9px;color:#666;margin-top:2px">Report issued electronically</div>
     </div>
     <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Responsible Person</div>
-      <div style="font-size:10px;font-weight:bold">${job.responsible_person || '________________________________'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &amp; date confirming receipt</div>
+      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">RESPONSIBLE PERSON</div>
+      <div style="font-size:11px;font-weight:bold;color:#111">${job.responsible_person || '—'}</div>
+      <div style="font-size:9px;color:#666;margin-top:2px">Appointed under ACOP L8 §2.8</div>
     </div>
   </div>
 
