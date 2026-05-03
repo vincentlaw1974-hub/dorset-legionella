@@ -13,7 +13,7 @@ export default function ManagementTab({ job, onChange }) {
   const naInput = (field, label) => {
     const naKey = `${field}_na`;
     return (
-      <div>
+      <div key={field}>
         <div className="flex items-center justify-between mb-1">
           <Label>{label}</Label>
           <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
@@ -26,7 +26,7 @@ export default function ManagementTab({ job, onChange }) {
             N/A
           </label>
         </div>
-        <Input {...f(field)} disabled={!!job[naKey]} placeholder={job[naKey] ? 'Not applicable' : ''} />
+        <Input key={field} {...f(field)} disabled={!!job[naKey]} placeholder={job[naKey] ? 'Not applicable' : ''} />
       </div>
     );
   };

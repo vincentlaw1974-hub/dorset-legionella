@@ -22,7 +22,7 @@ export function blankJob() {
     duty_holder: '', duty_holder_role: '', responsible_person: '', responsible_role: '',
     deputy_person: '', deputy_role: '', assessor: '', reviewer: '',
     written_scheme: false, schematics_available: false, training_records: false,
-    monitoring_records: false, vulnerable_users: true, cqc_mode: true, compliance_notes: '',
+    monitoring_records: false, vulnerable_users: true, cqc_mode: false, compliance_notes: '',
     site_description: '', occupants: '', cold_source: 'Mains', hot_system: '',
     cwst_present: false, tmvs_installed: true, air_con: false, closed_systems: false,
     ac_last_service_date: '',
@@ -63,8 +63,11 @@ export function outletStatus(o, cqcMode, isDomestic = false) {
     return { text: 'Pass', cls: 'ok' };
   }
 
+  // Standard: hot outlets must reach >=50°C (non-care) or >=55°C (CQC/care) within 1 minute
+  // Note: cqcMode defaults true but should only apply to actual care/nursing homes
   const target = o.type === 'Pot Wash' ? 60 : (cqcMode ? 55 : 50);
   if (!isNaN(hot) && hot < 20) return { text: 'Urgent', cls: 'fail' };
+  // <target = warning, not fail (fail is reserved for <20 or urgent cold)
   if (!isNaN(hot) && hot < target) return { text: 'Check', cls: 'warn' };
   if (o.infrequent) return { text: 'Check', cls: 'warn' };
   return { text: 'Pass', cls: 'ok' };

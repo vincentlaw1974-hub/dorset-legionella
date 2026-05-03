@@ -120,23 +120,17 @@ export default function Home() {
   useEffect(() => {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
       const draft = getDraft(selectedJob.id);
-      if (draft) {
-        // Always load from draft — it represents unsaved offline changes
-        setLocalJob(draft);
-        localJobRef.current = draft;
-        // If we're online, push the draft to the server immediately
-        if (navigator.onLine) {
-          base44.entities.Job.update(draft.id, stripBase64(draft))
-            .then(() => {
-              clearDraft(draft.id);
-              queryClient.invalidateQueries({ queryKey: ['jobs'] });
-            })
-            .catch(() => {}); // stays in draft on failure, will retry on next reconnect
-        }
-      } else {
-        // No draft — server data is authoritative
-        setLocalJob(selectedJob);
-        localJobRef.current = selectedJob;
+      const jobToLoad = draft || selectedJob;
+      setLocalJob(jobToLoad);
+      localJobRef.current = jobToLoad;
+      if (draft && navigator.onLine) {
+        // Push the draft to the server immediately
+        base44.entities.Job.update(draft.id, stripBase64(draft))
+          .then(() => {
+            clearDraft(draft.id);
+            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+          })
+          .catch(() => {});
       }
     }
   }, [selectedJob?.id]);
@@ -244,8 +238,15 @@ export default function Home() {
     createMutation.mutate({ ...blankJob(), site_name: siteName.trim() });
   };
 
-  // Remember the active tab per job
+  // Remember the active tab per job — flush pending save immediately on tab switch
   const handleTabChange = (tab) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      if (localJobRef.current && navigator.onLine) {
+        updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
+      }
+    }
     setActiveTab(tab);
     if (currentId) setTabMemory(m => ({ ...m, [currentId]: tab }));
   };
@@ -255,6 +256,15 @@ export default function Home() {
     const current = localJobRef.current;
     if (!current) return;
     let updated;
+
+    // Auto-set cqc_mode based on property type so temperature thresholds are correct
+    if (changes.property_type && !current.risk_override) {
+      const pt = changes.property_type;
+      const isCare = pt === 'Nursing Home' || pt === 'Care Home';
+      if (!changes.hasOwnProperty('cqc_mode')) {
+        changes = { ...changes, cqc_mode: isCare };
+      }
+    }
 
     // Add a single new photo without overwriting concurrent additions
     if (changes.__addPhoto) {
@@ -307,7 +317,7 @@ export default function Home() {
           if (localJobRef.current?.id === jobId) {
             updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
           }
-        }, 1500);
+        }, 800);
       }
     }
   }, [updateMutation]);

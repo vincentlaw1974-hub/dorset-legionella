@@ -15,8 +15,17 @@ const SW_SYNC_TAG = 'sync-jobs';
 
 // ── LocalStorage helpers ──────────────────────────────────────────────────────
 export function saveDraft(jobId, data) {
-  try { localStorage.setItem(DRAFT_PREFIX + jobId, JSON.stringify(data)); } catch {}
-  // Also write to IndexedDB for SW Background Sync
+  // Strip base64 before storing in localStorage to avoid quota errors
+  // (base64 photos can be several MB per job)
+  const stripped = stripBase64ForStorage(data);
+  try { localStorage.setItem(DRAFT_PREFIX + jobId, JSON.stringify(stripped)); } catch (e) {
+    // If quota exceeded, try clearing old drafts and retry once
+    try {
+      pruneOldDrafts(jobId);
+      localStorage.setItem(DRAFT_PREFIX + jobId, JSON.stringify(stripped));
+    } catch {}
+  }
+  // Also write full data (with base64) to IndexedDB for SW Background Sync
   idbPut(jobId, data).catch(() => {});
   // Register a Background Sync tag so SW can retry even if tab closes
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -24,6 +33,40 @@ export function saveDraft(jobId, data) {
       .then((reg) => reg.sync.register(SW_SYNC_TAG))
       .catch(() => {});
   }
+}
+
+// Strip base64 data URLs for localStorage storage (keeps CDN urls intact)
+function stripBase64ForStorage(job) {
+  if (!job) return job;
+  const clean = (url) => (url && url.startsWith('data:')) ? null : url;
+  return {
+    ...job,
+    cover_photo_url: clean(job.cover_photo_url),
+    cwst_photo_url: clean(job.cwst_photo_url),
+    cylinder_photo_url: clean(job.cylinder_photo_url),
+    plant_room_photo_url: clean(job.plant_room_photo_url),
+    photos: (job.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) || '' })),
+    outlets: (job.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
+    dead_legs: (job.dead_legs || []).map(d => ({ ...d, photo_url: clean(d.photo_url) })),
+    showers: (job.showers || []).map(s => ({ ...s, photo_url: clean(s.photo_url) })),
+    buildings: (job.buildings || []).map(b => ({
+      ...b,
+      photos: (b.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) || '' })),
+      outlets: (b.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
+    })),
+  };
+}
+
+// Remove oldest drafts (except current) to free up localStorage space
+function pruneOldDrafts(keepJobId) {
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(DRAFT_PREFIX) && !k.endsWith(keepJobId)) keys.push(k);
+    }
+    keys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+  } catch {}
 }
 
 export function clearDraft(jobId) {
