@@ -276,7 +276,7 @@ export default function ReportTab({ job, onPrint }) {
       </div>`;
     })();
 
-    const CSS = `*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:12mm 15mm 10mm}.page-header{border-bottom:4px solid #d71920;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}.page-header-brand h1{margin:0;font-size:26px;font-weight:900;color:#111}.page-header-brand p{margin:2px 0 0;font-size:10px;color:#555}.ref{font-size:9px;color:#888;text-align:right}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;padding-top:8px;border-top:2px solid #d71920;font-size:9px;color:#888;text-align:center}@media print{body{margin:0}}`;
+    const CSS = `*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:12mm 15mm 10mm}.page-header{border-bottom:4px solid #d71920;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}.page-header-brand h1{margin:0;font-size:26px;font-weight:900;color:#111}.page-header-brand p{margin:2px 0 0;font-size:10px;color:#555}.ref{font-size:9px;color:#888;text-align:right}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;padding-top:8px;border-top:2px solid #d71920;font-size:9px;color:#888;text-align:center}.legal-box{background:#f8f8f8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:9.5px;line-height:1.6}.legal-box h3{margin:0 0 5px;font-size:10.5px;color:#111;border-bottom:1px solid #ddd;padding-bottom:4px}.sig-box{border:1px solid #999;border-radius:4px;padding:10px 12px;margin-bottom:8px;background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sig-line{border-bottom:1px solid #333;height:28px;margin:6px 0 2px}.sig-label{font-size:8.5px;color:#666}@media print{body{margin:0}}`;
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>${CSS}</style></head><body>
 <div class="page">
@@ -330,7 +330,101 @@ ${buildingPageHtml}
   <div class="section-title">Site Logbook</div>
   ${(job.logs||[]).length>0?`<table><thead><tr><th>Date</th><th>Category</th><th>Location</th><th>Detail</th><th>Completed by</th><th>Status</th></tr></thead><tbody>${logRows}</tbody></table>`:'<p style="font-size:10px;color:#888">No log entries.</p>'}
   ${allPhotos.length>0?`<div class="section-title">Photo Evidence</div><div class="photo-grid">${photoGrid}</div>`:''}
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 7</div>
+  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 7</div>
+</div>
+<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="section-title">Assessor Declaration &amp; Terms of Assessment</div>
+
+  <div class="legal-box">
+    <h3>1. Legislative &amp; Regulatory Framework</h3>
+    <p>This Legionella Risk Assessment has been prepared in accordance with the following legislation, approved codes of practice and guidance documents:</p>
+    <ul style="margin:4px 0 0 14px;padding:0">
+      <li><strong>Health and Safety at Work etc. Act 1974</strong> — general duty of care</li>
+      <li><strong>Control of Substances Hazardous to Health Regulations 2002 (COSHH)</strong> — risk assessment and control of biological agents including <em>Legionella</em> spp.</li>
+      <li><strong>Management of Health and Safety at Work Regulations 1999</strong> — suitable and sufficient risk assessment obligation</li>
+      <li><strong>The Approved Code of Practice &amp; Guidance: L8 (Fourth Edition)</strong> — Legionella: Control of Legionella bacteria in water systems</li>
+      <li><strong>HSG274 Parts 1, 2 &amp; 3</strong> — Technical guidance on the control of Legionella bacteria in water systems</li>
+      <li><strong>BS 8580-1:2019</strong> — Water quality: Risk assessments for Legionella control</li>
+      ${job.cqc_mode ? '<li><strong>CQC Regulation 12</strong> (Safe Care and Treatment) &amp; <strong>Regulation 15</strong> (Premises and Equipment) — applicable to registered care and nursing homes</li>' : ''}
+      ${job.property_type === 'Dental Surgery' ? '<li><strong>HTM 01-05</strong> — Decontamination in primary care dental practices; <strong>HTM 04-01</strong> — Safe water in healthcare premises</li>' : ''}
+    </ul>
+  </div>
+
+  <div class="legal-box">
+    <h3>2. Scope and Limitations of Assessment</h3>
+    <p>This risk assessment represents the findings of a visual, non-intrusive survey conducted on the date(s) stated. The assessment is based on conditions observed and information provided at the time of inspection. The following limitations apply:</p>
+    <ul style="margin:4px 0 0 14px;padding:0">
+      <li>This assessment is a <strong>point-in-time snapshot</strong>. Conditions may change and the assessment does not guarantee the absence of Legionella bacteria in the water system.</li>
+      <li>The assessor has not conducted microbiological sampling unless explicitly stated within this report. Where sampling has not been undertaken, microbiological risk cannot be quantified.</li>
+      <li>Areas that were inaccessible, locked, or not made available for inspection have not been assessed. Any such areas are not included within the scope of this report.</li>
+      <li>The assessment covers the cold water, hot water, and associated systems only. Dental unit waterlines (DUWL), fire suppression systems, pools, and spa systems require separate specialist assessment unless explicitly included above.</li>
+      <li>Temperature readings were taken at the outlet after a maximum of one minute of running. System temperatures may vary under operational conditions.</li>
+      <li>This document does not constitute a Written Scheme of Control (unless explicitly titled as such). A separate documented Written Scheme must be prepared and maintained by the duty holder in accordance with ACOP L8 §2.105–2.107.</li>
+    </ul>
+  </div>
+
+  <div class="legal-box">
+    <h3>3. Responsibilities of the Duty Holder / Client</h3>
+    <p>Upon receipt of this report, the duty holder (or their authorised representative) must:</p>
+    <ul style="margin:4px 0 0 14px;padding:0">
+      <li>Review all findings and remedial actions and take prompt, appropriate action within the timescales stated.</li>
+      <li>Ensure a suitable <strong>Written Scheme of Control</strong> is in place, implemented, and reviewed at the frequency recommended.</li>
+      <li>Appoint a competent <strong>Responsible Person</strong> with sufficient authority, knowledge, skills, and experience to oversee Legionella control, in accordance with ACOP L8 §2.8.</li>
+      <li>Ensure all control measures (temperature monitoring, flushing, shower cleaning, TMV servicing) are carried out at the specified frequencies and records maintained.</li>
+      <li>Notify Dorset Plumbing of any significant change to the water systems, occupancy, or site use that may affect the validity of this assessment.</li>
+      <li>Ensure this assessment is reviewed at least every <strong>${job.reassessment_interval === '12' ? '12 months' : '2 years'}</strong>, or sooner if: a case of Legionnaires' disease is associated with the premises; there is reason to believe the assessment is no longer valid; or there has been a significant change to the water systems or their use.</li>
+    </ul>
+    <p style="margin-top:6px"><strong>Failure to implement the recommendations in this report may constitute a breach of the duty holder's legal obligations under COSHH Regulation 6 and ACOP L8.</strong></p>
+  </div>
+
+  <div class="legal-box">
+    <h3>4. Limitation of Liability</h3>
+    <p>Dorset Plumbing has prepared this report with reasonable skill and care in accordance with current industry standards and guidance. Our liability is limited as follows:</p>
+    <ul style="margin:4px 0 0 14px;padding:0">
+      <li>This report is prepared solely for the use of the named client and site identified above. It must not be relied upon by any third party without the prior written consent of Dorset Plumbing.</li>
+      <li>Dorset Plumbing accepts no liability for losses arising from the client's failure to implement the recommendations contained in this report within the stated timescales.</li>
+      <li>Dorset Plumbing accepts no liability for conditions that could not reasonably have been identified during a visual, non-intrusive survey, including but not limited to: concealed pipework, inaccessible tanks, and buried services.</li>
+      <li>Our maximum aggregate liability in connection with this report, whether arising in contract, tort, or otherwise, shall not exceed the fee paid for the preparation of this assessment.</li>
+      <li>Nothing in these terms shall exclude or limit liability for death or personal injury caused by negligence, or for fraud or fraudulent misrepresentation.</li>
+    </ul>
+  </div>
+
+  <div class="section-title">Assessor Declaration</div>
+  <p style="font-size:10px;margin-bottom:10px">I confirm that this risk assessment has been conducted with reasonable skill and care, that the findings represent an accurate record of the conditions observed at the time of the survey, and that the recommendations made are consistent with current legislative requirements and recognised industry guidance.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+    <div class="sig-box">
+      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Assessor</div>
+      <div style="font-size:10px;font-weight:bold">${job.assessor || '________________________________'}</div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Signature &amp; date</div>
+    </div>
+    <div class="sig-box">
+      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Peer Reviewer / Authoriser</div>
+      <div style="font-size:10px;font-weight:bold">${job.reviewer || '________________________________'}</div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Signature &amp; date</div>
+    </div>
+    <div class="sig-box">
+      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Duty Holder / Client Acknowledgement</div>
+      <div style="font-size:10px;font-weight:bold">${job.duty_holder || '________________________________'}</div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Signature &amp; date confirming receipt</div>
+    </div>
+    <div class="sig-box">
+      <div style="font-size:9px;font-weight:bold;margin-bottom:4px">Responsible Person</div>
+      <div style="font-size:10px;font-weight:bold">${job.responsible_person || '________________________________'}</div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Signature &amp; date confirming receipt</div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;padding:8px 10px;background:#f0fdf4 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #86efac;border-radius:6px;font-size:9px;color:#166534">
+    <strong>Document Control:</strong> Report Ref: ${reportRef} | Prepared by: Dorset Plumbing | Assessment Date: ${job.assessment_date||'—'} | Review Due: ${job.review_due||'—'} | Issue Status: ${job.status||'—'}
+  </div>
+
+  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Legal &amp; Declaration Page | CONFIDENTIAL — For named client use only</div>
 </div>
 </body></html>`;
   };
