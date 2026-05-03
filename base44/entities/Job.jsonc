@@ -208,6 +208,46 @@
       "type": "boolean",
       "default": false
     },
+    "water_samples_taken": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether water samples were taken during this assessment"
+    },
+    "water_samples_date": {
+      "type": "string",
+      "description": "Date samples were taken"
+    },
+    "water_samples_lab": {
+      "type": "string",
+      "description": "Laboratory used for analysis"
+    },
+    "water_samples_results": {
+      "type": "string",
+      "enum": [
+        "Pending",
+        "Satisfactory",
+        "Unsatisfactory",
+        "Action Required"
+      ],
+      "description": "Overall sample results"
+    },
+    "water_samples_advised": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether client has been advised of results"
+    },
+    "water_samples_advised_date": {
+      "type": "string",
+      "description": "Date client was advised of results"
+    },
+    "water_samples_advised_method": {
+      "type": "string",
+      "description": "How client was advised (email, phone, letter, in person)"
+    },
+    "water_samples_notes": {
+      "type": "string",
+      "description": "Further notes on sampling and results"
+    },
     "compliance_notes": {
       "type": "string"
     },

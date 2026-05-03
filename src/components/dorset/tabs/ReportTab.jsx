@@ -323,6 +323,26 @@ ${buildingPageHtml}
   <div class="section-title">Legal / Compliance Notes</div>
   <p style="font-size:10px">• ${compNotesBenchmark}</p>
   ${compNotes.map(n=>`<p style="font-size:10px;${n.startsWith('COMPLIANCE')?'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;':''}margin:4px 0">• ${n}</p>`).join('')}
+  ${(() => {
+    if (!job.water_samples_taken) {
+      return `<div class="section-title">Microbiological Water Sampling</div><p style="font-size:10px;color:#555">No microbiological samples were taken during this assessment. Sampling may be recommended where temperature non-compliance or elevated risk is identified.</p>`;
+    }
+    const resColor = job.water_samples_results === 'Satisfactory' ? '#27ae60' : job.water_samples_results === 'Pending' ? '#e67e22' : '#c0392b';
+    const resBg = job.water_samples_results === 'Satisfactory' ? '#f0fdf4' : job.water_samples_results === 'Pending' ? '#fffbeb' : '#fff5f5';
+    return `<div class="section-title">Microbiological Water Sampling</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;margin-bottom:8px">
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Samples Taken: <strong>Yes</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Date Taken: <strong>${job.water_samples_date || '—'}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Laboratory: <strong>${job.water_samples_lab || '—'}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Results: <strong style="color:${resColor}">${job.water_samples_results || 'Pending'}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Client Advised: <strong>${job.water_samples_advised ? 'Yes' : 'Not yet recorded'}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Date Advised: <strong>${job.water_samples_advised_date || '—'}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Method: <strong>${job.water_samples_advised_method || '—'}</strong></div>
+    </div>
+    ${(job.water_samples_results === 'Unsatisfactory' || job.water_samples_results === 'Action Required') ? `<div style="background:#fff0f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #d71920;padding:6px 8px;font-size:10px;font-weight:bold;color:#991b1b;margin-bottom:6px">⚠ ${job.water_samples_results === 'Action Required' ? 'ACTION REQUIRED' : 'UNSATISFACTORY RESULTS'} — The duty holder has ${job.water_samples_advised ? 'been advised' : 'NOT YET been advised'} of these results. Immediate corrective action is required in accordance with HSG274 and ACOP L8.</div>` : ''}
+    ${!job.water_samples_advised && job.water_samples_taken ? `<div style="background:#fffbeb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #e67e22;padding:6px 8px;font-size:10px;color:#92400e;margin-bottom:6px">ℹ Duty holder notification of sampling results has not yet been recorded. Ensure this is completed and documented.</div>` : ''}
+    ${job.water_samples_notes ? `<div style="font-size:10px;margin-top:4px"><strong>Notes:</strong> ${job.water_samples_notes}</div>` : ''}`;
+  })()}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 6</div>
 </div>
 <div class="page" style="page-break-before:always">

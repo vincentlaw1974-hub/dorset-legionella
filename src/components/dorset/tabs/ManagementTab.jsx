@@ -2,6 +2,7 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import WaterSamplingSection from './WaterSamplingSection';
 
 export default function ManagementTab({ job, onChange }) {
   const f = (field) => ({
@@ -111,6 +112,8 @@ export default function ManagementTab({ job, onChange }) {
           </div>
         </div>
 
+        <WaterSamplingSection job={job} onChange={onChange} />
+
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <strong>Responsible person</strong>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
@@ -164,6 +167,8 @@ export default function ManagementTab({ job, onChange }) {
           <Textarea {...f('compliance_notes')} placeholder="Missing records, written appointment issues, training gaps, etc." />
         </div>
       </div>
+
+      <WaterSamplingSection job={job} onChange={onChange} />
     </div>
   );
 }
