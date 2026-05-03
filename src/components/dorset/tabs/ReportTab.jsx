@@ -187,9 +187,43 @@ export default function ReportTab({ job, onPrint }) {
       { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
       { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
       { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
-      { label: 'HW Temp >=60C', pass: isNaN(cylTemp) || !hwTempFail },
+      { label: 'HW Temp >=60°C', pass: isNaN(cylTemp) || !hwTempFail },
+      { label: `Hot Outlets >=${targetHot}°C`, pass: allOutlets.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).every(o => isNaN(parseFloat(o.hot)) || parseFloat(o.hot) >= targetHot) },
+      { label: 'Cold Outlets <=20°C', pass: allOutlets.every(o => isNaN(parseFloat(o.cold)) || parseFloat(o.cold) <= 20) },
       { label: 'No Dead Legs', pass: !hasDeadLegs },
     ];
+
+    // Priority actions: priority 1 (high) or overdue (deadline < today and not complete)
+    const today = new Date().toISOString().slice(0, 10);
+    const priorityActions = (job.actions || []).filter(a =>
+      a.status !== 'Complete' && a.status !== 'Closed' &&
+      (a.priority === '1' || (a.deadline && a.deadline < today))
+    );
+
+    const summaryTableHtml = (() => {
+      const checkRows = checks.map(c =>
+        `<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">${c.label}</td><td style="padding:4px 8px;border:1px solid #e5e7eb;text-align:center"><span style="background:${c.pass?'#dcfce7':'#fee2e2'};color:${c.pass?'#166534':'#991b1b'};padding:2px 10px;border-radius:99px;font-weight:bold;font-size:10px">${c.pass?'PASS':'FAIL'}</span></td></tr>`
+      ).join('');
+      const actionRows2 = priorityActions.map(a => {
+        const isOverdue = a.deadline && a.deadline < today;
+        const pLabel = a.priority === '1' ? 'HIGH' : a.priority === '2' ? 'MEDIUM' : 'LOW';
+        const pColor = a.priority === '1' ? '#fee2e2;color:#991b1b' : '#fef3c7;color:#92400e';
+        return `<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.ref||'—'}</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><span style="background:${pColor};padding:2px 7px;border-radius:4px;font-weight:bold;font-size:10px">${pLabel}</span></td><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.system||''}: ${a.action||''}</td><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.responsible_person||'—'}</td><td style="padding:4px 8px;border:1px solid #e5e7eb;${isOverdue?'color:#c0392b;font-weight:bold':''}">${a.deadline||'—'}${isOverdue?' ⚠':''}</td><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.status||'—'}</td></tr>`;
+      }).join('');
+      return `<div style="border:2px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:14px;background:#fafafa !important;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+        <div style="font-size:11px;font-weight:bold;margin-bottom:8px;color:#111;border-bottom:2px solid #d71920;padding-bottom:4px">📋 Compliance Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <table style="border-collapse:collapse;font-size:10px;width:100%">
+            <thead><tr><th style="background:#f5e6e6;padding:4px 8px;border:1px solid #ccc;text-align:left">Check</th><th style="background:#f5e6e6;padding:4px 8px;border:1px solid #ccc;text-align:center">Status</th></tr></thead>
+            <tbody>${checkRows}</tbody>
+          </table>
+          <div style="padding-left:12px">
+            <div style="font-size:10px;font-weight:bold;margin-bottom:4px;color:${priorityActions.length>0?'#c0392b':'#166534'}">${priorityActions.length>0?`⚠ ${priorityActions.length} high-priority / overdue action${priorityActions.length!==1?'s':''}:`:'✅ No high-priority or overdue actions'}</div>
+            ${priorityActions.length>0?`<table style="border-collapse:collapse;font-size:9.5px;width:100%"><thead><tr><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Ref</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Pri</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Action</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Responsible</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Deadline</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Status</th></tr></thead><tbody>${actionRows2}</tbody></table>`:''}
+          </div>
+        </div>
+      </div>`;
+    })();
 
     const riskPos = { 'LOW': [2,0], 'MEDIUM': [1,1], 'HIGH': [0,2] }[job.risk || 'LOW'];
     let matrixHtml = '';
@@ -286,6 +320,7 @@ export default function ReportTab({ job, onPrint }) {
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
     <div style="border:2px solid #d71920;padding:10px;border-radius:4px;background:#fff5f5 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Overall Risk</div><div style="font-size:36px;font-weight:900;color:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'}">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:4px">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px">Property: ${job.property_type||'—'}</div></div>
   </div>
+  ${summaryTableHtml}
   <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:6px">Compliance Scorecard</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="border:1px solid ${c.pass?'#a3d9b1':'#f5c6c6'};background:${c.pass?'#eafaf1':'#fef0f0'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:80px"><div style="font-size:13px;font-weight:900;color:${c.pass?'#27ae60':'#c0392b'}">${c.pass?'PASS':'FAIL'}</div><div style="font-size:9px;color:#444">${c.label}</div></div>`).join('')}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -504,6 +539,67 @@ ${buildingPageHtml}
             <div>Review due: <strong className="text-white">{job.review_due || '—'}</strong></div>
             <div>Assessor: <strong className="text-white">{job.assessor || '—'}</strong></div>
             <div>Ref: <strong className="text-white">{job.report_ref || '—'}</strong></div>
+          </div>
+        </div>
+
+        {/* Compliance Summary Table */}
+        <div className="border-2 border-gray-200 rounded-xl p-3 bg-gray-50 text-xs">
+          <div className="font-bold text-sm mb-2 pb-1 border-b-2 border-red-600">📋 Compliance Summary</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <table className="w-full border-collapse text-xs">
+              <thead><tr className="bg-red-50"><th className="border border-gray-200 p-1.5 text-left">Check</th><th className="border border-gray-200 p-1.5 text-center">Status</th></tr></thead>
+              <tbody>
+                {(() => {
+                  const _cylTemp = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
+                  const _hwFail = !isNaN(_cylTemp) && _cylTemp < 60;
+                  const _allOutlets = getAllOutlets(job);
+                  const _tgt = job.cqc_mode ? 55 : 50;
+                  const _hasDeadLegs = (job.dead_legs||[]).length > 0;
+                  const _checks = [
+                    { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
+                    { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
+                    { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
+                    { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
+                    { label: `HW Temp >=60°C`, pass: isNaN(_cylTemp) || !_hwFail },
+                    { label: `Hot Outlets >=${_tgt}°C`, pass: _allOutlets.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).every(o => isNaN(parseFloat(o.hot)) || parseFloat(o.hot) >= _tgt) },
+                    { label: 'Cold Outlets <=20°C', pass: _allOutlets.every(o => isNaN(parseFloat(o.cold)) || parseFloat(o.cold) <= 20) },
+                    { label: 'No Dead Legs', pass: !_hasDeadLegs },
+                  ];
+                  return _checks.map((c, i) => (
+                    <tr key={i}>
+                      <td className="border border-gray-200 p-1.5">{c.label}</td>
+                      <td className="border border-gray-200 p-1.5 text-center">
+                        <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${c.pass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{c.pass ? 'PASS' : 'FAIL'}</span>
+                      </td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+            <div>
+              {(() => {
+                const _today = new Date().toISOString().slice(0, 10);
+                const _pa = (job.actions||[]).filter(a => a.status !== 'Complete' && a.status !== 'Closed' && (a.priority === '1' || (a.deadline && a.deadline < _today)));
+                if (_pa.length === 0) return <div className="text-green-700 font-semibold text-xs">✅ No high-priority or overdue actions</div>;
+                return (
+                  <>
+                    <div className="text-red-700 font-bold mb-1">⚠ {_pa.length} high-priority / overdue action{_pa.length !== 1 ? 's' : ''}:</div>
+                    <table className="w-full border-collapse text-[10px]">
+                      <thead><tr className="bg-red-50"><th className="border border-gray-200 p-1 text-left">Ref</th><th className="border border-gray-200 p-1">Pri</th><th className="border border-gray-200 p-1 text-left">Action</th><th className="border border-gray-200 p-1 text-left">Deadline</th></tr></thead>
+                      <tbody>{_pa.map(a => {
+                        const overdue = a.deadline && a.deadline < _today;
+                        return <tr key={a.id}>
+                          <td className="border border-gray-200 p-1">{a.ref||'—'}</td>
+                          <td className="border border-gray-200 p-1 text-center font-bold">{a.priority}</td>
+                          <td className="border border-gray-200 p-1">{a.system}: {a.action}</td>
+                          <td className={`border border-gray-200 p-1 ${overdue ? 'text-red-600 font-bold' : ''}`}>{a.deadline||'—'}{overdue?' ⚠':''}</td>
+                        </tr>;
+                      })}</tbody>
+                    </table>
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
 
