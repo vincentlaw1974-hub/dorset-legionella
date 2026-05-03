@@ -63,12 +63,12 @@ export function outletStatus(o, cqcMode, isDomestic = false) {
     return { text: 'Pass', cls: 'ok' };
   }
 
-  // Standard: hot outlets must reach >=50°C (non-care) or >=55°C (CQC/care) within 1 minute
-  // Note: cqcMode defaults true but should only apply to actual care/nursing homes
+  // Standard hot outlets: >=50°C (domestic/non-care), >=55°C (CQC/care), >=60°C (Pot Wash)
   const target = o.type === 'Pot Wash' ? 60 : (cqcMode ? 55 : 50);
   if (!isNaN(hot) && hot < 20) return { text: 'Urgent', cls: 'fail' };
-  // <target = warning, not fail (fail is reserved for <20 or urgent cold)
   if (!isNaN(hot) && hot < target) return { text: 'Check', cls: 'warn' };
+  // Domestic: no upper limit on hot — scalding risk is managed by TMV, not this check
+  if (!isDomestic && !isNaN(hot) && hot > 65) return { text: 'Too hot', cls: 'warn' };
   if (o.infrequent) return { text: 'Check', cls: 'warn' };
   return { text: 'Pass', cls: 'ok' };
 }
@@ -119,8 +119,13 @@ export function calculateRisk(job) {
   outlets.forEach(o => {
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
     if (o.type !== 'Outside Tap') {
-      if (o.hasTmv) { if (!isNaN(hot) && (hot < 38 || (!isDomestic && hot > 46))) tempFails++; }
-      else { const t = o.type === 'Pot Wash' ? 60 : hotTarget; if (!isNaN(hot) && hot < t) tempFails++; }
+      if (o.hasTmv) {
+        if (!isNaN(hot) && (hot < 38 || (!isDomestic && hot > 46))) tempFails++;
+      } else {
+        const t = o.type === 'Pot Wash' ? 60 : hotTarget;
+        // Only count as fail if below target — never penalise for being too hot on domestic
+        if (!isNaN(hot) && hot < t) tempFails++;
+      }
     }
     if (!isNaN(cold) && cold > 20) tempFails++;
   });
