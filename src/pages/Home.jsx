@@ -55,6 +55,11 @@ export default function Home() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [tabMemory, setTabMemory] = useState({});
+  const [unlockedJobs, setUnlockedJobs] = useState({}); // jobId -> true when unlocked
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockPin, setUnlockPin] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+  const UNLOCK_PIN = '1234'; // simple 4-digit PIN to unlock a completed/reviewed report
   const queryClient = useQueryClient();
 
   // Flush current job to server on page close (best-effort)
@@ -322,6 +327,22 @@ export default function Home() {
     }
   }, [updateMutation]);
 
+  const isLocked = localJob &&
+    (localJob.status === 'Completed' || localJob.status === 'Reviewed') &&
+    !unlockedJobs[localJob.id];
+
+  const handleUnlockSubmit = () => {
+    if (unlockPin === UNLOCK_PIN) {
+      setUnlockedJobs(prev => ({ ...prev, [localJob.id]: true }));
+      setShowUnlockModal(false);
+      setUnlockPin('');
+      setUnlockError('');
+    } else {
+      setUnlockError('Incorrect PIN. Please try again.');
+      setUnlockPin('');
+    }
+  };
+
   const handleComplete = useCallback(() => {
     if (!localJob) return;
     const updated = { ...localJob, status: 'Completed' };
@@ -487,26 +508,77 @@ export default function Home() {
 
             {/* Main content */}
             <div key={localJob.id} className="w-full lg:flex-1 min-w-0">
-              {activeTab === 'buildings' && <BuildingsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'rooms' && <RoomsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'dead_legs' && <DeadLegsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'showers' && <ShowersTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'issues' && <IssuesTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
-              {activeTab === 'report' && (
+              {/* Lock banner for completed/reviewed jobs */}
+              {isLocked && (
+                <div className="mb-3 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-amber-300 bg-amber-50">
+                  <div className="flex items-center gap-2 text-sm text-amber-800">
+                    <span className="text-lg">🔒</span>
+                    <span><strong>Report locked.</strong> Status is <em>{localJob.status}</em> — data is protected. View the report below or unlock to edit.</span>
+                  </div>
+                  <button
+                    onClick={() => { setShowUnlockModal(true); setUnlockError(''); setUnlockPin(''); }}
+                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0"
+                    style={{ background: '#d71920' }}
+                  >🔓 Unlock</button>
+                </div>
+              )}
+              {isLocked ? (
                 <div className="space-y-3">
-                  <SchematicTab job={localJob} onChange={handleChange} />
+                  <SchematicTab job={localJob} onChange={() => {}} />
                   <ReportTab job={localJob} onPrint={handlePrint} />
                 </div>
+              ) : (
+                <>
+                  {activeTab === 'buildings' && <BuildingsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'rooms' && <RoomsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'dead_legs' && <DeadLegsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'showers' && <ShowersTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'issues' && <IssuesTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'report' && (
+                    <div className="space-y-3">
+                      <SchematicTab job={localJob} onChange={handleChange} />
+                      <ReportTab job={localJob} onPrint={handlePrint} />
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {showUnlockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">🔒</div>
+              <h2 className="text-lg font-bold">Unlock Report</h2>
+              <p className="text-sm text-gray-500 mt-1">This report is <strong>{localJob?.status}</strong>. Enter the PIN to unlock editing.</p>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="Enter 4-digit PIN"
+              value={unlockPin}
+              onChange={e => setUnlockPin(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUnlockSubmit()}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-xl tracking-widest font-bold focus:outline-none focus:ring-2 focus:ring-red-400 mb-2"
+              autoFocus
+            />
+            {unlockError && <p className="text-red-600 text-sm text-center mb-2">{unlockError}</p>}
+            <div className="flex gap-3 mt-3">
+              <button onClick={() => { setShowUnlockModal(false); setUnlockPin(''); setUnlockError(''); }} className="flex-1 px-4 py-2 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50">Cancel</button>
+              <button onClick={handleUnlockSubmit} className="flex-1 px-4 py-2 rounded-xl text-white text-sm font-bold" style={{ background: '#d71920' }}>Unlock</button>
+            </div>
           </div>
         </div>
       )}
