@@ -92,7 +92,7 @@ function pruneOldDrafts(keepJobId) {
 }
 
 export function saveDraft(jobId, data) {
-  // Save text fields to localStorage (small, fast)
+  // Save text fields to localStorage (small, fast, synchronous)
   const stripped = stripBase64ForStorage(data);
   try {
     localStorage.setItem(DRAFT_PREFIX + jobId, JSON.stringify(stripped));
@@ -103,7 +103,8 @@ export function saveDraft(jobId, data) {
     } catch {}
   }
   // Save FULL data including base64 photos to IndexedDB (large quota, survives offline)
-  idbPut(jobId, data);
+  // Fire-and-forget but return the promise so callers can await if needed
+  return idbPut(jobId, data);
 }
 
 export function clearDraft(jobId) {

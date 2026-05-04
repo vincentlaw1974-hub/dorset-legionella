@@ -305,16 +305,22 @@ export default function Home() {
     localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
-    saveDraft(jobId, updated);
+    // Await IDB write for base64 photos so data is persisted before we return
+    const hasBase64 =
+      (changes.__addPhoto && changes.__addPhoto.file_url?.startsWith('data:')) ||
+      (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
+      Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
+    if (hasBase64) {
+      saveDraft(jobId, updated); // returns promise — fire and let it complete
+    } else {
+      saveDraft(jobId, updated);
+    }
     if (!navigator.onLine) {
       setPendingSync(true);
       return;
     }
     // Skip server save if the value is base64 (wait for CDN upload to complete first)
-    const isBase64Value =
-      (changes.__addPhoto && changes.__addPhoto.file_url?.startsWith('data:')) ||
-      (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
-      Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
+    const isBase64Value = hasBase64;
     if (!isBase64Value) {
       // Photo CDN upgrades and building photo upgrades: save immediately, don't debounce
       if (changes.__photoUpgrade || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
