@@ -153,9 +153,9 @@ export default function Home() {
   const [saveState, setSaveState] = useState('idle');
   const [pendingSync, setPendingSync] = useState(false);
 
-  // Auto-retry: every 60 seconds, if there are pending drafts and we're online, push them
+  // Sync immediately when coming back online, and also every 60s as a fallback
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const doSync = async () => {
       if (!navigator.onLine) return;
       const ids = getAllPendingDraftIds();
       if (ids.length === 0) { setPendingSync(false); return; }
@@ -170,8 +170,14 @@ export default function Home() {
           setLocalJob(resolved);
         }
       }
-    }, 60000);
-    return () => clearInterval(interval);
+    };
+
+    window.addEventListener('online', doSync);
+    const interval = setInterval(doSync, 60000);
+    return () => {
+      window.removeEventListener('online', doSync);
+      clearInterval(interval);
+    };
   }, [queryClient]);
 
   const updateMutation = useMutation({
