@@ -2,7 +2,6 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { blankJob, reportChecks, buildControlScheme, calculateRisk } from '@/lib/jobUtils';
-import { saveDraft, clearDraft, getDraft, syncAllPendingDrafts, getAllPendingDraftIds } from '@/lib/syncManager';
 import { stripBase64 } from '@/lib/photoUpload';
 
 import Header from '@/components/dorset/Header';
@@ -62,18 +61,7 @@ export default function Home() {
   const UNLOCK_PIN = '1234'; // simple 4-digit PIN to unlock a completed/reviewed report
   const queryClient = useQueryClient();
 
-  // On page close: ensure IDB draft is saved (it already is via handleChange, this is a safety net)
-  useEffect(() => {
-    const flush = () => {
-      const job = localJobRef.current;
-      if (!job?.id) return;
-      // saveDraft is async/IDB — can't await in beforeunload, but IDB writes are already done
-      // by handleChange on every change. This is just a final belt-and-braces call.
-      saveDraft(job.id, job);
-    };
-    window.addEventListener('pagehide', flush);
-    return () => window.removeEventListener('pagehide', flush);
-  }, []);
+
 
   const JOBS_CACHE_KEY = 'dorset_jobs_cache';
 
@@ -116,23 +104,8 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
-      // Set server version immediately so UI isn't blank
       setLocalJob(selectedJob);
       localJobRef.current = selectedJob;
-      // Then check IDB for a richer draft (has base64 photos)
-      getDraft(selectedJob.id).then(draft => {
-        if (!draft) return;
-        setLocalJob(draft);
-        localJobRef.current = draft;
-        if (navigator.onLine) {
-          base44.entities.Job.update(draft.id, stripBase64(draft))
-            .then(() => {
-              clearDraft(draft.id);
-              queryClient.invalidateQueries({ queryKey: ['jobs'] });
-            })
-            .catch(() => {});
-        }
-      });
     }
   }, [selectedJob?.id]);
 
@@ -147,57 +120,16 @@ export default function Home() {
   });
 
   const [saveState, setSaveState] = useState('idle');
-  const [pendingSync, setPendingSync] = useState(false);
-
-  // Sync immediately when coming back online, and also every 60s as a fallback
-  useEffect(() => {
-    const doSync = async () => {
-      if (!navigator.onLine) return;
-      const ids = getAllPendingDraftIds();
-      if (ids.length === 0) { setPendingSync(false); return; }
-      const { synced, resolvedDrafts } = await syncAllPendingDrafts();
-      if (synced > 0) {
-        queryClient.invalidateQueries({ queryKey: ['jobs'] });
-        setPendingSync(getAllPendingDraftIds().length > 0);
-        const currentId = localJobRef.current?.id;
-        if (currentId && resolvedDrafts?.[currentId]) {
-          const resolved = resolvedDrafts[currentId];
-          localJobRef.current = resolved;
-          setLocalJob(resolved);
-        }
-      }
-    };
-
-    window.addEventListener('online', doSync);
-    const interval = setInterval(doSync, 60000);
-    return () => {
-      window.removeEventListener('online', doSync);
-      clearInterval(interval);
-    };
-  }, [queryClient]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
-    onSuccess: (_, { id }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setSaveState('saved');
-      setPendingSync(false);
-      clearDraft(id);
       setTimeout(() => setSaveState('idle'), 2000);
     },
-    onError: (err) => {
+    onError: () => {
       setSaveState('idle');
-      const status = err?.status || err?.response?.status;
-      // If the job no longer exists, clear the stale draft and don't show pending banner
-      if (status === 404) {
-        if (localJobRef.current) clearDraft(localJobRef.current.id);
-        return;
-      }
-      // Only save draft / show banner if we're actually offline
-      if (!navigator.onLine) {
-        setPendingSync(true);
-        if (localJobRef.current) saveDraft(localJobRef.current.id, localJobRef.current);
-      }
     },
   });
 
@@ -219,17 +151,10 @@ export default function Home() {
         updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
       }
     }
-    // Load server version immediately, then overlay IDB draft if one exists
     const nextJob = jobs.find(j => j.id === id);
     if (nextJob) {
       localJobRef.current = nextJob;
       setLocalJob(nextJob);
-      getDraft(id).then(draft => {
-        if (draft) {
-          localJobRef.current = draft;
-          setLocalJob(draft);
-        }
-      });
     }
     setCurrentId(id);
     // Restore remembered tab for this job, or default to overview (never restore dashboard)
@@ -305,34 +230,19 @@ export default function Home() {
     setLocalJob(updated);
     setSaveState('saving');
 
-    const hasBase64 =
-      (changes.__addPhoto && changes.__addPhoto.file_url?.startsWith('data:')) ||
-      (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
-      Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
-
-    if (!navigator.onLine || hasBase64) {
-      // Offline or has base64: persist to IDB so it survives and syncs later
-      saveDraft(jobId, updated);
-      if (!navigator.onLine) setPendingSync(true);
-      if (!navigator.onLine) return;
-    }
-
-    // Don't push base64 to server — wait for CDN upgrade (__photoUpgrade) instead
-    if (!hasBase64) {
-      // CDN upgrades: save immediately without debounce
-      if (changes.__photoUpgrade || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
-        clearTimeout(debounceRef.current);
+    // CDN upgrades: save immediately without debounce
+    if (changes.__photoUpgrade || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
+      clearTimeout(debounceRef.current);
+      if (localJobRef.current?.id === jobId) {
+        updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
+      }
+    } else {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
         if (localJobRef.current?.id === jobId) {
           updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
         }
-      } else {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-          if (localJobRef.current?.id === jobId) {
-            updateMutation.mutate({ id: jobId, data: stripBase64(localJobRef.current) });
-          }
-        }, 800);
-      }
+      }, 800);
     }
   }, [updateMutation]);
 
@@ -360,20 +270,7 @@ export default function Home() {
     updateMutation.mutate({ id: updated.id, data: updated });
   }, [localJob, updateMutation]);
 
-  const handleRetrySync = useCallback(async () => {
-    const result = await syncAllPendingDrafts();
-    if (result.synced > 0) {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setPendingSync(false);
-      // Update localJob with CDN urls if the current job was synced
-      const currentId = localJobRef.current?.id;
-      if (currentId && result.resolvedDrafts?.[currentId]) {
-        const resolved = result.resolvedDrafts[currentId];
-        localJobRef.current = resolved;
-        setLocalJob(resolved);
-      }
-    }
-  }, [queryClient]);
+
 
 
 
@@ -425,7 +322,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: '#f6f7f9' }}>
-      <OfflineBanner pendingSync={pendingSync} onRetry={handleRetrySync} />
+      <OfflineBanner />
       <Header onNew={handleNew} onDelete={handleDelete} onDuplicate={handleDuplicate} saveState={saveState} hasJob={!!localJob} job={localJob} jobs={jobs} onSelect={handleSelect} />
 
       {jobs.length === 0 && (
