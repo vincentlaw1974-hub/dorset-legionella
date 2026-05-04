@@ -1,13 +1,50 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { base44 } from '@/api/base44Client';
 
 const ASSESSORS = ['Vincent White', 'Ben White', 'Jake Robbins', 'Chris Hooker', 'Dominic Lowey-Parsons'];
 
 export default function OverviewTab({ job, onChange }) {
   const coverRef = useRef();
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+
+  const handleGenerateSummary = async () => {
+    setGeneratingSummary(true);
+    const allOutlets = [
+      ...(job.outlets || []),
+      ...(job.buildings || []).flatMap(b => b.outlets || [])
+    ];
+    const passCount = allOutlets.filter(o => {
+      const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
+      if (!isNaN(cold) && cold > 20) return false;
+      if (!isNaN(hot) && hot < (job.cqc_mode ? 55 : 50) && o.type !== 'Outside Tap' && !o.hasTmv) return false;
+      return true;
+    }).length;
+    const failCount = allOutlets.length - passCount;
+    const prompt = `You are writing an executive summary for a Legionella risk assessment report prepared by Dorset Plumbing. Write exactly 3–4 sentences of plain prose — no headings, no bullet points, no numbered sections, no placeholders. Be factual and professional.
+
+Assessment data:
+- Site: ${job.site_name || job.client || 'the site'}
+- Property type: ${job.property_type || 'Commercial'}
+- Assessment date: ${job.assessment_date || 'recent'}
+- Overall risk rating: ${job.risk || 'MEDIUM'}
+- Outlets assessed: ${allOutlets.length} (${passCount} pass, ${failCount} fail/warn)
+- Hot water storage temp: ${job.cylinder_temp ? job.cylinder_temp + '°C' : 'not recorded'}
+- Dead legs: ${(job.dead_legs || []).length}
+- CQC/care setting: ${job.cqc_mode ? 'Yes' : 'No'}
+- Vulnerable users: ${job.vulnerable_users ? 'Yes' : 'No'}
+- Issues noted: ${job.issues_text ? job.issues_text.slice(0, 300) : 'None recorded'}
+- Actions raised: ${(job.actions || []).length}
+
+Write the summary now:`;
+
+    const result = await base44.integrations.Core.InvokeLLM({ prompt, model: 'claude_sonnet_4_6' });
+    onChange({ summary: typeof result === 'string' ? result.trim() : result?.text?.trim() || '' });
+    setGeneratingSummary(false);
+  };
 
   const handleCoverPhoto = async (e) => {
     const file = e.target.files?.[0];
@@ -105,8 +142,20 @@ export default function OverviewTab({ job, onChange }) {
         </div>
       </div>
       <div className="mt-3">
-        <Label>Executive summary</Label>
-        <Textarea {...f('summary')} placeholder="Overview of what was assessed, main risks, and key immediate actions." className="min-h-[96px]" />
+        <div className="flex items-center justify-between mb-1">
+          <Label>Executive summary</Label>
+          <button
+            type="button"
+            onClick={handleGenerateSummary}
+            disabled={generatingSummary}
+            className="text-xs px-3 py-1.5 rounded-lg font-semibold text-white transition-all disabled:opacity-60"
+            style={{ background: '#d71920' }}
+          >
+            {generatingSummary ? '✨ Generating…' : '✨ AI Generate'}
+          </button>
+        </div>
+        <Textarea {...f('summary')} placeholder="Write a brief overview, or click AI Generate for a professional summary." className="min-h-[120px]" />
+        <div className="text-xs text-gray-400 mt-1 text-right">{(job.summary || '').length} chars — aim for under 600</div>
       </div>
 
       {/* Cover photo */}
