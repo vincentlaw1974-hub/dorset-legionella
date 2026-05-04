@@ -113,12 +113,10 @@ export default function ReportTab({ job, onPrint, onChange }) {
     ].filter(Boolean);
 
     const flowHtml = flowNodes.map((n, i) =>
-      `<div style="display:inline-flex;align-items:center;gap:8px">
-        <div style="background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;text-align:center;min-width:90px;font-size:10px;font-weight:bold;display:inline-block">
-          ${n.label}<span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#aaa !important;font-size:9px;font-weight:normal;display:block;margin-top:2px">${n.sub}</span>
-        </div>
-        ${i < flowNodes.length - 1 ? '<span style="font-size:14px;color:#999;font-weight:bold">&#8594;</span>' : ''}
-      </div>`
+      `<div style="display:inline-block;background:#1d1d1d !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color:#fff !important;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:bold;min-width:90px;text-align:center;vertical-align:middle">
+        <div style="color:#fff !important;font-weight:bold;font-size:10px">${n.label}</div>
+        <div style="color:#aaa !important;font-size:9px;font-weight:normal;margin-top:2px">${n.sub}</div>
+      </div>${i < flowNodes.length - 1 ? '<span style="color:#999;font-size:16px;vertical-align:middle;padding:0 4px">&#8594;</span>' : ''}`
     ).join('');
 
     const passCount = allOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'ok').length;
