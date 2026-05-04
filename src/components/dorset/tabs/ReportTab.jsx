@@ -113,9 +113,9 @@ export default function ReportTab({ job, onPrint, onChange }) {
     ].filter(Boolean);
 
     const flowHtml = flowNodes.map((n, i) =>
-      `<div style="display:inline-block;background:#1d1d1d !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color:#fff !important;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:bold;min-width:90px;text-align:center;vertical-align:middle">
-        <div style="color:#fff !important;font-weight:bold;font-size:10px">${n.label}</div>
-        <div style="color:#aaa !important;font-size:9px;font-weight:normal;margin-top:2px">${n.sub}</div>
+      `<div style="border:2px solid #1a1a1a;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:bold;min-width:90px;text-align:center;display:inline-block;background:transparent;vertical-align:middle">
+        <div style="color:#1a1a1a;font-weight:bold;font-size:10px">${n.label}</div>
+        <div style="color:#666;font-size:9px;font-weight:normal;display:block;margin-top:2px">${n.sub}</div>
       </div>${i < flowNodes.length - 1 ? '<span style="color:#999;font-size:16px;vertical-align:middle;padding:0 4px">&#8594;</span>' : ''}`
     ).join('');
 
