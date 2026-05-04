@@ -114,9 +114,8 @@ export default function ReportTab({ job, onPrint, onChange }) {
 
     const flowHtml = flowNodes.map((n, i) =>
       `<div style="display:inline-flex;align-items:center;gap:8px">
-        <div style="background:#1d1d1d;color:#fff;border-left:3px solid #d71920;border-radius:6px;padding:8px 12px;text-align:center;min-width:80px;font-size:10px">
-          <div style="font-weight:bold;margin-bottom:2px">${n.label}</div>
-          <div style="font-size:9px;color:#aaa">${n.sub}</div>
+        <div style="background:#1d1d1d;color:#fff;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;text-align:center;min-width:90px;font-size:10px;font-weight:bold;display:inline-block">
+          ${n.label}<span style="color:#aaa;font-size:9px;font-weight:normal;display:block;margin-top:2px">${n.sub}</span>
         </div>
         ${i < flowNodes.length - 1 ? '<span style="font-size:14px;color:#999;font-weight:bold">&#8594;</span>' : ''}
       </div>`
@@ -337,7 +336,6 @@ ${buildingPageHtml}
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
     <div style="font-size:10px"><span style="color:#27ae60;font-weight:bold">● ${passCount} Pass</span> &nbsp; <span style="color:#e67e22;font-weight:bold">● ${warnCount} Warning</span> &nbsp; <span style="color:#c0392b;font-weight:bold">● ${failCount} Fail</span> &nbsp;&nbsp; <span style="color:#888">${allOutlets.length} outlets across ${Object.keys(roomGroups).length} area${Object.keys(roomGroups).length!==1?'s':''}</span></div>
   </div>
-  ${roomCardsHtml || '<p style="font-size:10px;color:#888">No outlets recorded.</p>'}
   <div class="section-title">Legal / Compliance Notes</div>
   <p style="font-size:10px">• ${compNotesBenchmark}</p>
   ${compNotes.map(n=>`<p style="font-size:10px;${n.startsWith('COMPLIANCE')?'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;':''}margin:4px 0">• ${n}</p>`).join('')}
