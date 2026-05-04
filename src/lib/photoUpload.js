@@ -13,8 +13,7 @@ export function fileToDataUrl(file) {
 }
 
 /**
- * Upload to CDN in background after saving locally.
- * Returns the CDN url, or null on failure.
+ * Upload to CDN. Returns the CDN url, or null on failure.
  */
 export async function uploadToCdn(file) {
   try {
@@ -60,4 +59,24 @@ export function stripBase64(job) {
       outlets: (b.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
     })),
   };
+}
+
+/**
+ * Returns true if a job object contains any base64 photos.
+ */
+export function jobHasBase64Photos(job) {
+  const isB64 = (u) => u && u.startsWith('data:');
+  if (isB64(job.cover_photo_url)) return true;
+  if (isB64(job.cwst_photo_url)) return true;
+  if (isB64(job.cylinder_photo_url)) return true;
+  if (isB64(job.plant_room_photo_url)) return true;
+  if ((job.photos || []).some(p => isB64(p.file_url))) return true;
+  if ((job.outlets || []).some(o => isB64(o.photo_url))) return true;
+  if ((job.dead_legs || []).some(d => isB64(d.photo_url))) return true;
+  if ((job.showers || []).some(s => isB64(s.photo_url))) return true;
+  if ((job.buildings || []).some(b =>
+    (b.photos || []).some(p => isB64(p.file_url)) ||
+    (b.outlets || []).some(o => isB64(o.photo_url))
+  )) return true;
+  return false;
 }

@@ -29,8 +29,8 @@ export default function OfflineBanner({ pendingSync, onRetry }) {
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white" style={{ background: '#1d1d1d', maxWidth: '90vw' }}>
         <span className="text-lg">📵</span>
         <div>
-          <div>You're offline — changes are saved locally</div>
-          <div className="text-xs text-gray-400 font-normal">Will sync automatically when signal returns</div>
+          <div>You're offline — photos &amp; data saved to device</div>
+          <div className="text-xs text-gray-400 font-normal">Will upload automatically when signal returns</div>
         </div>
       </div>
     );
@@ -50,8 +50,8 @@ export default function OfflineBanner({ pendingSync, onRetry }) {
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white" style={{ background: '#d97706', maxWidth: '90vw' }}>
         <span className="text-lg">⚠️</span>
         <div>
-          <div>Unsaved changes pending</div>
-          <div className="text-xs font-normal opacity-80">Will sync automatically when online</div>
+          <div>Photos pending upload</div>
+          <div className="text-xs font-normal opacity-80">Tap "Retry now" or they'll upload automatically</div>
         </div>
         {online && (
           <button

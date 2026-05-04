@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { uid } from '@/lib/jobUtils';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
-import { saveDraft } from '@/lib/syncManager';
+
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { base44 } from '@/api/base44Client';
@@ -63,19 +63,21 @@ export default function PhotosTab({ job, onChange }) {
         if (!knownRooms.includes(meta.location)) meta.location = '';
       }
 
-      // Add photo with base64 immediately (works offline)
+      // Step 1: Add photo with base64 immediately — visible & saved to IDB even if offline
       onChange({ __addPhoto: { id: newId, file_url: dataUrl, kind: meta.kind, location: meta.location, caption: meta.caption } });
 
-      // Try CDN upload — if it fails (offline), the base64 stays in IDB and will be
-      // uploaded automatically when the device reconnects via syncAllPendingDrafts
-      uploadToCdn(file).then(cdnUrl => {
-        if (cdnUrl) {
-          onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
-        } else {
-          // CDN failed — ensure the full job (with base64) is persisted in IDB right now
-          if (job.id) saveDraft(job.id, { ...job, photos: [...(job.photos || []), { id: newId, file_url: dataUrl, kind: meta.kind, location: meta.location, caption: meta.caption }] });
-        }
-      });
+      // Step 2: Try CDN upload in background.
+      // If it works → upgrade the photo url to CDN (permanent, fast).
+      // If it fails → the base64 stays in IDB and syncAllPendingDrafts will upload it on reconnect.
+      if (navigator.onLine) {
+        uploadToCdn(file).then(cdnUrl => {
+          if (cdnUrl) {
+            onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
+          }
+          // No else needed — saveDraft is called by handleChange on every __addPhoto
+        }).catch(() => {});
+      }
+      // If offline, do nothing — the draft in IDB will sync on reconnect
     }
     setUploading(false);
   };

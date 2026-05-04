@@ -62,25 +62,17 @@ export default function Home() {
   const UNLOCK_PIN = '1234'; // simple 4-digit PIN to unlock a completed/reviewed report
   const queryClient = useQueryClient();
 
-  // Flush current job to server on page close (best-effort)
+  // On page close: ensure IDB draft is saved (it already is via handleChange, this is a safety net)
   useEffect(() => {
     const flush = () => {
       const job = localJobRef.current;
       if (!job?.id) return;
-      // Use sendBeacon for guaranteed delivery on page unload (async-safe)
-      const stripped = stripBase64(job);
-      try {
-        saveDraft(job.id, job); // always keep base64 draft in localStorage
-      } catch {}
-      // Attempt a synchronous XHR as last resort (sendBeacon doesn't support auth headers)
-      // The draft in localStorage will be synced on next open regardless
+      // saveDraft is async/IDB — can't await in beforeunload, but IDB writes are already done
+      // by handleChange on every change. This is just a final belt-and-braces call.
+      saveDraft(job.id, job);
     };
-    window.addEventListener('beforeunload', flush);
     window.addEventListener('pagehide', flush);
-    return () => {
-      window.removeEventListener('beforeunload', flush);
-      window.removeEventListener('pagehide', flush);
-    };
+    return () => window.removeEventListener('pagehide', flush);
   }, []);
 
   const JOBS_CACHE_KEY = 'dorset_jobs_cache';
@@ -124,19 +116,23 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedJob && localJobRef.current?.id !== selectedJob.id) {
-      const draft = getDraft(selectedJob.id);
-      const jobToLoad = draft || selectedJob;
-      setLocalJob(jobToLoad);
-      localJobRef.current = jobToLoad;
-      if (draft && navigator.onLine) {
-        // Push the draft to the server immediately
-        base44.entities.Job.update(draft.id, stripBase64(draft))
-          .then(() => {
-            clearDraft(draft.id);
-            queryClient.invalidateQueries({ queryKey: ['jobs'] });
-          })
-          .catch(() => {});
-      }
+      // Set server version immediately so UI isn't blank
+      setLocalJob(selectedJob);
+      localJobRef.current = selectedJob;
+      // Then check IDB for a richer draft (has base64 photos)
+      getDraft(selectedJob.id).then(draft => {
+        if (!draft) return;
+        setLocalJob(draft);
+        localJobRef.current = draft;
+        if (navigator.onLine) {
+          base44.entities.Job.update(draft.id, stripBase64(draft))
+            .then(() => {
+              clearDraft(draft.id);
+              queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            })
+            .catch(() => {});
+        }
+      });
     }
   }, [selectedJob?.id]);
 
@@ -224,13 +220,17 @@ export default function Home() {
         updateMutation.mutate({ id: localJobRef.current.id, data: stripBase64(localJobRef.current) });
       }
     }
-    // Find the job — prefer draft if one exists (offline changes)
+    // Load server version immediately, then overlay IDB draft if one exists
     const nextJob = jobs.find(j => j.id === id);
     if (nextJob) {
-      const draft = getDraft(id);
-      const jobToLoad = draft || nextJob;
-      localJobRef.current = jobToLoad;
-      setLocalJob(jobToLoad);
+      localJobRef.current = nextJob;
+      setLocalJob(nextJob);
+      getDraft(id).then(draft => {
+        if (draft) {
+          localJobRef.current = draft;
+          setLocalJob(draft);
+        }
+      });
     }
     setCurrentId(id);
     // Restore remembered tab for this job, or default to overview (never restore dashboard)
@@ -305,24 +305,23 @@ export default function Home() {
     localJobRef.current = updated;
     setLocalJob(updated);
     setSaveState('saving');
-    // Await IDB write for base64 photos so data is persisted before we return
+
+    // Always persist to IDB immediately — this is the source of truth for offline/photos
     const hasBase64 =
       (changes.__addPhoto && changes.__addPhoto.file_url?.startsWith('data:')) ||
       (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
       Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
-    if (hasBase64) {
-      saveDraft(jobId, updated); // returns promise — fire and let it complete
-    } else {
-      saveDraft(jobId, updated);
-    }
+
+    saveDraft(jobId, updated); // always save to IDB — async, fire and forget
+
     if (!navigator.onLine) {
       setPendingSync(true);
       return;
     }
-    // Skip server save if the value is base64 (wait for CDN upload to complete first)
-    const isBase64Value = hasBase64;
-    if (!isBase64Value) {
-      // Photo CDN upgrades and building photo upgrades: save immediately, don't debounce
+
+    // Don't push base64 to server — wait for CDN upgrade (__photoUpgrade) instead
+    if (!hasBase64) {
+      // CDN upgrades: save immediately without debounce
       if (changes.__photoUpgrade || changes.__buildingPhotoUpgrade || changes.__buildingOutletPhotoUpgrade) {
         clearTimeout(debounceRef.current);
         if (localJobRef.current?.id === jobId) {
