@@ -105,21 +105,20 @@ export default function ReportTab({ job, onPrint, onChange }) {
     };
 
     const flowNodes = [
-      { label: 'Cold Mains', sub: job.cold_source || 'Mains', color: '#3b82f6', bg: '#eff6ff', icon: '🌊' },
-      job.cwst_present ? { label: 'CWST', sub: job.cwst_location || 'Storage tank', color: '#8b5cf6', bg: '#f5f3ff', icon: '🏗️' } : null,
-      job.hw_not_stored ? null : { label: 'HW Cylinder', sub: job.cylinder_temp ? job.cylinder_temp + '°C' : 'Storage', color: '#f97316', bg: '#fff7ed', icon: '♨️' },
-      job.tmvs_installed ? { label: 'TMVs', sub: 'Blended outlets', color: '#8b5cf6', bg: '#f5f3ff', icon: '🔧' } : null,
-      { label: 'Outlets', sub: `${(job.outlets||[]).length} total`, color: '#10b981', bg: '#ecfdf5', icon: '🚿' },
+      { label: 'Cold Mains', sub: job.cold_source || 'Mains' },
+      job.cwst_present ? { label: 'CWST', sub: job.cwst_location || 'Storage tank' } : null,
+      job.hw_not_stored ? null : { label: 'HW Cylinder', sub: job.cylinder_temp ? job.cylinder_temp + '°C' : 'Storage' },
+      job.tmvs_installed ? { label: 'TMVs', sub: 'Blended outlets' } : null,
+      { label: 'Outlets', sub: `${(job.outlets||[]).length} total` },
     ].filter(Boolean);
 
     const flowHtml = flowNodes.map((n, i) =>
-      `<div style="display:inline-flex;align-items:center;gap:6px">
-        <div style="border:2px solid ${n.color};background:${n.bg};border-radius:10px;padding:8px 12px;text-align:center;min-width:80px">
-          <div style="font-size:18px">${n.icon}</div>
-          <div style="font-weight:bold;font-size:10px;color:${n.color}">${n.label}</div>
-          <div style="font-size:9px;color:#666">${n.sub}</div>
+      `<div style="display:inline-flex;align-items:center;gap:8px">
+        <div style="background:#1d1d1d;color:#fff;border-left:3px solid #d71920;border-radius:6px;padding:8px 12px;text-align:center;min-width:80px;font-size:10px">
+          <div style="font-weight:bold;margin-bottom:2px">${n.label}</div>
+          <div style="font-size:9px;color:#aaa">${n.sub}</div>
         </div>
-        ${i < flowNodes.length - 1 ? '<span style="font-size:16px;color:#999">→</span>' : ''}
+        ${i < flowNodes.length - 1 ? '<span style="font-size:14px;color:#999;font-weight:bold">&#8594;</span>' : ''}
       </div>`
     ).join('');
 
@@ -318,7 +317,7 @@ export default function ReportTab({ job, onPrint, onChange }) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>${CSS}</style></head><body>
 <div class="page">
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
-  ${job.cover_photo_url?`<div style="margin-bottom:14px;overflow:hidden;width:100%"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:280px;display:block;object-fit:cover"/></div>`:''}
+  ${job.cover_photo_url?`<div style="margin:0;padding:0;width:100%"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:260px;object-fit:cover;display:block"/></div>`:''}
   <div class="page-body">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
@@ -326,10 +325,10 @@ export default function ReportTab({ job, onPrint, onChange }) {
   </div>
   ${summaryTableHtml}
   <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:6px">Compliance Scorecard</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="background:${c.pass?'#eafaf1':'#fdecea'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:88px"><div style="font-size:18px;font-weight:900;color:${c.pass?'#1a6e1a':'#c0392b'}">${c.pass?'✓':'✗'}</div><div style="font-size:10px;font-weight:900;color:${c.pass?'#1a6e1a':'#c0392b'};margin:2px 0">${c.pass?'PASS':'FAIL'}</div><div style="font-size:8.5px;color:#444">${c.label}</div></div>`).join('')}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="background:${c.pass?'#eafaf1':'#fdecea'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:10px 14px;text-align:center;min-width:100px"><div style="font-size:22px;font-weight:900;color:${c.pass?'#1a6e1a':'#c0392b'}">${c.pass?'✓':'✗'}</div><div style="font-size:10px;font-weight:900;color:${c.pass?'#1a6e1a':'#c0392b'};margin:2px 0">${c.pass?'PASS':'FAIL'}</div><div style="font-size:10px;color:#444">${c.label}</div></div>`).join('')}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     <div>${job.summary?`<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.7">${fixTypos(job.summary)}</div>`:'<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No summary entered — add one in the Overview tab before sending to client.</div>'}</div>
-    <div><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div><table style="width:180px;border-collapse:collapse">${matrixHtml}</table><div style="font-size:8.5px;color:#555;margin-top:3px;text-align:center;width:180px">← Low &nbsp; Med &nbsp; High →<br><span style="color:#888">Likelihood</span></div></div>
+    <div><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div><div style="display:flex;align-items:center;gap:4px"><div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:8px;color:#555;white-space:nowrap;margin-right:2px">&#8593; Severity</div><table style="width:165px;border-collapse:collapse">${matrixHtml}</table></div><div style="font-size:8.5px;color:#555;margin-top:3px;width:180px;padding-left:18px">Low &nbsp;&middot;&nbsp; Med &nbsp;&middot;&nbsp; High &#8594;<br><span style="color:#888">Likelihood</span></div></div>
   </div>
   </div>
   <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 1</span></div>
@@ -339,7 +338,7 @@ export default function ReportTab({ job, onPrint, onChange }) {
   <div class="page-body">
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
-  ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div>${roomCardsHtml}<table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
+  ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div><table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   </div>
   <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 2</span></div>
 </div>
