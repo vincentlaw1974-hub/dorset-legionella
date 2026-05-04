@@ -59,7 +59,7 @@ function buildSchematic(job) {
   return Object.entries(groups).map(([name, info]) => ({ name, count: info.count, issue: info.issue, types: [...info.types].join(', ') }));
 }
 
-export default function ReportTab({ job, onPrint }) {
+export default function ReportTab({ job, onPrint, onChange }) {
   const printRef = useRef();
   const handlePrintRef = useRef(null);
 
@@ -499,11 +499,32 @@ ${buildingPageHtml}
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <strong>Report preview</strong>
-        <button onClick={handlePrint} className="text-sm px-4 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>
-          Export PDF / Print
-        </button>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <strong>Report preview</strong>
+          {job.status === 'Completed' || job.status === 'Reviewed'
+            ? <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">🔒 Finalised — {job.status}</span>
+            : null
+          }
+        </div>
+        <div className="flex gap-2 items-center">
+          {job.status !== 'Completed' && job.status !== 'Reviewed' && onChange && (
+            <button
+              onClick={() => {
+                if (window.confirm('Finalise this report? This will lock all data to protect audit integrity. Use the 🔓 Unlock button to make further edits.')) {
+                  onChange({ status: 'Completed' });
+                }
+              }}
+              className="text-sm px-4 py-2 rounded-xl font-bold text-white border-2 border-green-700"
+              style={{ background: '#16a34a' }}
+            >
+              ✅ Finalise Report
+            </button>
+          )}
+          <button onClick={handlePrint} className="text-sm px-4 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>
+            Export PDF / Print
+          </button>
+        </div>
       </div>
 
       {/* In-app preview — clean summary card, not a replica of the PDF */}

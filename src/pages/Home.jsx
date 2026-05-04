@@ -525,7 +525,7 @@ export default function Home() {
               {isLocked ? (
                 <div className="space-y-3">
                   <SchematicTab job={localJob} onChange={() => {}} />
-                  <ReportTab job={localJob} onPrint={handlePrint} />
+                  <ReportTab job={localJob} onPrint={handlePrint} onChange={null} />
                 </div>
               ) : (
                 <>
@@ -544,7 +544,7 @@ export default function Home() {
                   {activeTab === 'report' && (
                     <div className="space-y-3">
                       <SchematicTab job={localJob} onChange={handleChange} />
-                      <ReportTab job={localJob} onPrint={handlePrint} />
+                      <ReportTab job={localJob} onPrint={handlePrint} onChange={handleChange} />
                     </div>
                   )}
                 </>
