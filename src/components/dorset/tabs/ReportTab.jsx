@@ -506,198 +506,122 @@ ${buildingPageHtml}
         </button>
       </div>
 
-      <div ref={printRef} className="text-sm space-y-3">
-        <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(180deg,#111 0%,#1d1d1d 100%)', borderBottom: '6px solid #d71920' }}>
-          <div className="text-xs text-gray-400 mb-1">Legionella Risk Assessment Report</div>
-          <h1 className="text-2xl font-bold" style={{ color: '#d71920' }}>{job.site_name || job.client || 'Untitled Site'}</h1>
-          <div className="text-gray-300 text-xs mt-1">{job.address}</div>
-          {job.cover_photo_url && <img src={job.cover_photo_url} alt="Cover" className="w-full rounded-xl mt-3" style={{maxHeight:'320px',objectFit:'contain',background:'#1d1d1d'}} />}
-          <div className="flex flex-wrap gap-2 mt-3">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold badge-${riskBadge}`}>Risk: {job.risk || 'LOW'}</span>
-            {job.cqc_mode && <span className="px-2 py-0.5 rounded-full text-xs font-bold badge-high">CQC Mode</span>}
-            {(job.buildings||[]).length > 0 && <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">🏘️ {job.buildings.length} buildings</span>}
-          </div>
-          <div className="grid grid-cols-2 gap-1 mt-3 text-xs text-gray-300">
-            <div>Assessment: <strong className="text-white">{job.assessment_date || '—'}</strong></div>
-            <div>Review due: <strong className="text-white">{job.review_due || '—'}</strong></div>
-            <div>Assessor: <strong className="text-white">{job.assessor || '—'}</strong></div>
-            <div>Ref: <strong className="text-white">{job.report_ref || '—'}</strong></div>
-          </div>
-        </div>
+      {/* In-app preview — clean summary card, not a replica of the PDF */}
+      <div ref={printRef} className="space-y-3 text-sm">
 
-        {/* Compliance Summary Table */}
-        <div className="border-2 border-gray-200 rounded-xl p-3 bg-gray-50 text-xs">
-          <div className="font-bold text-sm mb-2 pb-1 border-b-2 border-red-600">📋 Compliance Summary</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <table className="w-full border-collapse text-xs">
-              <thead><tr className="bg-red-50"><th className="border border-gray-200 p-1.5 text-left">Check</th><th className="border border-gray-200 p-1.5 text-center">Status</th></tr></thead>
-              <tbody>
-                {(() => {
-                  const _cylTemp = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
-                  const _hwFail = !isNaN(_cylTemp) && _cylTemp < 60;
-                  const _allOutlets = getAllOutlets(job);
-                  const _tgt = job.cqc_mode ? 55 : 50;
-                  const _hasDeadLegs = (job.dead_legs||[]).length > 0;
-                  const _checks = [
-                    { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
-                    { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
-                    { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
-                    { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
-                    { label: `HW Temp >=60°C`, pass: isNaN(_cylTemp) || !_hwFail },
-                    { label: `Hot Outlets >=${_tgt}°C`, pass: _allOutlets.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).every(o => isNaN(parseFloat(o.hot)) || parseFloat(o.hot) >= _tgt) },
-                    { label: 'Cold Outlets <=20°C', pass: _allOutlets.every(o => isNaN(parseFloat(o.cold)) || parseFloat(o.cold) <= 20) },
-                    { label: 'No Dead Legs', pass: !_hasDeadLegs },
-                  ];
-                  return _checks.map((c, i) => (
-                    <tr key={i}>
-                      <td className="border border-gray-200 p-1.5">{c.label}</td>
-                      <td className="border border-gray-200 p-1.5 text-center">
-                        <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${c.pass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{c.pass ? 'PASS' : 'FAIL'}</span>
-                      </td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
-            <div>
-              {(() => {
-                const _today = new Date().toISOString().slice(0, 10);
-                const _pa = (job.actions||[]).filter(a => a.status !== 'Complete' && a.status !== 'Closed' && (a.priority === '1' || (a.deadline && a.deadline < _today)));
-                if (_pa.length === 0) return <div className="text-green-700 font-semibold text-xs">✅ No high-priority or overdue actions</div>;
-                return (
-                  <>
-                    <div className="text-red-700 font-bold mb-1">⚠ {_pa.length} high-priority / overdue action{_pa.length !== 1 ? 's' : ''}:</div>
-                    <table className="w-full border-collapse text-[10px]">
-                      <thead><tr className="bg-red-50"><th className="border border-gray-200 p-1 text-left">Ref</th><th className="border border-gray-200 p-1">Pri</th><th className="border border-gray-200 p-1 text-left">Action</th><th className="border border-gray-200 p-1 text-left">Deadline</th></tr></thead>
-                      <tbody>{_pa.map(a => {
-                        const overdue = a.deadline && a.deadline < _today;
-                        return <tr key={a.id}>
-                          <td className="border border-gray-200 p-1">{a.ref||'—'}</td>
-                          <td className="border border-gray-200 p-1 text-center font-bold">{a.priority}</td>
-                          <td className="border border-gray-200 p-1">{a.system}: {a.action}</td>
-                          <td className={`border border-gray-200 p-1 ${overdue ? 'text-red-600 font-bold' : ''}`}>{a.deadline||'—'}{overdue?' ⚠':''}</td>
-                        </tr>;
-                      })}</tbody>
-                    </table>
-                  </>
-                );
-              })()}
+        {/* Cover card */}
+        <div className="rounded-xl overflow-hidden border border-gray-200">
+          {job.cover_photo_url && (
+            <img src={job.cover_photo_url} alt="Cover" className="w-full" style={{maxHeight:'200px',objectFit:'cover'}} />
+          )}
+          <div className="p-4" style={{background:'#1d1d1d'}}>
+            <div className="text-xs text-gray-400 mb-1">Legionella Risk Assessment</div>
+            <div className="text-xl font-bold text-white">{job.site_name || job.client || 'Untitled Site'}</div>
+            <div className="text-gray-400 text-xs mt-0.5">{job.address}</div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold badge-${riskBadge}`}>Risk: {job.risk || 'LOW'}</span>
+              {job.cqc_mode && <span className="px-3 py-1 rounded-full text-xs font-bold badge-high">CQC Mode</span>}
+              {(job.buildings||[]).length > 0 && <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">🏘️ {job.buildings.length} buildings</span>}
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs text-gray-400">
+              <div>Date: <span className="text-white">{job.assessment_date || '—'}</span></div>
+              <div>Review: <span className="text-white">{job.review_due || '—'}</span></div>
+              <div>Assessor: <span className="text-white">{job.assessor || '—'}</span></div>
+              <div>Ref: <span className="text-white">{job.report_ref || '—'}</span></div>
             </div>
           </div>
         </div>
 
-        <hr />
-        <div><strong>Executive summary</strong></div>
-        {job.summary
-          ? <div className="text-xs text-gray-700 whitespace-pre-line">{job.summary}</div>
-          : <div className="text-xs font-semibold text-red-700 bg-red-50 border-l-4 border-red-500 px-3 py-2 rounded">⚠ No summary entered — add one in the Overview tab before sending to client.</div>
-        }
-        <hr />
-        <div><strong>Issues / findings</strong></div>
-        {job.issues_text
-          ? <div className="text-xs text-gray-700 whitespace-pre-line">{job.issues_text}</div>
-          : <div className="text-xs text-gray-500">No specific issues were identified during this assessment.</div>
-        }
-
-        {/* Buildings preview */}
-        {(job.buildings||[]).length > 0 && (
-          <>
-            <hr />
-            <div><strong>🏘️ Buildings ({job.buildings.length})</strong></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-              {(job.buildings||[]).map(b => {
-                const bOutlets = b.outlets || [];
-                const bFail = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'fail').length;
-                const bWarn = bOutlets.filter(o => outletStatus(o, job.cqc_mode).cls === 'warn').length;
-                const borderCls = bFail > 0 ? 'border-red-400' : bWarn > 0 ? 'border-yellow-400' : 'border-green-300';
-                return (
-                  <div key={b.id} className={`border-2 ${borderCls} rounded-xl p-2 text-xs`}>
-                    <div className="font-bold">{b.name || b.type}</div>
-                    <div className="text-gray-500">{(b.rooms||[]).length} rooms · {bOutlets.length} outlets</div>
-                    {bFail > 0 && <div className="text-red-600 font-bold">⚠ {bFail} fail</div>}
-                    {bWarn > 0 && <div className="text-yellow-700">⚠ {bWarn} warning</div>}
+        {/* Compliance checks */}
+        {(() => {
+          const _cylTemp = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
+          const _allOutlets = getAllOutlets(job);
+          const _tgt = job.cqc_mode ? 55 : 50;
+          const _checks = [
+            { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
+            { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
+            { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
+            { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
+            { label: 'HW Temp ≥60°C', pass: isNaN(_cylTemp) || _cylTemp >= 60 },
+            { label: `Hot Outlets ≥${_tgt}°C`, pass: _allOutlets.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).every(o => isNaN(parseFloat(o.hot)) || parseFloat(o.hot) >= _tgt) },
+            { label: 'Cold Outlets ≤20°C', pass: _allOutlets.every(o => isNaN(parseFloat(o.cold)) || parseFloat(o.cold) <= 20) },
+            { label: 'No Dead Legs', pass: (job.dead_legs||[]).length === 0 },
+          ];
+          const failCount = _checks.filter(c => !c.pass).length;
+          return (
+            <div className="border border-gray-200 rounded-xl p-3 bg-white">
+              <div className="flex items-center justify-between mb-2">
+                <strong className="text-sm">📋 Compliance checks</strong>
+                {failCount > 0
+                  ? <span className="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">{failCount} FAIL</span>
+                  : <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">All PASS</span>
+                }
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {_checks.map((c, i) => (
+                  <div key={i} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${c.pass ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-300 text-red-800'}`}>
+                    {c.pass ? '✅' : '❌'} {c.label}
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </>
-        )}
+          );
+        })()}
 
-        {areas.length > 0 && (
-          <>
-            <hr />
-            <div><strong>Indicative schematic</strong></div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {areas.map((a, i) => (
-                <div key={i} className={`border-2 rounded-xl p-2 text-xs text-center min-w-[90px] ${a.issue ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-200 bg-white'}`}>
-                  <div className="font-bold">{a.name}</div>
-                  <div className="text-gray-500 text-[10px]">{a.types}</div>
-                  <div className="text-gray-500 text-[10px]">{a.count} outlet{a.count !== 1 ? 's' : ''}</div>
-                  {a.issue && <div className="font-bold text-red-600 text-[10px]">⚠ Issue</div>}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+        {/* Summary */}
+        <div className="border border-gray-200 rounded-xl p-3 bg-white">
+          <strong className="text-sm block mb-1">Executive summary</strong>
+          {job.summary
+            ? <div className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{job.summary}</div>
+            : <div className="text-xs font-semibold text-red-700 bg-red-50 border-l-4 border-red-500 px-3 py-2 rounded">⚠ No summary — use the AI Generate button in the Overview tab.</div>
+          }
+        </div>
 
-        {scheme.length > 0 && (
-          <>
-            <hr />
-            <div><strong>Control scheme ({scheme.length} tasks)</strong></div>
+        {/* Actions */}
+        {(job.actions||[]).length > 0 && (
+          <div className="border border-gray-200 rounded-xl p-3 bg-white">
+            <strong className="text-sm block mb-2">Actions ({(job.actions||[]).length})</strong>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs mt-1">
-                <thead><tr className="bg-red-50">{['Task','Frequency','Requirement','Responsible','Record'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
-                <tbody>{scheme.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} className="border border-gray-200 p-1.5">{c}</td>)}</tr>)}</tbody>
+              <table className="w-full border-collapse text-xs">
+                <thead><tr className="bg-gray-50">{['Ref','System','Pri','Responsible','Deadline','Status'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left font-semibold">{h}</th>)}</tr></thead>
+                <tbody>{(job.actions||[]).map(a => {
+                  const overdue = a.deadline && a.deadline < new Date().toISOString().slice(0,10) && a.status !== 'Complete';
+                  return <tr key={a.id} className={overdue ? 'bg-red-50' : ''}>
+                    <td className="border border-gray-200 p-1.5">{a.ref}</td>
+                    <td className="border border-gray-200 p-1.5">{a.system}</td>
+                    <td className="border border-gray-200 p-1.5 font-bold text-center">{a.priority}</td>
+                    <td className="border border-gray-200 p-1.5">{a.responsible_person}</td>
+                    <td className={`border border-gray-200 p-1.5 ${overdue ? 'text-red-700 font-bold' : ''}`}>{a.deadline||'—'}</td>
+                    <td className="border border-gray-200 p-1.5">{a.status}</td>
+                  </tr>;
+                })}</tbody>
               </table>
             </div>
-          </>
+          </div>
         )}
 
+        {/* Outlets summary */}
         {getAllOutlets(job).length > 0 && (
-          <>
-            <hr />
-            <div><strong>Outlets ({getAllOutlets(job).length})</strong></div>
+          <div className="border border-gray-200 rounded-xl p-3 bg-white">
+            <strong className="text-sm block mb-2">Outlets ({getAllOutlets(job).length})</strong>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs mt-1">
-                <thead><tr className="bg-red-50">{['Location','Type','Hot °C','Cold °C','Status','Notes','Photo'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
+              <table className="w-full border-collapse text-xs">
+                <thead><tr className="bg-gray-50">{['Location','Type','Hot °C','Cold °C','Status'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left font-semibold">{h}</th>)}</tr></thead>
                 <tbody>{getAllOutlets(job).map(o => {
                   const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
                   return <tr key={o.id + (o.displayLocation||'')}>
                     <td className="border border-gray-200 p-1.5">{o.displayLocation}</td>
                     <td className="border border-gray-200 p-1.5">{o.type}</td>
-                    <td className="border border-gray-200 p-1.5">{o.hot}</td>
-                    <td className="border border-gray-200 p-1.5">{o.cold}</td>
+                    <td className="border border-gray-200 p-1.5">{o.hot||'—'}</td>
+                    <td className="border border-gray-200 p-1.5">{o.cold||'—'}</td>
                     <td className="border border-gray-200 p-1.5"><span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold badge-${st.cls}`}>{st.text}</span></td>
-                    <td className="border border-gray-200 p-1.5">{o.notes}</td>
-                    <td className="border border-gray-200 p-1.5">{o.photo_url ? <img src={o.photo_url} alt="" className="w-16 h-12 object-cover rounded" /> : '—'}</td>
                   </tr>;
                 })}</tbody>
               </table>
             </div>
-          </>
+          </div>
         )}
 
-        {(job.actions || []).length > 0 && (
-          <>
-            <hr />
-            <div><strong>Improvement actions ({(job.actions || []).length})</strong></div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs mt-1">
-                <thead><tr className="bg-red-50">{['Ref','System','Pri','Responsible','Deadline','Observation','Action','Status'].map(h => <th key={h} className="border border-gray-200 p-1.5 text-left">{h}</th>)}</tr></thead>
-                <tbody>{(job.actions || []).map(a => <tr key={a.id}>
-                  <td className="border border-gray-200 p-1.5">{a.ref}</td>
-                  <td className="border border-gray-200 p-1.5">{a.system}</td>
-                  <td className="border border-gray-200 p-1.5 font-bold">{a.priority}</td>
-                  <td className="border border-gray-200 p-1.5">{a.responsible_person}</td>
-                  <td className="border border-gray-200 p-1.5">{a.deadline}</td>
-                  <td className="border border-gray-200 p-1.5">{a.observation}</td>
-                  <td className="border border-gray-200 p-1.5">{a.action}</td>
-                  <td className="border border-gray-200 p-1.5">{a.status}</td>
-                </tr>)}</tbody>
-              </table>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
