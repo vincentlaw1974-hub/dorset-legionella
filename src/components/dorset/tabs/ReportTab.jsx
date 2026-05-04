@@ -114,8 +114,8 @@ export default function ReportTab({ job, onPrint, onChange }) {
 
     const flowHtml = flowNodes.map((n, i) =>
       `<div style="display:inline-flex;align-items:center;gap:8px">
-        <div style="background:#1d1d1d;color:#fff;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;text-align:center;min-width:90px;font-size:10px;font-weight:bold;display:inline-block">
-          ${n.label}<span style="color:#aaa;font-size:9px;font-weight:normal;display:block;margin-top:2px">${n.sub}</span>
+        <div style="background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;border-left:4px solid #d71920;border-radius:6px;padding:8px 12px;text-align:center;min-width:90px;font-size:10px;font-weight:bold;display:inline-block">
+          ${n.label}<span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#aaa !important;font-size:9px;font-weight:normal;display:block;margin-top:2px">${n.sub}</span>
         </div>
         ${i < flowNodes.length - 1 ? '<span style="font-size:14px;color:#999;font-weight:bold">&#8594;</span>' : ''}
       </div>`
@@ -147,7 +147,7 @@ export default function ReportTab({ job, onPrint, onChange }) {
 
     const outletRows = allOutlets.map(o => {
       const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
-      const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534' : st.cls === 'warn' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
+      const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534;-webkit-print-color-adjust:exact;print-color-adjust:exact' : st.cls === 'warn' ? '#fef3c7;color:#92400e;-webkit-print-color-adjust:exact;print-color-adjust:exact' : '#fee2e2;color:#991b1b;-webkit-print-color-adjust:exact;print-color-adjust:exact';
       const isOutsideTap = o.type === 'Outside Tap';
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
