@@ -129,21 +129,19 @@ export default function ReportTab({ job, onPrint, onChange }) {
     const roomCardsHtml = Object.entries(roomGroups).map(([room, outlets]) => {
       const roomFail = outlets.some(o => outletStatus(o, job.cqc_mode).cls === 'fail');
       const roomWarn = outlets.some(o => outletStatus(o, job.cqc_mode).cls === 'warn');
-      const borderCol = roomFail ? '#c0392b' : roomWarn ? '#e67e22' : '#10b981';
-      const bgCol = roomFail ? '#fff5f5' : roomWarn ? '#fffbeb' : '#f0fdf4';
+      const borderCol = roomFail ? '#c0392b' : roomWarn ? '#e67e22' : '#27ae60';
       const chips = outlets.map(o => {
         const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
         const col = statusColor(o);
-        return `<div style="border:2px solid ${col};border-radius:8px;padding:5px 8px;background:#fff;text-align:center;min-width:70px">
-          <div style="font-size:14px">${outletTypeIcon(o.type)}</div>
-          <div style="font-size:9px;font-weight:bold">${o.type||'Outlet'}</div>
+        return `<div style="background:#1d1d1d;color:#fff;border-left:3px solid ${col};border-radius:6px;padding:6px 10px;text-align:center;min-width:80px;font-size:10px">
+          <div style="font-weight:bold;margin-bottom:2px">${o.type||'Outlet'}</div>
           <div style="font-size:9px;font-weight:bold;color:${col}">${st.text.toUpperCase()}</div>
-          ${o.hot ? `<div style="font-size:8px;color:#555">${o.hot}°C H</div>` : ''}
-          ${o.cold ? `<div style="font-size:8px;color:#555">${o.cold}°C C</div>` : ''}
+          ${o.hot ? `<div style="font-size:8px;color:#aaa">${o.hot}°C H</div>` : ''}
+          ${o.cold ? `<div style="font-size:8px;color:#aaa">${o.cold}°C C</div>` : ''}
         </div>`;
       }).join('');
-      return `<div style="border:2px solid ${borderCol};background:${bgCol};border-radius:10px;padding:10px;margin-bottom:10px;break-inside:avoid">
-        <div style="font-weight:bold;font-size:11px;margin-bottom:6px;color:${borderCol}">● ${room} &nbsp;<span style="font-weight:normal;color:#666;font-size:9px">${outlets.length} outlet${outlets.length!==1?'s':''}</span></div>
+      return `<div style="border:1px solid #333;background:#1a1a1a;border-left:4px solid ${borderCol};border-radius:8px;padding:10px;margin-bottom:8px;break-inside:avoid">
+        <div style="font-weight:bold;font-size:10px;margin-bottom:6px;color:${borderCol}">● ${room} &nbsp;<span style="font-weight:normal;color:#888;font-size:9px">${outlets.length} outlet${outlets.length!==1?'s':''}</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>
       </div>`;
     }).join('');
@@ -198,30 +196,7 @@ export default function ReportTab({ job, onPrint, onChange }) {
       (a.priority === '1' || (a.deadline && a.deadline < today))
     );
 
-    const summaryTableHtml = (() => {
-      const checkRows = checks.map(c =>
-        `<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">${c.label}</td><td style="padding:4px 8px;border:1px solid #e5e7eb;text-align:center"><span style="background:${c.pass?'#dcfce7':'#fee2e2'};color:${c.pass?'#166534':'#991b1b'};padding:2px 10px;border-radius:99px;font-weight:bold;font-size:10px">${c.pass?'PASS':'FAIL'}</span></td></tr>`
-      ).join('');
-      const actionRows2 = priorityActions.map(a => {
-        const isOverdue = a.deadline && a.deadline < today;
-        const pLabel = a.priority === '1' ? 'HIGH' : a.priority === '2' ? 'MEDIUM' : 'LOW';
-        const pColor = a.priority === '1' ? '#fee2e2;color:#991b1b' : '#fef3c7;color:#92400e';
-        return `<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.ref||'—'}</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><span style="background:${pColor};padding:2px 7px;border-radius:4px;font-weight:bold;font-size:10px">${pLabel}</span></td><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.system||''}: ${a.action||''}</td><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.responsible_person||'—'}</td><td style="padding:4px 8px;border:1px solid #e5e7eb;${isOverdue?'color:#c0392b;font-weight:bold':''}">${a.deadline||'—'}${isOverdue?' ⚠':''}</td><td style="padding:4px 8px;border:1px solid #e5e7eb">${a.status||'—'}</td></tr>`;
-      }).join('');
-      return `<div style="border:2px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:14px;background:#fafafa !important;-webkit-print-color-adjust:exact;print-color-adjust:exact">
-        <div style="font-size:11px;font-weight:bold;margin-bottom:8px;color:#111;border-bottom:2px solid #d71920;padding-bottom:4px">📋 Compliance Summary</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-          <table style="border-collapse:collapse;font-size:10px;width:100%">
-            <thead><tr><th style="background:#f5e6e6;padding:4px 8px;border:1px solid #ccc;text-align:left">Check</th><th style="background:#f5e6e6;padding:4px 8px;border:1px solid #ccc;text-align:center">Status</th></tr></thead>
-            <tbody>${checkRows}</tbody>
-          </table>
-          <div style="padding-left:12px">
-            <div style="font-size:10px;font-weight:bold;margin-bottom:4px;color:${priorityActions.length>0?'#c0392b':'#166534'}">${priorityActions.length>0?`⚠ ${priorityActions.length} high-priority / overdue action${priorityActions.length!==1?'s':''}:`:'✅ No high-priority or overdue actions'}</div>
-            ${priorityActions.length>0?`<table style="border-collapse:collapse;font-size:9.5px;width:100%"><thead><tr><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Ref</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Pri</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Action</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Responsible</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Deadline</th><th style="background:#f5e6e6;padding:3px 8px;border:1px solid #ccc">Status</th></tr></thead><tbody>${actionRows2}</tbody></table>`:''}
-          </div>
-        </div>
-      </div>`;
-    })();
+
 
     const riskPos = { 'LOW': [2,0], 'MEDIUM': [1,1], 'HIGH': [0,2] }[job.risk || 'LOW'];
     let matrixHtml = '';
@@ -362,6 +337,7 @@ ${buildingPageHtml}
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
     <div style="font-size:10px"><span style="color:#27ae60;font-weight:bold">● ${passCount} Pass</span> &nbsp; <span style="color:#e67e22;font-weight:bold">● ${warnCount} Warning</span> &nbsp; <span style="color:#c0392b;font-weight:bold">● ${failCount} Fail</span> &nbsp;&nbsp; <span style="color:#888">${allOutlets.length} outlets across ${Object.keys(roomGroups).length} area${Object.keys(roomGroups).length!==1?'s':''}</span></div>
   </div>
+  ${roomCardsHtml || '<p style="font-size:10px;color:#888">No outlets recorded.</p>'}
   <div class="section-title">Legal / Compliance Notes</div>
   <p style="font-size:10px">• ${compNotesBenchmark}</p>
   ${compNotes.map(n=>`<p style="font-size:10px;${n.startsWith('COMPLIANCE')?'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;':''}margin:4px 0">• ${n}</p>`).join('')}
