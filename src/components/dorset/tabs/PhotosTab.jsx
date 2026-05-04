@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { uid } from '@/lib/jobUtils';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
+import { saveDraft } from '@/lib/syncManager';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { base44 } from '@/api/base44Client';
@@ -57,16 +58,23 @@ export default function PhotosTab({ job, onChange }) {
       let meta = { kind: 'General', location: '', caption: '' };
       if (useAI && (job.rooms || []).length > 0) {
         meta = await detectPhotoMeta(file.name, job.rooms || []);
-        // Clamp kind to valid options
         if (!photoKinds.includes(meta.kind)) meta.kind = 'General';
-        // Clamp location to known rooms
         const knownRooms = (job.rooms || []).map(r => r.name);
         if (!knownRooms.includes(meta.location)) meta.location = '';
       }
 
+      // Add photo with base64 immediately (works offline)
       onChange({ __addPhoto: { id: newId, file_url: dataUrl, kind: meta.kind, location: meta.location, caption: meta.caption } });
+
+      // Try CDN upload — if it fails (offline), the base64 stays in IDB and will be
+      // uploaded automatically when the device reconnects via syncAllPendingDrafts
       uploadToCdn(file).then(cdnUrl => {
-        if (cdnUrl) onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
+        if (cdnUrl) {
+          onChange({ __photoUpgrade: { id: newId, url: cdnUrl } });
+        } else {
+          // CDN failed — ensure the full job (with base64) is persisted in IDB right now
+          if (job.id) saveDraft(job.id, { ...job, photos: [...(job.photos || []), { id: newId, file_url: dataUrl, kind: meta.kind, location: meta.location, caption: meta.caption }] });
+        }
       });
     }
     setUploading(false);
