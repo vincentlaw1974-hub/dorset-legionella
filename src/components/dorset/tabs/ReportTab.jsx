@@ -156,8 +156,7 @@ export default function ReportTab({ job, onPrint }) {
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
       const noteText = [o.notes, extraNote].filter(Boolean).join(' | ');
-      const photoCell = o.photo_url ? `<img src="${ci(o.photo_url)}" style="width:60px;height:45px;object-fit:cover;border-radius:4px" />` : '—';
-      return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText}</td><td>${photoCell}</td></tr>`;
+      return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText||'—'}</td></tr>`;
     }).join('');
 
     const actionRows = (job.actions || []).map(a => {
@@ -232,7 +231,7 @@ export default function ReportTab({ job, onPrint }) {
       for (let c = 0; c < 3; c++) {
         const isMarked = riskPos[0] === r && riskPos[1] === c;
         const bg = r === 0 ? (c === 2 ? '#c0392b' : '#e67e22') : r === 1 ? (c === 0 ? '#27ae60' : '#e67e22') : '#27ae60';
-        cols += `<td style="width:33%;height:36px;background:${bg};border:2px solid #fff;text-align:center;vertical-align:middle;font-size:18px;font-weight:bold;color:#fff">${isMarked ? 'O' : ''}</td>`;
+        cols += `<td style="width:33%;height:52px;background:${bg};border:3px solid #fff;text-align:center;vertical-align:middle;font-size:22px;font-weight:900;color:#fff">${isMarked ? '●' : ''}</td>`;
       }
       matrixHtml += `<tr>${cols}</tr>`;
     }
@@ -318,14 +317,14 @@ export default function ReportTab({ job, onPrint }) {
   ${job.cover_photo_url?`<div style="margin-bottom:14px;text-align:center;background:#f5f5f5;border-radius:4px;overflow:hidden"><img src="${ci(job.cover_photo_url)}" style="max-width:100%;max-height:260px;width:auto;height:auto;display:block;margin:0 auto;object-fit:contain"/></div>`:''}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
-    <div style="border:2px solid #d71920;padding:10px;border-radius:4px;background:#fff5f5 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Overall Risk</div><div style="font-size:36px;font-weight:900;color:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'}">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:4px">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px">Property: ${job.property_type||'—'}</div></div>
+    <div style="border-radius:4px;overflow:hidden;background:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:12px 14px;color:#fff"><div style="font-size:9px;font-weight:bold;text-transform:uppercase;opacity:0.85;margin-bottom:2px">Overall Risk Rating</div><div style="font-size:44px;font-weight:900;letter-spacing:2px;line-height:1">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:8px;opacity:0.9">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px;opacity:0.9">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px;opacity:0.9">Property: ${job.property_type||'—'}</div></div>
   </div>
   ${summaryTableHtml}
   <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:6px">Compliance Scorecard</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="border:1px solid ${c.pass?'#a3d9b1':'#f5c6c6'};background:${c.pass?'#eafaf1':'#fef0f0'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:80px"><div style="font-size:13px;font-weight:900;color:${c.pass?'#27ae60':'#c0392b'}">${c.pass?'PASS':'FAIL'}</div><div style="font-size:9px;color:#444">${c.label}</div></div>`).join('')}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="border:2px solid ${c.pass?'#27ae60':'#c0392b'};background:${c.pass?'#eafaf1':'#fef0f0'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:88px"><div style="font-size:16px">${c.pass?'✅':'❌'}</div><div style="font-size:10px;font-weight:900;color:${c.pass?'#27ae60':'#c0392b'};margin:2px 0">${c.pass?'PASS':'FAIL'}</div><div style="font-size:8.5px;color:#444">${c.label}</div></div>`).join('')}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     <div>${job.summary?`<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.summary)}</div>`:'<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No summary entered — add one in the Overview tab before sending to client.</div>'}</div>
-    <div><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div><table style="width:120px;border-collapse:collapse">${matrixHtml}</table><div style="font-size:9px;color:#555;margin-top:2px;text-align:center">Low &nbsp;&nbsp; Med &nbsp;&nbsp; High<br>Likelihood -></div></div>
+    <div><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div><table style="width:180px;border-collapse:collapse">${matrixHtml}</table><div style="font-size:8.5px;color:#555;margin-top:3px;text-align:center;width:180px">← Low &nbsp; Med &nbsp; High →<br><span style="color:#888">Likelihood</span></div></div>
   </div>
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 1</div>
 </div>
@@ -333,7 +332,7 @@ export default function ReportTab({ job, onPrint }) {
   <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
-  ${allOutlets.length>0?`<div class="section-title">Temperature Results</div>${tempBars}<div class="section-title">Outlet Register (${allOutlets.length} outlets)</div><table><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
+  ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div>${roomCardsHtml}<table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 2</div>
 </div>
 <div class="page" style="page-break-before:always">
@@ -449,26 +448,10 @@ ${buildingPageHtml}
   <p style="font-size:10px;margin-bottom:10px">This risk assessment has been conducted with reasonable skill and care. The findings represent an accurate record of the conditions observed at the time of the survey, and the recommendations made are consistent with current legislative requirements and recognised industry guidance. This report is issued electronically and does not require a wet signature.</p>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-    <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">ASSESSOR</div>
-      <div style="font-size:11px;font-weight:bold;color:#111">${job.assessor || '—'}</div>
-      <div style="font-size:9px;color:#666;margin-top:2px">Assessment date: ${job.assessment_date || '—'}</div>
-    </div>
-    <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">PEER REVIEWER / AUTHORISER</div>
-      <div style="font-size:11px;font-weight:bold;color:#111">${job.reviewer || '—'}</div>
-      <div style="font-size:9px;color:#666;margin-top:2px">Report ref: ${reportRef}</div>
-    </div>
-    <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">DUTY HOLDER / CLIENT</div>
-      <div style="font-size:11px;font-weight:bold;color:#111">${job.duty_holder || '—'}</div>
-      <div style="font-size:9px;color:#666;margin-top:2px">Report issued electronically</div>
-    </div>
-    <div class="sig-box">
-      <div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">RESPONSIBLE PERSON</div>
-      <div style="font-size:11px;font-weight:bold;color:#111">${job.responsible_person || '—'}</div>
-      <div style="font-size:9px;color:#666;margin-top:2px">Appointed under ACOP L8 §2.8</div>
-    </div>
+    ${job.assessor ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">ASSESSOR</div><div style="font-size:11px;font-weight:bold;color:#111">${job.assessor}</div><div style="font-size:9px;color:#666;margin-top:2px">Assessment date: ${job.assessment_date || '—'}</div></div>` : ''}
+    ${job.reviewer ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">PEER REVIEWER / AUTHORISER</div><div style="font-size:11px;font-weight:bold;color:#111">${job.reviewer}</div><div style="font-size:9px;color:#666;margin-top:2px">Report ref: ${reportRef}</div></div>` : ''}
+    ${job.duty_holder ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">DUTY HOLDER / CLIENT</div><div style="font-size:11px;font-weight:bold;color:#111">${job.duty_holder}</div><div style="font-size:9px;color:#666;margin-top:2px">Report issued electronically</div></div>` : ''}
+    ${job.responsible_person ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">RESPONSIBLE PERSON</div><div style="font-size:11px;font-weight:bold;color:#111">${job.responsible_person}</div><div style="font-size:9px;color:#666;margin-top:2px">Appointed under ACOP L8 §2.8</div></div>` : ''}
   </div>
 
   <div style="margin-top:14px;padding:8px 10px;background:#f0fdf4 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #86efac;border-radius:6px;font-size:9px;color:#166534">
