@@ -302,52 +302,63 @@ export default function ReportTab({ job, onPrint, onChange }) {
         </div>`;
       }).join('');
       return `<div class="page" style="page-break-before:always">
-        <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
+        <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+        <div class="page-body">
         <div class="section-title">🏘️ Buildings Register (${(job.buildings||[]).length} buildings)</div>
         ${buildingCards}
-        <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Holiday Park Buildings Register</div>
+        </div>
+        <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Buildings Register</span></div>
       </div>`;
     })();
 
-    const CSS = `*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:12mm 15mm 10mm}.page-header{border-bottom:4px solid #d71920;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}.page-header-brand h1{margin:0;font-size:26px;font-weight:900;color:#111}.page-header-brand p{margin:2px 0 0;font-size:10px;color:#555}.ref{font-size:9px;color:#888;text-align:right}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;padding-top:8px;border-top:2px solid #d71920;font-size:9px;color:#888;text-align:center}.legal-box{background:#f8f8f8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:9.5px;line-height:1.6}.legal-box h3{margin:0 0 5px;font-size:10.5px;color:#111;border-bottom:1px solid #ddd;padding-bottom:4px}.sig-box{border:1px solid #999;border-radius:4px;padding:10px 12px;margin-bottom:8px;background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sig-line{border-bottom:1px solid #333;height:28px;margin:6px 0 2px}.sig-label{font-size:8.5px;color:#666}@media print{body{margin:0}}`;
+    const CSS = `*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:0 0 10mm}.page-header{background:#1a1a1a !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:10px 15mm 10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}.page-header-brand h1{margin:0;font-size:22px;font-weight:900;color:#fff}.page-header-brand p{margin:2px 0 0;font-size:9px;color:#c0392b;font-weight:600}.ref{font-size:9px;color:#aaa;text-align:right}.page-body{padding:0 15mm}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;background:#f0f0f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:6px 15mm;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#666}.legal-box{background:#f8f8f8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:9.5px;line-height:1.6}.legal-box h3{margin:0 0 5px;font-size:10.5px;color:#111;border-bottom:1px solid #ddd;padding-bottom:4px}.sig-box{border:1px solid #999;border-radius:4px;padding:10px 12px;margin-bottom:8px;background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sig-line{border-bottom:1px solid #333;height:28px;margin:6px 0 2px}.sig-label{font-size:8.5px;color:#666}@media print{body{margin:0}}`;
+
+    const riskBgColor = riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#1a6e1a';
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${job.site_name||job.client||'Report'}</title><style>${CSS}</style></head><body>
 <div class="page">
-  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p><p>Prepared in accordance with HSG274 and ACOP L8</p></div><div class="ref">Ref: ${reportRef}</div></div>
-  ${job.cover_photo_url?`<div style="margin-bottom:14px;text-align:center;background:#f5f5f5;border-radius:4px;overflow:hidden"><img src="${ci(job.cover_photo_url)}" style="max-width:100%;max-height:260px;width:auto;height:auto;display:block;margin:0 auto;object-fit:contain"/></div>`:''}
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  ${job.cover_photo_url?`<div style="margin-bottom:14px;overflow:hidden;width:100%"><img src="${ci(job.cover_photo_url)}" style="width:100%;max-height:280px;display:block;object-fit:cover"/></div>`:''}
+  <div class="page-body">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div style="border:1px solid #ddd;padding:10px;border-radius:4px"><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Site Details</div><div style="font-size:15px;font-weight:900">${job.site_name||job.client||'—'}</div><div style="white-space:pre-line;font-size:10px;color:#444;margin-top:2px">${job.address||''}</div><div style="margin-top:6px;font-size:10px">${job.client?`Client: ${job.client}`:''}</div><div style="font-size:10px">${job.assessor?`Assessor: ${job.assessor}`:''}</div><div style="font-size:10px">${job.responsible_person?`Responsible Person: ${job.responsible_person}`:''}</div></div>
-    <div style="border-radius:4px;overflow:hidden;background:${riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#27ae60'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:12px 14px;color:#fff"><div style="font-size:9px;font-weight:bold;text-transform:uppercase;opacity:0.85;margin-bottom:2px">Overall Risk Rating</div><div style="font-size:44px;font-weight:900;letter-spacing:2px;line-height:1">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:8px;opacity:0.9">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px;opacity:0.9">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px;opacity:0.9">Property: ${job.property_type||'—'}</div></div>
+    <div style="border-radius:4px;overflow:hidden;background:${riskBgColor} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:12px 14px;color:#fff"><div style="font-size:9px;font-weight:bold;text-transform:uppercase;opacity:0.85;margin-bottom:2px">Overall Risk Rating</div><div style="font-size:44px;font-weight:900;letter-spacing:2px;line-height:1">${job.risk||'LOW'}</div><div style="font-size:10px;margin-top:8px;opacity:0.9">Assessment: ${job.assessment_date||'—'}</div><div style="font-size:10px;opacity:0.9">Next Review: ${job.review_due||'—'}</div><div style="font-size:10px;opacity:0.9">Property: ${job.property_type||'—'}</div></div>
   </div>
   ${summaryTableHtml}
   <div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:6px">Compliance Scorecard</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="border:2px solid ${c.pass?'#27ae60':'#c0392b'};background:${c.pass?'#eafaf1':'#fef0f0'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:88px"><div style="font-size:16px">${c.pass?'✅':'❌'}</div><div style="font-size:10px;font-weight:900;color:${c.pass?'#27ae60':'#c0392b'};margin:2px 0">${c.pass?'PASS':'FAIL'}</div><div style="font-size:8.5px;color:#444">${c.label}</div></div>`).join('')}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${checks.map(c=>`<div style="background:${c.pass?'#eafaf1':'#fdecea'} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:8px;padding:8px 12px;text-align:center;min-width:88px"><div style="font-size:18px;font-weight:900;color:${c.pass?'#1a6e1a':'#c0392b'}">${c.pass?'✓':'✗'}</div><div style="font-size:10px;font-weight:900;color:${c.pass?'#1a6e1a':'#c0392b'};margin:2px 0">${c.pass?'PASS':'FAIL'}</div><div style="font-size:8.5px;color:#444">${c.label}</div></div>`).join('')}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div>${job.summary?`<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.summary)}</div>`:'<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No summary entered — add one in the Overview tab before sending to client.</div>'}</div>
+    <div>${job.summary?`<div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Assessment Summary</div><div style="font-size:10px;line-height:1.7">${fixTypos(job.summary)}</div>`:'<div style="font-size:10px;color:#c0392b;font-weight:bold;background:#fff0f0;padding:6px 8px;border-left:3px solid #d71920;border-radius:4px">⚠ No summary entered — add one in the Overview tab before sending to client.</div>'}</div>
     <div><div style="font-size:9px;color:#888;font-weight:bold;text-transform:uppercase;margin-bottom:4px">Risk Matrix</div><table style="width:180px;border-collapse:collapse">${matrixHtml}</table><div style="font-size:8.5px;color:#555;margin-top:3px;text-align:center;width:180px">← Low &nbsp; Med &nbsp; High →<br><span style="color:#888">Likelihood</span></div></div>
   </div>
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 1</div>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 1</span></div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-body">
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
   ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div>${roomCardsHtml}<table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 2</div>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 2</span></div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-body">
   <div class="section-title">Issues / Findings</div>
   ${job.issues_text ? `<div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.issues_text)}</div>` : `<div style="font-size:10px;color:#555">No specific issues were identified during this assessment.</div>`}
   ${(job.actions||[]).length>0?`<div class="section-title">Remedial Actions</div><table><thead><tr><th>Ref</th><th>System</th><th>Priority</th><th>Responsible</th><th>Deadline</th><th>Observation</th><th>Action</th><th>Status</th></tr></thead><tbody>${actionRows}</tbody></table>`:'<div style="font-size:10px;color:#888;margin-top:4px">No remedial actions recorded.</div>'}
   ${scheme.length>0?`<div class="section-title">Control Scheme</div><table><thead><tr><th>Task</th><th>Frequency</th><th>Requirement</th><th>Responsible</th><th>Record</th></tr></thead><tbody>${schemeRows}</tbody></table>`:''}
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 3</div>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 3</span></div>
 </div>
-${hasDeadLegs?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div><div class="section-title">Dead Legs / Blind Ends Register</div><p style="font-size:10px">${(job.dead_legs||[]).length} dead leg(s) identified.</p>${deadLegRows}<div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 4</div></div>`:''}
-${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div><div class="section-title">Shower Head Register</div><table><thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${showerRows}</tbody></table><div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 5</div></div>`:''}
+${hasDeadLegs?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div><div class="page-body"><div class="section-title">Dead Legs / Blind Ends Register</div><p style="font-size:10px">${(job.dead_legs||[]).length} dead leg(s) identified.</p>${deadLegRows}</div><div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 4</span></div></div>`:''}
+${(job.showers||[]).length>0?`<div class="page" style="page-break-before:always"><div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div><div class="page-body"><div class="section-title">Shower Head Register</div><table><thead><tr><th>Location</th><th>Last Descale</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${showerRows}</tbody></table></div><div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 5</span></div></div>`:''}
 ${buildingPageHtml}
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-body">
   <div class="section-title">System Overview &amp; Schematic</div>
   <div style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafafa">
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
@@ -377,17 +388,21 @@ ${buildingPageHtml}
     ${!job.water_samples_advised && job.water_samples_taken ? `<div style="background:#fffbeb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #e67e22;padding:6px 8px;font-size:10px;color:#92400e;margin-bottom:6px">ℹ Duty holder notification of sampling results has not yet been recorded. Ensure this is completed and documented.</div>` : ''}
     ${job.water_samples_notes ? `<div style="font-size:10px;margin-top:4px"><strong>Notes:</strong> ${job.water_samples_notes}</div>` : ''}`;
   })()}
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | Page 6</div>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 6</span></div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><span style="font-size:11px;font-weight:bold">Dorset Plumbing</span></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-body">
   <div class="section-title">Site Logbook</div>
   ${(job.logs||[]).length>0?`<table><thead><tr><th>Date</th><th>Category</th><th>Location</th><th>Detail</th><th>Completed by</th><th>Status</th></tr></thead><tbody>${logRows}</tbody></table>`:'<p style="font-size:10px;color:#888">No log entries.</p>'}
   ${allPhotos.length>0?`<div class="section-title">Photo Evidence</div><div class="photo-grid">${photoGrid}</div>`:''}
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Page 7</div>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 7</span></div>
 </div>
 <div class="page" style="page-break-before:always">
-  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered | Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-body">
   <div class="section-title">Assessor Declaration &amp; Terms of Assessment</div>
 
   <div class="legal-box">
@@ -458,7 +473,8 @@ ${buildingPageHtml}
     <strong>Document Control:</strong> Report Ref: ${reportRef} | Prepared by: Dorset Plumbing | Assessment Date: ${job.assessment_date||'—'} | Review Due: ${job.review_due||'—'} | Issue Status: ${job.status||'—'}
   </div>
 
-  <div class="footer">Dorset Plumbing — Legionella Risk Assessment | ${job.site_name||job.client||''} — ${job.assessment_date||''} | Legal &amp; Declaration Page | CONFIDENTIAL — For named client use only</div>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''} · CONFIDENTIAL</span><span>Legal &amp; Declaration</span></div>
 </div>
 </body></html>`;
   };
