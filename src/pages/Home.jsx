@@ -193,12 +193,11 @@ export default function Home() {
         if (localJobRef.current) clearDraft(localJobRef.current.id);
         return;
       }
-      // Only show pending banner if we're actually offline — not for rate limit / transient errors
+      // Only save draft / show banner if we're actually offline
       if (!navigator.onLine) {
         setPendingSync(true);
+        if (localJobRef.current) saveDraft(localJobRef.current.id, localJobRef.current);
       }
-      // Keep draft so changes aren't lost (but not for 404s)
-      if (localJobRef.current) saveDraft(localJobRef.current.id, localJobRef.current);
     },
   });
 
@@ -306,17 +305,16 @@ export default function Home() {
     setLocalJob(updated);
     setSaveState('saving');
 
-    // Always persist to IDB immediately — this is the source of truth for offline/photos
     const hasBase64 =
       (changes.__addPhoto && changes.__addPhoto.file_url?.startsWith('data:')) ||
       (changes.__arrayPatch && typeof changes.__arrayPatch.value === 'string' && changes.__arrayPatch.value.startsWith('data:')) ||
       Object.values(changes).some(v => typeof v === 'string' && v.startsWith('data:'));
 
-    saveDraft(jobId, updated); // always save to IDB — async, fire and forget
-
-    if (!navigator.onLine) {
-      setPendingSync(true);
-      return;
+    if (!navigator.onLine || hasBase64) {
+      // Offline or has base64: persist to IDB so it survives and syncs later
+      saveDraft(jobId, updated);
+      if (!navigator.onLine) setPendingSync(true);
+      if (!navigator.onLine) return;
     }
 
     // Don't push base64 to server — wait for CDN upgrade (__photoUpgrade) instead
