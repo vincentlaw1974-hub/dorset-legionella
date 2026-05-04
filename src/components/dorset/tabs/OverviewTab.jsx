@@ -43,8 +43,9 @@ Assessment data:
 Write the summary now:`;
 
       const result = await base44.integrations.Core.InvokeLLM({ prompt });
-      // InvokeLLM returns the text directly as a string when no response_json_schema is set
-      const text = typeof result === 'string' ? result.trim() : (result?.choices?.[0]?.message?.content || result?.text || JSON.stringify(result) || '');
+      // InvokeLLM returns an axios response — the actual text is in result.data
+      const raw = result?.data ?? result;
+      const text = typeof raw === 'string' ? raw.trim() : (raw?.text || raw?.content || JSON.stringify(raw) || '');
       onChange({ summary: text });
     } catch (err) {
       alert('AI generation failed: ' + err.message);
