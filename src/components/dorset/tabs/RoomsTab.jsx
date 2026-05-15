@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { uid } from '@/lib/jobUtils';
 import { Input } from '@/components/ui/input';
+import AiImportModal from '@/components/dorset/AiImportModal';
 
 const COMMON_ROOMS = [
   'Bathroom', 'Bedroom', 'Kitchen', 'En-suite', 'Airing Cupboard',
@@ -10,6 +11,22 @@ const COMMON_ROOMS = [
 
 export default function RoomsTab({ job, onChange }) {
   const rooms = job.rooms || [];
+  const [showAiModal, setShowAiModal] = useState(false);
+
+  const handleAiImport = ({ rooms: newRooms, outlets: newOutlets, generalNotes }) => {
+    // Merge rooms (avoid duplicates by name)
+    const existingNames = new Set(rooms.map(r => r.name));
+    const roomsToAdd = newRooms.filter(r => !existingNames.has(r.name));
+    const mergedRooms = [...rooms, ...roomsToAdd];
+
+    // Merge outlets
+    const existingOutlets = job.outlets || [];
+    const mergedOutlets = [...existingOutlets, ...newOutlets];
+
+    const updates = { rooms: mergedRooms, outlets: mergedOutlets };
+    if (generalNotes && !job.site_description) updates.site_description = generalNotes;
+    onChange(updates);
+  };
 
   const addRoom = (name = '') => {
     onChange({ rooms: [...rooms, { id: uid(), name }] });
@@ -25,14 +42,20 @@ export default function RoomsTab({ job, onChange }) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2 mb-2">
+      {showAiModal && <AiImportModal onClose={() => setShowAiModal(false)} onImport={handleAiImport} />}
+      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         <div>
           <strong>Site rooms / areas</strong>
           <p className="text-xs text-gray-500 mt-0.5">Tap a room below or type a custom name</p>
         </div>
-        <button onClick={() => addRoom('')} className="text-sm px-3 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>
-          + Custom
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAiModal(true)} className="text-sm px-3 py-2 rounded-xl font-bold text-white" style={{ background: '#7c3aed' }}>
+            ✨ AI Import
+          </button>
+          <button onClick={() => addRoom('')} className="text-sm px-3 py-2 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>
+            + Custom
+          </button>
+        </div>
       </div>
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm mb-3">
         Tap a room type to add it instantly. These appear as dropdowns throughout the app — outlets, dead legs, showers, photos, and logbook.
