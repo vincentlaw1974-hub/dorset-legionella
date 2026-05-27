@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import WaterSamplingSection from './WaterSamplingSection';
+import GardenCentreSection from './GardenCentreSection.jsx';
 
 export default function ManagementTab({ job, onChange }) {
   const f = (field) => ({
@@ -61,6 +62,7 @@ export default function ManagementTab({ job, onChange }) {
 
   const propertyType = job.property_type || '';
   const isDomestic = propertyType.toLowerCase() === 'domestic';
+  const isGardenCentre = propertyType === 'Garden Centre';
 
   if (isDomestic) {
     // Helper for domestic that uses the correct NA field names matching the Job entity
@@ -147,6 +149,11 @@ export default function ManagementTab({ job, onChange }) {
               🦷 Dental Surgery: The Registered Manager (CQC) has a specific duty of care under HTM 01-05 to ensure water supply and DUWL systems comply with ACoP L8 and HTM 04-01. Risk assessment must be reviewed at least every 2 years.
             </div>
           )}
+          {isGardenCentre && (
+            <div className="mt-2 pt-2 border-t border-red-200 text-xs text-green-900 font-medium bg-green-50 rounded px-2 py-1">
+              🌿 Garden Centre: Multiple water system types apply — standard H&amp;C plumbing (HSG274 Pt2) PLUS water features (HSG274 Pt3), greenhouse tanks, misting systems and irrigation. Complete the Garden Centre section below. Reassessment every 2 years minimum.
+            </div>
+          )}
         </div>
       </div>
 
@@ -167,6 +174,8 @@ export default function ManagementTab({ job, onChange }) {
           <Textarea {...f('compliance_notes')} placeholder="Missing records, written appointment issues, training gaps, etc." />
         </div>
       </div>
+
+      {isGardenCentre && <GardenCentreSection job={job} onChange={onChange} />}
 
       <WaterSamplingSection job={job} onChange={onChange} />
     </div>
