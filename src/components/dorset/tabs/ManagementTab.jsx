@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import WaterSamplingSection from './WaterSamplingSection';
-import GardenCentreSection from './GardenCentreSection.jsx';
+import GardenCentreSection from './GardenCentreSection';
 
 export default function ManagementTab({ job, onChange }) {
   const f = (field) => ({
