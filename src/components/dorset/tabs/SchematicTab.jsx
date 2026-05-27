@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { outletStatus } from '@/lib/jobUtils';
+import SchematicDrawing from './SchematicDrawing';
 
 const OUTLET_ICONS = {
   'WHB': '🚿',
@@ -50,6 +51,7 @@ function SystemNode({ label, icon, detail, color = '#e5e7eb', photoUrl }) {
 
 export default function SchematicTab({ job, onChange }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [view, setView] = useState('status'); // 'status' | 'drawing'
   const isDomestic = (job.property_type || '').toLowerCase() === 'domestic';
 
   const rooms = job.rooms || [];
@@ -97,6 +99,24 @@ export default function SchematicTab({ job, onChange }) {
 
   return (
     <div className="space-y-4">
+
+      {/* View toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setView('status')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${view === 'status' ? 'text-white border-transparent' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          style={view === 'status' ? { background: '#d71920' } : {}}
+        >📊 Status View</button>
+        <button
+          onClick={() => setView('drawing')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${view === 'drawing' ? 'text-white border-transparent' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          style={view === 'drawing' ? { background: '#d71920' } : {}}
+        >📐 Indicative Drawing</button>
+      </div>
+
+      {view === 'drawing' && <SchematicDrawing job={job} />}
+      {view === 'drawing' && <div />}
+      {view !== 'drawing' && <>
 
       {/* System overview bar */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
@@ -269,6 +289,7 @@ export default function SchematicTab({ job, onChange }) {
           </div>
         </div>
       )}
+    </>}
     </div>
   );
 }
