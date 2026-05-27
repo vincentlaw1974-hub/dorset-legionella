@@ -403,6 +403,17 @@ export default function Home() {
 
 
 
+      {/* Floating AI Advice button — always visible when a job is open */}
+      {localJob && activeTab !== 'ai_advice' && (
+        <button
+          onClick={() => handleTabChange('ai_advice')}
+          className="fixed bottom-6 right-4 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm"
+          style={{ background: '#d71920' }}
+        >
+          🤖 <span>AI Advice</span>
+        </button>
+      )}
+
       {localJob && activeTab !== 'dashboard' && (
         <div className="max-w-6xl mx-auto px-3 py-0 pb-24">
           {/* Mobile: stacked. Desktop: side-by-side */}
