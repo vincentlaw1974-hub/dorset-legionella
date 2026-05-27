@@ -24,6 +24,7 @@ import ShowersTab from '@/components/dorset/tabs/ShowersTab';
 import RenewalsTab from '@/components/dorset/tabs/RenewalsTab';
 import DashboardTab from '@/components/dorset/tabs/DashboardTab';
 import SchematicTab from '@/components/dorset/tabs/SchematicTab';
+import AiAdviceTab from '@/components/dorset/tabs/AiAdviceTab';
 import BuildingsTab from '@/components/dorset/tabs/BuildingsTab';
 import StatusGroupedTab from '@/components/dorset/tabs/StatusGroupedTab';
 import OfflineBanner from '@/components/dorset/OfflineBanner';
@@ -43,6 +44,7 @@ const TABS = [
   { id: 'photos', label: 'Photos' },
   { id: 'logbook', label: 'Logbook' },
   { id: 'report', label: '📄 Report' },
+  { id: 'ai_advice', label: '🤖 AI Advice' },
 ];
 
 // stripBase64 is imported from photoUpload
@@ -447,6 +449,7 @@ export default function Home() {
                   {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} />}
                   {activeTab === 'report' && (
                     <div className="space-y-3">
                       <SchematicTab job={localJob} onChange={handleChange} />
