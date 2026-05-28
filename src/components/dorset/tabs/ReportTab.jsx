@@ -282,6 +282,110 @@ export default function ReportTab({ job, onPrint, onChange }) {
       </div>`;
     })();
 
+    // Build the schematic SVG inline for the PDF
+    const buildSchematicSvg = () => {
+      const MARGIN = 40, NODE_W = 90, NODE_H = 44, ROOM_W = 110, ROOM_H = 60;
+      const COLD_COLOR = '#3b82f6', HOT_COLOR = '#ef4444', PIPE_COLOR = '#6b7280';
+      const STATUS_COLORS = { ok: '#16a34a', warn: '#d97706', fail: '#dc2626', none: '#9ca3af' };
+
+      const jobOutlets = job.outlets || [];
+      const jobRooms = job.rooms || [];
+      const roomNames = jobRooms.map(r => r.name);
+      const grouped2 = {};
+      jobOutlets.forEach(o => { const k = o.location || 'Unassigned'; grouped2[k] = grouped2[k] || []; grouped2[k].push(o); });
+      const displayGroups2 = roomNames.length > 0
+        ? roomNames.map(name => ({ name, outlets: grouped2[name] || [] }))
+        : Object.entries(grouped2).map(([name, outs]) => ({ name, outlets: outs }));
+
+      if (!displayGroups2.length) return '';
+
+      const spineNodes2 = [];
+      spineNodes2.push({ id: 'mains', label: 'Cold Mains', icon: '🌊', color: COLD_COLOR, sub: job.cold_source || 'Mains' });
+      if (job.cwst_present) spineNodes2.push({ id: 'cwst', label: 'Cold Tank', icon: '🪣', color: '#60a5fa', sub: job.cwst_location || '' });
+      const cylTemp2 = job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp;
+      const cylColor2 = (() => { const t = parseFloat(cylTemp2); return !isNaN(t) && t < 60 ? '#ef4444' : '#f97316'; })();
+      spineNodes2.push({ id: 'cylinder', label: job.hw_not_stored ? 'Combi Boiler' : 'HW Cylinder', icon: '&#9832;', color: cylColor2, sub: cylTemp2 ? `${cylTemp2}&#176;C` : '' });
+      if (job.tmvs_installed) spineNodes2.push({ id: 'tmv', label: 'TMVs', icon: '&#128295;', color: '#8b5cf6', sub: 'Blended' });
+      spineNodes2.push({ id: 'dist', label: 'Distribution', icon: '&#9889;', color: '#10b981', sub: '' });
+
+      const spineCount2 = spineNodes2.length;
+      const spineSpacing = 130, spineY = MARGIN + 60;
+      const roomsPerRow2 = Math.max(1, Math.min(4, Math.ceil(displayGroups2.length / 2)));
+      const roomSpacingX = 130, roomSpacingY = 100;
+      const roomStartX = MARGIN, roomStartY = spineY + NODE_H + 90;
+      const totalW2 = Math.max(
+        MARGIN + (spineCount2 - 1) * spineSpacing + NODE_W + MARGIN,
+        roomStartX + (roomsPerRow2 - 1) * roomSpacingX + ROOM_W + MARGIN
+      );
+      const totalH2 = roomStartY + Math.ceil(displayGroups2.length / roomsPerRow2) * roomSpacingY + ROOM_H + MARGIN;
+      const distX2 = MARGIN + (spineNodes2.length - 1) * spineSpacing + NODE_W / 2;
+      const distY2 = spineY + NODE_H / 2;
+
+      const roomPositions2 = displayGroups2.map((g, i) => ({
+        x: roomStartX + (i % roomsPerRow2) * roomSpacingX,
+        y: roomStartY + Math.floor(i / roomsPerRow2) * roomSpacingY,
+        ...g
+      }));
+
+      const getRoomStatusColor = (outs) => {
+        if (!outs || !outs.length) return STATUS_COLORS.none;
+        if (outs.some(o => outletStatus(o, job.cqc_mode, isDomesticJob(job)).cls === 'fail')) return STATUS_COLORS.fail;
+        if (outs.some(o => outletStatus(o, job.cqc_mode, isDomesticJob(job)).cls === 'warn')) return STATUS_COLORS.warn;
+        return STATUS_COLORS.ok;
+      };
+
+      const cylIdx2 = spineNodes2.findIndex(n => n.id === 'cylinder');
+      const cylSvgX = MARGIN + cylIdx2 * spineSpacing + NODE_W / 2;
+
+      let spineHtml = '';
+      spineNodes2.forEach((node, i) => {
+        const nx = MARGIN + i * spineSpacing, ny = spineY;
+        spineHtml += `<rect x="${nx}" y="${ny}" width="${NODE_W}" height="${NODE_H}" rx="8" fill="white" stroke="${node.color}" stroke-width="2.5"/>`;
+        spineHtml += `<text x="${nx + NODE_W/2}" y="${ny + 16}" font-size="12" text-anchor="middle">${node.icon}</text>`;
+        spineHtml += `<text x="${nx + NODE_W/2}" y="${ny + 28}" font-size="9" font-weight="bold" text-anchor="middle" fill="#111">${node.label}</text>`;
+        if (node.sub) spineHtml += `<text x="${nx + NODE_W/2}" y="${ny + 39}" font-size="8" text-anchor="middle" fill="#6b7280">${node.sub}</text>`;
+        if (i > 0) spineHtml += `<text x="${nx - 12}" y="${ny + NODE_H/2 + 4}" font-size="14" fill="${PIPE_COLOR}" text-anchor="middle">&#8594;</text>`;
+      });
+
+      let roomsHtml = '';
+      roomPositions2.forEach(({ x, y, name, outlets: rOuts }, i) => {
+        const col = getRoomStatusColor(rOuts);
+        const midX = x + ROOM_W / 2;
+        const busRow = Math.floor(i / roomsPerRow2);
+        const busY = roomStartY - 12 + busRow * roomSpacingY;
+        const failC = rOuts.filter(o => outletStatus(o, job.cqc_mode, isDomesticJob(job)).cls === 'fail').length;
+        const warnC = rOuts.filter(o => outletStatus(o, job.cqc_mode, isDomesticJob(job)).cls === 'warn').length;
+        const passC = rOuts.filter(o => outletStatus(o, job.cqc_mode, isDomesticJob(job)).cls === 'ok').length;
+        const tally = failC > 0 ? `x${failC} fail` : warnC > 0 ? `!${warnC} warn` : `v${passC} pass`;
+        roomsHtml += `<line x1="${midX}" y1="${busY}" x2="${midX}" y2="${y}" stroke="${col}" stroke-width="2"/>`;
+        roomsHtml += `<rect x="${x}" y="${y}" width="${ROOM_W}" height="${ROOM_H}" rx="8" fill="white" stroke="${col}" stroke-width="2.5"/>`;
+        roomsHtml += `<circle cx="${x+12}" cy="${y+12}" r="5" fill="${col}"/>`;
+        roomsHtml += `<text x="${x+20}" y="${y+16}" font-size="9" font-weight="bold" fill="#111">${name.length > 14 ? name.slice(0,13)+'...' : name}</text>`;
+        roomsHtml += `<text x="${midX}" y="${y+30}" font-size="8" text-anchor="middle" fill="#6b7280">${rOuts.length} outlet${rOuts.length!==1?'s':''}</text>`;
+        if (rOuts.length > 0) roomsHtml += `<text x="${midX}" y="${y+43}" font-size="8" text-anchor="middle" fill="${col}" font-weight="bold">${tally}</text>`;
+      });
+
+      const firstRoomX = roomPositions2[0] ? roomPositions2[0].x + ROOM_W/2 : MARGIN;
+      const lastRowEnd = roomPositions2[Math.min(roomsPerRow2-1, roomPositions2.length-1)].x + ROOM_W/2;
+
+      return `<svg width="${totalW2}" height="${totalH2}" viewBox="0 0 ${totalW2} ${totalH2}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif;max-width:100%">
+        <rect width="${totalW2}" height="${totalH2}" fill="#f9fafb" rx="12"/>
+        <text x="${MARGIN}" y="26" font-size="11" font-weight="bold" fill="#111">${job.site_name || job.client || 'Site'} &#8212; Indicative Water System Schematic</text>
+        <text x="${MARGIN}" y="40" font-size="9" fill="#6b7280">Illustrative only &#183; Not to scale &#183; Dorset Plumbing Legionella Risk Assessment</text>
+        <line x1="${MARGIN + NODE_W/2}" y1="${spineY + NODE_H/2}" x2="${MARGIN + (spineCount2-1)*spineSpacing + NODE_W/2}" y2="${spineY + NODE_H/2}" stroke="${COLD_COLOR}" stroke-width="3" stroke-dasharray="6 3"/>
+        <line x1="${cylSvgX}" y1="${spineY + NODE_H}" x2="${cylSvgX}" y2="${spineY + NODE_H + 30}" stroke="${HOT_COLOR}" stroke-width="2.5"/>
+        ${spineHtml}
+        <line x1="${distX2}" y1="${distY2 + NODE_H/2}" x2="${distX2}" y2="${roomStartY - 12}" stroke="${PIPE_COLOR}" stroke-width="2"/>
+        ${roomPositions2.length > 1 ? `<line x1="${firstRoomX}" y1="${roomStartY-12}" x2="${lastRowEnd}" y2="${roomStartY-12}" stroke="${PIPE_COLOR}" stroke-width="2"/>` : ''}
+        ${roomsHtml}
+        <circle cx="${MARGIN}" cy="${totalH2-16}" r="5" fill="${STATUS_COLORS.ok}"/><text x="${MARGIN+10}" y="${totalH2-12}" font-size="8" fill="#374151">Pass</text>
+        <circle cx="${MARGIN+70}" cy="${totalH2-16}" r="5" fill="${STATUS_COLORS.warn}"/><text x="${MARGIN+80}" y="${totalH2-12}" font-size="8" fill="#374151">Warning</text>
+        <circle cx="${MARGIN+150}" cy="${totalH2-16}" r="5" fill="${STATUS_COLORS.fail}"/><text x="${MARGIN+160}" y="${totalH2-12}" font-size="8" fill="#374151">Fail</text>
+      </svg>`;
+    };
+
+    const schematicSvgHtml = buildSchematicSvg();
+
     const CSS = `*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:0 0 10mm}.page-header{background:#1a1a1a !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:10px 15mm 10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}.page-header-brand h1{margin:0;font-size:22px;font-weight:900;color:#fff}.page-header-brand p{margin:2px 0 0;font-size:9px;color:#c0392b;font-weight:600}.ref{font-size:9px;color:#aaa;text-align:right}.page-body{padding:0 15mm}.section-title{background:#1d1d1d !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff !important;padding:6px 10px;font-size:11px;font-weight:bold;margin:14px 0 8px;border-left:4px solid #d71920}table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}th{background:#f5e6e6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left;padding:5px 6px;border:1px solid #ccc;font-weight:bold}td{padding:4px 6px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.footer{margin-top:20px;background:#f0f0f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:6px 15mm;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#666}.legal-box{background:#f8f8f8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:9.5px;line-height:1.6}.legal-box h3{margin:0 0 5px;font-size:10.5px;color:#111;border-bottom:1px solid #ddd;padding-bottom:4px}.sig-box{border:1px solid #999;border-radius:4px;padding:10px 12px;margin-bottom:8px;background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sig-line{border-bottom:1px solid #333;height:28px;margin:6px 0 2px}.sig-label{font-size:8.5px;color:#666}@media print{body{margin:0}}`;
 
     const riskBgColor = riskBadge==='high'?'#c0392b':riskBadge==='medium'?'#e67e22':'#1a6e1a';
@@ -334,6 +438,7 @@ ${buildingPageHtml}
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px">${flowHtml}</div>
     <div style="font-size:10px"><span style="color:#27ae60;font-weight:bold">● ${passCount} Pass</span> &nbsp; <span style="color:#e67e22;font-weight:bold">● ${warnCount} Warning</span> &nbsp; <span style="color:#c0392b;font-weight:bold">● ${failCount} Fail</span> &nbsp;&nbsp; <span style="color:#888">${allOutlets.length} outlets across ${Object.keys(roomGroups).length} area${Object.keys(roomGroups).length!==1?'s':''}</span></div>
   </div>
+  ${schematicSvgHtml ? `<div class="section-title">Indicative Schematic Drawing</div><div style="border:1px solid #ddd;border-radius:10px;padding:8px;margin-bottom:12px;background:#f9fafb;overflow:hidden">${schematicSvgHtml}<div style="font-size:8px;color:#999;text-align:center;margin-top:4px">Indicative pipe flow diagram — illustrative only, not to scale</div></div>` : ''}
   <div class="section-title">Legal / Compliance Notes</div>
   <p style="font-size:10px">• ${compNotesBenchmark}</p>
   ${compNotes.map(n=>`<p style="font-size:10px;${n.startsWith('COMPLIANCE')?'background:#fff0f0;padding:4px 6px;border-left:3px solid #d71920;':''}margin:4px 0">• ${n}</p>`).join('')}
