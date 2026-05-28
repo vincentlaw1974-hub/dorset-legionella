@@ -112,7 +112,7 @@ Write the summary now:`;
         <div>
           <Label>Property type</Label>
           <select {...f('property_type')} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
-            {['Nursing Home','Care Home','Holiday Park','Factory Unit','Domestic','Commercial','Doctors Surgery','Dental Surgery','Other'].map(t => <option key={t}>{t}</option>)}
+            {['Nursing Home','Care Home','Holiday Park','Factory Unit','Domestic','Commercial','Doctors Surgery','Dental Surgery','Garden Centre','Other'].map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
         <div>
