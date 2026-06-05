@@ -1,0 +1,88 @@
+{
+  "name": "WaterSystem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name/identifier of the water system"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "hot_water",
+        "cold_water",
+        "cooling_tower",
+        "spa_pool",
+        "evaporative_condenser",
+        "humidifier",
+        "water_feature",
+        "fire_sprinkler",
+        "other"
+      ],
+      "description": "Type of water system"
+    },
+    "location": {
+      "type": "string",
+      "description": "Physical location/building of the system"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the system"
+    },
+    "capacity_liters": {
+      "type": "number",
+      "description": "System capacity in liters"
+    },
+    "temperature_hot_flow": {
+      "type": "number",
+      "description": "Hot water flow temperature in \u00b0C"
+    },
+    "temperature_hot_return": {
+      "type": "number",
+      "description": "Hot water return temperature in \u00b0C"
+    },
+    "temperature_cold": {
+      "type": "number",
+      "description": "Cold water temperature in \u00b0C"
+    },
+    "treatment_method": {
+      "type": "string",
+      "enum": [
+        "chlorination",
+        "chlorine_dioxide",
+        "copper_silver_ionisation",
+        "uv_treatment",
+        "thermal",
+        "none",
+        "other"
+      ],
+      "description": "Water treatment method in use"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "decommissioned",
+        "under_maintenance"
+      ],
+      "default": "active"
+    },
+    "last_service_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "next_service_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "location"
+  ]
+}

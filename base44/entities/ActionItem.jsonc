@@ -1,0 +1,81 @@
+{
+  "name": "ActionItem",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Action item title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the action required"
+    },
+    "assessment_id": {
+      "type": "string",
+      "description": "ID of the related assessment"
+    },
+    "assessment_title": {
+      "type": "string"
+    },
+    "water_system_id": {
+      "type": "string"
+    },
+    "water_system_name": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "completed",
+        "overdue",
+        "cancelled"
+      ],
+      "default": "open"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Person responsible"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "temperature_control",
+        "water_treatment",
+        "system_maintenance",
+        "monitoring",
+        "training",
+        "documentation",
+        "design_modification",
+        "cleaning_disinfection",
+        "other"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "priority"
+  ]
+}

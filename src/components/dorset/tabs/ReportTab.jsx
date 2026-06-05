@@ -148,8 +148,9 @@ export default function ReportTab({ job, onPrint, onChange }) {
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534;-webkit-print-color-adjust:exact;print-color-adjust:exact' : st.cls === 'warn' ? '#fef3c7;color:#92400e;-webkit-print-color-adjust:exact;print-color-adjust:exact' : '#fee2e2;color:#991b1b;-webkit-print-color-adjust:exact;print-color-adjust:exact';
       const isOutsideTap = o.type === 'Outside Tap';
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
+      const tmvNote = o.hasTmv ? 'TMV blended reading (target 41–44°C)' : '';
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
-      const noteText = [o.notes, extraNote].filter(Boolean).join(' | ');
+      const noteText = [o.notes, tmvNote, extraNote].filter(Boolean).join(' | ');
       return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText||'—'}</td></tr>`;
     }).join('');
 
@@ -179,7 +180,7 @@ export default function ReportTab({ job, onPrint, onChange }) {
       { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
       { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
       { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
-      { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
+      { label: 'TMV Records', pass: !!job.log_tmv_na || (job.tmv_locations||[]).length === 0 || (job.tmv_locations||[]).every(t => !!t.last_service) },
       { label: 'HW Temp >=60°C', pass: isNaN(cylTemp) || !hwTempFail },
       { label: `Hot Outlets >=${targetHot}°C`, pass: allOutlets.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).every(o => isNaN(parseFloat(o.hot)) || parseFloat(o.hot) >= targetHot) },
       { label: 'Cold Outlets <=20°C', pass: allOutlets.every(o => isNaN(parseFloat(o.cold)) || parseFloat(o.cold) <= 20) },
@@ -412,7 +413,8 @@ export default function ReportTab({ job, onPrint, onChange }) {
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="page-body">
   <div class="section-title">System Overview</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['TMVs Installed',job.tmvs_installed?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
+  ${(job.tmv_locations||[]).length>0?`<div style="margin-top:6px;font-size:10px"><strong>TMV Locations:</strong><ul style="margin:3px 0 0 14px;padding:0">${(job.tmv_locations||[]).map(t=>`<li>${t.location||'—'}${t.last_service?' — last serviced: '+t.last_service:' — <span style="color:#c0392b">no service date</span>'}</li>`).join('')}</ul></div>`:''}
   ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div><table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   </div>
   <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 2</span></div>
@@ -421,7 +423,25 @@ export default function ReportTab({ job, onPrint, onChange }) {
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="page-body">
   <div class="section-title">Issues / Findings</div>
-  ${job.issues_text ? `<div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.issues_text)}</div>` : `<div style="font-size:10px;color:#555">No specific issues were identified during this assessment.</div>`}
+  ${(() => {
+    const hasActions = (job.actions || []).length > 0;
+    const cylTempV = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
+    const tgt = job.cqc_mode ? 55 : 50;
+    const allOutletsV = getAllOutlets(job);
+    const scorecardFails = [
+      !job.log_temps_na && !job.monthly_temp_log,
+      !job.log_flush_na && !job.flushing_log,
+      !job.log_shower_na && !job.shower_cleaning_log,
+      !job.log_tmv_na && !job.tmv_service_records,
+      !isNaN(cylTempV) && cylTempV < 60,
+      allOutletsV.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).some(o => !isNaN(parseFloat(o.hot)) && parseFloat(o.hot) < tgt),
+      allOutletsV.some(o => !isNaN(parseFloat(o.cold)) && parseFloat(o.cold) > 20),
+      (job.dead_legs || []).length > 0,
+    ].some(Boolean);
+    if (job.issues_text) return `<div style="font-size:10px;line-height:1.6;white-space:pre-line">${fixTypos(job.issues_text)}</div>`;
+    if (!hasActions && !scorecardFails) return `<div style="font-size:10px;color:#555">No specific issues were identified during this assessment.</div>`;
+    return `<div style="font-size:10px;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:6px 8px;border-radius:4px">Issues and findings are recorded in the Remedial Actions table and Compliance Scorecard within this report. Please refer to those sections for full details and required actions.</div>`;
+  })()}
   ${(job.actions||[]).length>0?`<div class="section-title">Remedial Actions</div><table><thead><tr><th>Ref</th><th>System</th><th>Priority</th><th>Responsible</th><th>Deadline</th><th>Observation</th><th>Action</th><th>Status</th></tr></thead><tbody>${actionRows}</tbody></table>`:'<div style="font-size:10px;color:#888;margin-top:4px">No remedial actions recorded.</div>'}
   ${scheme.length>0?`<div class="section-title">Control Scheme</div><table><thead><tr><th>Task</th><th>Frequency</th><th>Requirement</th><th>Responsible</th><th>Record</th></tr></thead><tbody>${schemeRows}</tbody></table>`:''}
   </div>
@@ -537,7 +557,7 @@ ${buildingPageHtml}
   <p style="font-size:10px;margin-bottom:10px">This risk assessment has been conducted with reasonable skill and care. The findings represent an accurate record of the conditions observed at the time of the survey, and the recommendations made are consistent with current legislative requirements and recognised industry guidance. This report is issued electronically and does not require a wet signature.</p>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-    ${job.assessor ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">ASSESSOR</div><div style="font-size:11px;font-weight:bold;color:#111">${job.assessor}</div><div style="font-size:9px;color:#666;margin-top:2px">Assessment date: ${job.assessment_date || '—'}</div></div>` : ''}
+    ${job.assessor ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">ASSESSOR</div><div style="font-size:11px;font-weight:bold;color:#111">${job.assessor}</div><div style="font-size:9px;color:#666;margin-top:2px">Assessment date: ${job.assessment_date || '—'}</div></div>` : `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">PREPARED BY</div><div style="font-size:11px;font-weight:bold;color:#111">Dorset Plumbing Ltd</div><div style="font-size:9px;color:#666;margin-top:2px">Assessment date: ${job.assessment_date || '—'}</div></div>`}
     ${job.reviewer ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">PEER REVIEWER / AUTHORISER</div><div style="font-size:11px;font-weight:bold;color:#111">${job.reviewer}</div><div style="font-size:9px;color:#666;margin-top:2px">Report ref: ${reportRef}</div></div>` : ''}
     ${job.duty_holder ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">DUTY HOLDER / CLIENT</div><div style="font-size:11px;font-weight:bold;color:#111">${job.duty_holder}</div><div style="font-size:9px;color:#666;margin-top:2px">Report issued electronically</div></div>` : ''}
     ${job.responsible_person ? `<div class="sig-box"><div style="font-size:9px;font-weight:bold;color:#888;margin-bottom:4px">RESPONSIBLE PERSON</div><div style="font-size:11px;font-weight:bold;color:#111">${job.responsible_person}</div><div style="font-size:9px;color:#666;margin-top:2px">Appointed under ACOP L8 §2.8</div></div>` : ''}
@@ -652,7 +672,7 @@ ${buildingPageHtml}
             { label: 'Temp Monitoring', pass: !!job.monthly_temp_log || !!job.log_temps_na },
             { label: 'Flushing Log', pass: !!job.flushing_log || !!job.log_flush_na },
             { label: 'Shower Cleaning', pass: !!job.shower_cleaning_log || !!job.log_shower_na },
-            { label: 'TMV Records', pass: !job.tmvs_installed || !!job.tmv_service_records || !!job.log_tmv_na },
+            { label: 'TMV Records', pass: !!job.log_tmv_na || (job.tmv_locations||[]).length === 0 || (job.tmv_locations||[]).every(t => !!t.last_service) },
             { label: 'HW Temp ≥60°C', pass: isNaN(_cylTemp) || _cylTemp >= 60 },
             { label: `Hot Outlets ≥${_tgt}°C`, pass: _allOutlets.filter(o => o.type !== 'Outside Tap' && !o.hasTmv).every(o => isNaN(parseFloat(o.hot)) || parseFloat(o.hot) >= _tgt) },
             { label: 'Cold Outlets ≤20°C', pass: _allOutlets.every(o => isNaN(parseFloat(o.cold)) || parseFloat(o.cold) <= 20) },

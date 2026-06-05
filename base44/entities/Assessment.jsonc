@@ -1,0 +1,129 @@
+{
+  "name": "Assessment",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Assessment title"
+    },
+    "water_system_id": {
+      "type": "string",
+      "description": "ID of the associated water system"
+    },
+    "water_system_name": {
+      "type": "string",
+      "description": "Name of the associated water system"
+    },
+    "assessor_name": {
+      "type": "string",
+      "description": "Name of the person conducting the assessment"
+    },
+    "assessment_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "review_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Next review date"
+    },
+    "overall_risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "Overall risk classification"
+    },
+    "risk_score": {
+      "type": "number",
+      "description": "Numerical risk score 1-25"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "in_progress",
+        "completed",
+        "reviewed",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "finding": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "temperature_compliance": {
+      "type": "string",
+      "enum": [
+        "compliant",
+        "non_compliant",
+        "partially_compliant",
+        "not_assessed"
+      ]
+    },
+    "biofilm_risk": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "not_assessed"
+      ]
+    },
+    "stagnation_risk": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "not_assessed"
+      ]
+    },
+    "treatment_effectiveness": {
+      "type": "string",
+      "enum": [
+        "effective",
+        "partially_effective",
+        "ineffective",
+        "not_assessed"
+      ]
+    },
+    "vulnerable_people_exposure": {
+      "type": "boolean",
+      "description": "Are vulnerable people (elderly, immunocompromised) exposed?"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Executive summary of the assessment"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "water_system_id",
+    "assessor_name",
+    "assessment_date"
+  ]
+}

@@ -6,7 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 import { Loader2 } from 'lucide-react';
 
-const conditions = ['Good', 'Fair', 'Poor – scale/biofilm present', 'Replaced this visit'];
+const CONDITIONS = [
+  'Good',
+  'Fair — minor scale present',
+  'Poor — heavy scale present',
+  'Poor — biofilm present',
+  'Poor — scale and biofilm present',
+  'Requires immediate replacement',
+];
 
 export default function ShowersTab({ job, onChange }) {
   const [uploading, setUploading] = React.useState(null);
@@ -15,6 +22,33 @@ export default function ShowersTab({ job, onChange }) {
 
   const addShower = () => {
     onChange({ showers: [...showers, { id: uid(), location: '', last_descale: today(), condition: 'Good', notes: '', photo_url: '' }] });
+  };
+
+  const handleConditionChange = (shower, newCondition) => {
+    const fields = { condition: newCondition };
+    // Auto-create remedial action if condition is not Good
+    if (newCondition !== 'Good') {
+      const location = shower.location || 'unknown location';
+      const newAction = {
+        id: uid(),
+        ref: `S${Date.now()}`,
+        system: 'Shower Head',
+        observation: `Shower head condition recorded as: ${newCondition}`,
+        action: `Inspect, clean and descale shower head at ${location} — condition recorded as ${newCondition}`,
+        priority: '2',
+        responsible_person: job.responsible_person || '',
+        deadline: '',
+        status: 'Open',
+      };
+      const existingActions = job.actions || [];
+      // Don't duplicate if same location+condition already has an action
+      const alreadyExists = existingActions.some(a => a.action && a.action.includes(`at ${location}`) && a.action.includes(newCondition));
+      if (!alreadyExists) {
+        onChange({ showers: showers.map(s => s.id === shower.id ? { ...s, ...fields } : s), actions: [...existingActions, newAction] });
+        return;
+      }
+    }
+    updateShower(shower.id, fields);
   };
 
   // Batch update one shower by merging fields — avoids multiple rapid __arrayPatch races
@@ -71,9 +105,12 @@ export default function ShowersTab({ job, onChange }) {
               </div>
               <div>
                 <Label>Condition</Label>
-                <select value={s.condition} onChange={e => updateShower(s.id, { condition: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
-                  {conditions.map(c => <option key={c}>{c}</option>)}
+                <select value={s.condition || 'Good'} onChange={e => handleConditionChange(s, e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                  {CONDITIONS.map(c => <option key={c}>{c}</option>)}
                 </select>
+                {s.condition && s.condition !== 'Good' && (
+                  <div className="text-xs text-amber-700 mt-1 font-semibold">⚠ Remedial action will be auto-created</div>
+                )}
               </div>
               <div>
                 <Label>Last descale date</Label>

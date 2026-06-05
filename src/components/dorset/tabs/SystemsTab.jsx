@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
+import { uid } from '@/lib/jobUtils';
 
 function SystemPhotoUpload({ label, url, fieldName, onChange }) {
   const inputRef = useRef();
@@ -58,7 +59,6 @@ export default function SystemsTab({ job, onChange }) {
           <div><Label>Hot water system</Label><Input {...f('hot_system')} /></div>
           {[
             ['cwst_present', 'Cold water storage tank present'],
-            ['tmvs_installed', 'TMVs fitted'],
             ['air_con', 'Air conditioning present'],
             ['closed_systems', 'Closed water system present'],
           ].map(([field, label]) => (
@@ -67,6 +67,59 @@ export default function SystemsTab({ job, onChange }) {
               {label}
             </label>
           ))}
+
+          {/* TMV repeatable entries */}
+          <div className="col-span-full">
+            <div className="flex items-center justify-between mb-2">
+              <Label>TMV locations</Label>
+              <button
+                type="button"
+                onClick={() => {
+                  const tmvs = job.tmv_locations || [];
+                  onChange({ tmv_locations: [...tmvs, { id: uid(), location: '', last_service: '' }] });
+                }}
+                className="text-xs px-3 py-1.5 rounded-xl font-bold text-white"
+                style={{ background: '#d71920' }}
+              >+ Add TMV</button>
+            </div>
+            {(!job.tmv_locations || job.tmv_locations.length === 0) ? (
+              <div className="text-xs text-gray-400 border border-dashed border-gray-300 rounded-xl px-3 py-2">No TMVs recorded. Click "Add TMV" to log locations and service dates.</div>
+            ) : (
+              <div className="space-y-2">
+                {(job.tmv_locations || []).map((tmv, i) => (
+                  <div key={tmv.id} className="flex gap-2 items-center border border-gray-200 rounded-xl p-2">
+                    <div className="flex-1">
+                      <Input
+                        value={tmv.location || ''}
+                        onChange={e => {
+                          const updated = (job.tmv_locations || []).map(t => t.id === tmv.id ? { ...t, location: e.target.value } : t);
+                          onChange({ tmv_locations: updated });
+                        }}
+                        placeholder="Location (e.g. Room 1 Ensuite WHB)"
+                      />
+                    </div>
+                    <div className="w-40 flex-shrink-0">
+                      <Input
+                        type="date"
+                        value={tmv.last_service || ''}
+                        onChange={e => {
+                          const updated = (job.tmv_locations || []).map(t => t.id === tmv.id ? { ...t, last_service: e.target.value } : t);
+                          onChange({ tmv_locations: updated });
+                        }}
+                        title="Last service date"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onChange({ tmv_locations: (job.tmv_locations || []).filter(t => t.id !== tmv.id) })}
+                      className="text-red-500 text-lg leading-none px-1 hover:text-red-700"
+                    >×</button>
+                  </div>
+                ))}
+                <div className="text-xs text-gray-400">Each row: TMV location + last service date. Missing service dates will flag as FAIL on the scorecard.</div>
+              </div>
+            )}
+          </div>
 
           {job.cwst_present && (
             <>

@@ -52,15 +52,10 @@ export function outletStatus(o, cqcMode, isDomestic = false) {
 
   if (o.hasTmv) {
     if (!isNaN(hot)) {
-      // Domestic: only flag if clearly too cold (<38°C). No upper limit — TMV may not fully blend.
-      if (isDomestic) {
-        if (hot < 38) return { text: 'Too cold', cls: 'fail' };
-      } else {
-        if (hot > 46) return { text: 'Too hot', cls: 'fail' };
-        if (hot < 38) return { text: 'Too cold', cls: 'fail' };
-      }
+      if (hot >= 41 && hot <= 44) return { text: 'Pass — TMV Outlet', cls: 'ok' };
+      return { text: 'Check — TMV Out of Range', cls: 'warn' };
     }
-    return { text: 'Pass', cls: 'ok' };
+    return { text: 'Pass — TMV Outlet', cls: 'ok' };
   }
 
   // Standard hot outlets: >=50°C (domestic/non-care), >=55°C (CQC/care), >=60°C (Pot Wash)
@@ -87,7 +82,7 @@ export function buildControlScheme(job) {
     ['Representative rotational outlet temperatures', 'Rotational basis', 'Build a profile of the whole system', rp, 'Temperature log'],
     ['Infrequently used outlets flushing', 'Weekly', 'Flush until temperature stabilises and record', rp, 'Flushing log'],
   ];
-  if (job.tmvs_installed) rows.push(['TMV inspection/clean/descale/failsafe checks', 'Annually', 'Inspect associated strainers/filters and test', rp, 'TMV maintenance record']);
+  if ((job.tmv_locations || []).length > 0 || job.tmvs_installed) rows.push(['TMV inspection/clean/descale/failsafe checks', 'Annually', 'Inspect associated strainers/filters and test', rp, 'TMV maintenance record']);
   if ((job.outlets || []).some(o => o.type === 'Shower')) rows.push(['Shower heads clean/descale', 'Six monthly', 'Remove, clean and disinfect', rp, 'Cleaning log']);
   if (job.cwst_present) {
     rows.splice(5, 0, ['CWST inspection', 'Six monthly', 'Inspect condition, lid, insulation and temperature', rp, 'CWST inspection record']);
@@ -162,7 +157,9 @@ export function calculateRisk(job) {
   if (!job.log_temps_na && !job.monthly_temp_log) score += isCare ? 3 : isDomestic ? 1 : 2;
   if (!job.log_flush_na && !job.flushing_log) score += isCare ? 2 : 1;
   if (!job.log_shower_na && !job.shower_cleaning_log && hasShower) score += isCare ? 2 : 1;
-  if (!job.log_tmv_na && !job.tmv_service_records && job.tmvs_installed) score += isCare ? 2 : 1;
+  const hasTmvs = (job.tmv_locations || []).length > 0 || job.tmvs_installed;
+  const tmvServiceMissing = hasTmvs && !job.log_tmv_na && (job.tmv_locations || []).some(t => !t.last_service);
+  if (tmvServiceMissing) score += isCare ? 2 : 1;
 
   const isAcHigh = job.air_con && (!job.ac_last_service_date || new Date(job.ac_last_service_date) < new Date(new Date().setFullYear(new Date().getFullYear() - 1)));
   if (isAcHigh) score += 3;

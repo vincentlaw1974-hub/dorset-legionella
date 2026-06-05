@@ -119,7 +119,12 @@ Write the summary now:`;
           <Label>Assessment date</Label>
           <Input type="date" {...f('assessment_date')} onChange={e => {
             const val = e.target.value;
-            onChange({ assessment_date: val, review_due: val ? new Date(new Date(val).setFullYear(new Date(val).getFullYear()+1)).toISOString().slice(0,10) : '' });
+            if (!val) { onChange({ assessment_date: val, review_due: '' }); return; }
+            const risk = job.risk || 'MEDIUM';
+            const months = risk === 'HIGH' ? 12 : risk === 'LOW' ? 36 : 24;
+            const d = new Date(val);
+            d.setMonth(d.getMonth() + months);
+            onChange({ assessment_date: val, review_due: d.toISOString().slice(0, 10) });
           }} />
         </div>
         <div><Label>Review due</Label><Input type="date" {...f('review_due')} /></div>

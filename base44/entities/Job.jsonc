@@ -28,6 +28,7 @@
         "Commercial",
         "Doctors Surgery",
         "Dental Surgery",
+        "Garden Centre",
         "Other"
       ],
       "default": "Nursing Home"
@@ -208,18 +209,115 @@
       "type": "boolean",
       "default": false
     },
-    "water_samples_taken": {
+    "gc_water_features": {
       "type": "boolean",
       "default": false,
-      "description": "Whether water samples were taken during this assessment"
+      "description": "Garden Centre: decorative water features / ornamental fountains present"
+    },
+    "gc_water_features_count": {
+      "type": "string",
+      "description": "Number of water features"
+    },
+    "gc_water_features_treatment": {
+      "type": "string",
+      "description": "Treatment method for water features (biocide, chlorine, etc.)"
+    },
+    "gc_water_features_last_clean": {
+      "type": "string",
+      "description": "Date water features last cleaned/drained"
+    },
+    "gc_misting_systems": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: misting/fogging systems present in greenhouse"
+    },
+    "gc_misting_source": {
+      "type": "string",
+      "description": "Water source for misting systems (mains, tank, RO)"
+    },
+    "gc_misting_last_service": {
+      "type": "string",
+      "description": "Date misting system last serviced/flushed"
+    },
+    "gc_irrigation_systems": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: irrigation / hose reel systems present"
+    },
+    "gc_irrigation_notes": {
+      "type": "string",
+      "description": "Notes on irrigation / hose reel systems"
+    },
+    "gc_greenhouse_tanks": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: water storage tanks in greenhouse / warm areas"
+    },
+    "gc_greenhouse_tank_temp": {
+      "type": "string",
+      "description": "Recorded temperature of greenhouse tank water"
+    },
+    "gc_greenhouse_tank_last_clean": {
+      "type": "string",
+      "description": "Date greenhouse tank last cleaned"
+    },
+    "gc_food_prep_area": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: food preparation / restaurant area present"
+    },
+    "gc_animal_area": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: animal areas (farm animals, fish, pets) present"
+    },
+    "gc_staff_facilities": {
+      "type": "boolean",
+      "default": true,
+      "description": "Garden Centre: staff welfare / toilet / shower facilities present"
+    },
+    "gc_public_toilets": {
+      "type": "boolean",
+      "default": true,
+      "description": "Garden Centre: public toilet facilities present"
+    },
+    "gc_seasonal_closure": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: site subject to seasonal closure / reduced use"
+    },
+    "gc_seasonal_closure_notes": {
+      "type": "string",
+      "description": "Details of seasonal closure and recommissioning procedures"
+    },
+    "gc_hsg274_p3_assessed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: HSG274 Part 3 (decorative features) assessment completed"
+    },
+    "gc_written_scheme_covers_features": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: written scheme covers water features and irrigation"
+    },
+    "gc_biocide_records": {
+      "type": "boolean",
+      "default": false,
+      "description": "Garden Centre: biocide dosing records available for water features"
+    },
+    "gc_notes": {
+      "type": "string",
+      "description": "Garden centre specific notes"
+    },
+    "water_samples_taken": {
+      "type": "boolean",
+      "default": false
     },
     "water_samples_date": {
-      "type": "string",
-      "description": "Date samples were taken"
+      "type": "string"
     },
     "water_samples_lab": {
-      "type": "string",
-      "description": "Laboratory used for analysis"
+      "type": "string"
     },
     "water_samples_results": {
       "type": "string",
@@ -228,25 +326,20 @@
         "Satisfactory",
         "Unsatisfactory",
         "Action Required"
-      ],
-      "description": "Overall sample results"
+      ]
     },
     "water_samples_advised": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether client has been advised of results"
+      "default": false
     },
     "water_samples_advised_date": {
-      "type": "string",
-      "description": "Date client was advised of results"
+      "type": "string"
     },
     "water_samples_advised_method": {
-      "type": "string",
-      "description": "How client was advised (email, phone, letter, in person)"
+      "type": "string"
     },
     "water_samples_notes": {
-      "type": "string",
-      "description": "Further notes on sampling and results"
+      "type": "string"
     },
     "compliance_notes": {
       "type": "string"
@@ -298,8 +391,7 @@
       "default": false
     },
     "cwst_photo_url": {
-      "type": "string",
-      "description": "Photo of the cold water storage tank"
+      "type": "string"
     },
     "cylinder_temp": {
       "type": "string"
@@ -312,12 +404,10 @@
       "type": "string"
     },
     "cylinder_photo_url": {
-      "type": "string",
-      "description": "Photo of the hot water cylinder or boiler"
+      "type": "string"
     },
     "plant_room_photo_url": {
-      "type": "string",
-      "description": "Photo of the plant room / general system"
+      "type": "string"
     },
     "last_flush_date": {
       "type": "string"
