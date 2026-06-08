@@ -148,8 +148,8 @@ export default function ReportTab({ job, onPrint, onChange }) {
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534;-webkit-print-color-adjust:exact;print-color-adjust:exact' : st.cls === 'warn' ? '#fef3c7;color:#92400e;-webkit-print-color-adjust:exact;print-color-adjust:exact' : '#fee2e2;color:#991b1b;-webkit-print-color-adjust:exact;print-color-adjust:exact';
       const isOutsideTap = o.type === 'Outside Tap';
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
-      const tmvNote = o.hasTmv ? 'TMV blended reading (target 41–44°C)' : '';
-      const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve: not recorded') : (o.infrequent ? 'Infrequent use' : '');
+      const tmvNote = o.hasTmv ? 'TMV blended reading (target 39–43°C)' : '';
+      const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve status: not confirmed — client to verify') : (o.infrequent ? 'Infrequent use' : '');
       const noteText = [o.notes, tmvNote, extraNote].filter(Boolean).join(' | ');
       return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText||'—'}</td></tr>`;
     }).join('');
@@ -305,7 +305,8 @@ export default function ReportTab({ job, onPrint, onChange }) {
       if (job.cwst_present) spineNodes2.push({ id: 'cwst', label: 'Cold Tank', icon: '🪣', color: '#60a5fa', sub: job.cwst_location || '' });
       const cylTemp2 = job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp;
       const cylColor2 = (() => { const t = parseFloat(cylTemp2); return !isNaN(t) && t < 60 ? '#ef4444' : '#f97316'; })();
-      spineNodes2.push({ id: 'cylinder', label: job.hw_not_stored ? 'Combi Boiler' : 'HW Cylinder', icon: '&#9832;', color: cylColor2, sub: cylTemp2 ? `${cylTemp2}&#176;C` : '' });
+      const hwLabel = job.hw_not_stored ? 'Combi Boiler' : (job.hot_system ? job.hot_system.replace(/\bUnvented\b/i, 'Unvented').slice(0, 16) : 'HW Cylinder');
+      spineNodes2.push({ id: 'cylinder', label: hwLabel, icon: '&#9832;', color: cylColor2, sub: cylTemp2 ? `${cylTemp2}&#176;C` : '' });
       if (job.tmvs_installed) spineNodes2.push({ id: 'tmv', label: 'TMVs', icon: '&#128295;', color: '#8b5cf6', sub: 'Blended' });
       spineNodes2.push({ id: 'dist', label: 'Distribution', icon: '&#9889;', color: '#10b981', sub: '' });
 
@@ -474,12 +475,13 @@ ${buildingPageHtml}
       <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Date Taken: <strong>${job.water_samples_date || '—'}</strong></div>
       <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Laboratory: <strong>${job.water_samples_lab || '—'}</strong></div>
       <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Results: <strong style="color:${resColor}">${job.water_samples_results || 'Pending'}</strong></div>
-      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Client Advised: <strong>${job.water_samples_advised ? 'Yes' : 'Not yet recorded'}</strong></div>
-      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Date Advised: <strong>${job.water_samples_advised_date || '—'}</strong></div>
-      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Method: <strong>${job.water_samples_advised_method || '—'}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Client Advised: <strong>${job.water_samples_advised ? 'Yes' : (job.water_samples_results === 'Pending' ? 'Pending results — to be updated on receipt' : 'Not yet recorded')}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Date Advised: <strong>${job.water_samples_advised_date || (job.water_samples_results === 'Pending' ? 'Pending' : '—')}</strong></div>
+      <div style="padding:4px 0;border-bottom:1px solid #f0f0f0">Method: <strong>${job.water_samples_advised_method || (job.water_samples_results === 'Pending' ? 'To be confirmed' : '—')}</strong></div>
     </div>
     ${(job.water_samples_results === 'Unsatisfactory' || job.water_samples_results === 'Action Required') ? `<div style="background:#fff0f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #d71920;padding:6px 8px;font-size:10px;font-weight:bold;color:#991b1b;margin-bottom:6px">⚠ ${job.water_samples_results === 'Action Required' ? 'ACTION REQUIRED' : 'UNSATISFACTORY RESULTS'} — The duty holder has ${job.water_samples_advised ? 'been advised' : 'NOT YET been advised'} of these results. Immediate corrective action is required in accordance with HSG274 and ACOP L8.</div>` : ''}
-    ${!job.water_samples_advised && job.water_samples_taken ? `<div style="background:#fffbeb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #e67e22;padding:6px 8px;font-size:10px;color:#92400e;margin-bottom:6px">ℹ Duty holder notification of sampling results has not yet been recorded. Ensure this is completed and documented.</div>` : ''}
+    ${!job.water_samples_advised && job.water_samples_taken && job.water_samples_results !== 'Pending' ? `<div style="background:#fffbeb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #e67e22;padding:6px 8px;font-size:10px;color:#92400e;margin-bottom:6px">ℹ Duty holder notification of sampling results has not yet been recorded. Ensure this is completed and documented.</div>` : ''}
+    ${job.water_samples_results === 'Pending' && !job.water_samples_advised ? `<div style="background:#fffbeb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border-left:3px solid #e67e22;padding:6px 8px;font-size:10px;color:#92400e;margin-bottom:6px">ℹ Results awaited from laboratory. This section will be updated upon receipt of results. The duty holder should be notified once results are available.</div>` : ''}
     ${job.water_samples_notes ? `<div style="font-size:10px;margin-top:4px"><strong>Notes:</strong> ${job.water_samples_notes}</div>` : ''}`;
   })()}
   </div>
@@ -564,7 +566,7 @@ ${buildingPageHtml}
   </div>
 
   <div style="margin-top:14px;padding:8px 10px;background:#f0fdf4 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid #86efac;border-radius:6px;font-size:9px;color:#166534">
-    <strong>Document Control:</strong> Report Ref: ${reportRef} | Prepared by: Dorset Plumbing | Assessment Date: ${job.assessment_date||'—'} | Review Due: ${job.review_due||'—'} | Issue Status: ${job.status||'—'}
+    <strong>Document Control:</strong> Report Ref: ${reportRef} | Prepared by: Dorset Plumbing | Assessment Date: ${job.assessment_date||'—'} | Review Due: ${job.review_due||'—'} | Issue Status: ${(job.status === 'Completed' || job.status === 'Reviewed') ? 'Final — Issued' : (job.status || 'Draft')}
   </div>
 
   </div>
