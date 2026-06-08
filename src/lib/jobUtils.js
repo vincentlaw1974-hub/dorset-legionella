@@ -52,8 +52,10 @@ export function outletStatus(o, cqcMode, isDomestic = false) {
 
   if (o.hasTmv) {
     if (!isNaN(hot)) {
-      if (hot >= 41 && hot <= 44) return { text: 'Pass — TMV Outlet', cls: 'ok' };
-      return { text: 'Check — TMV Out of Range', cls: 'warn' };
+      if (hot > 46) return { text: 'TMV — Exceeds Max (>46°C)', cls: 'fail' };
+      if (hot >= 39 && hot <= 43) return { text: 'Pass — TMV Outlet', cls: 'ok' };
+      if (hot > 43 && hot <= 46) return { text: 'Check — TMV High (43–46°C)', cls: 'warn' };
+      return { text: 'Check — TMV Low (<39°C)', cls: 'warn' };
     }
     return { text: 'Pass — TMV Outlet', cls: 'ok' };
   }
@@ -115,7 +117,7 @@ export function calculateRisk(job) {
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
     if (o.type !== 'Outside Tap') {
       if (o.hasTmv) {
-        if (!isNaN(hot) && (hot < 38 || (!isDomestic && hot > 46))) tempFails++;
+        if (!isNaN(hot) && (hot < 39 || hot > 46)) tempFails++;
       } else {
         const t = o.type === 'Pot Wash' ? 60 : hotTarget;
         // Only count as fail if below target — never penalise for being too hot on domestic
@@ -131,7 +133,7 @@ export function calculateRisk(job) {
     const hot = parseFloat(o.hot), cold = parseFloat(o.cold);
     if (o.type === 'Outside Tap') return false;
     const hotUrgent = o.hasTmv
-      ? (!isNaN(hot) && (hot < 38 || (!isDomestic && hot > 46)))
+      ? (!isNaN(hot) && hot > 46)
       : (!isNaN(hot) && hot < 45);
     return hotUrgent || (!isNaN(cold) && cold >= 25);
   });
