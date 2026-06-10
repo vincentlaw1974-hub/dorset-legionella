@@ -211,103 +211,81 @@
     },
     "gc_water_features": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: decorative water features / ornamental fountains present"
+      "default": false
     },
     "gc_water_features_count": {
-      "type": "string",
-      "description": "Number of water features"
+      "type": "string"
     },
     "gc_water_features_treatment": {
-      "type": "string",
-      "description": "Treatment method for water features (biocide, chlorine, etc.)"
+      "type": "string"
     },
     "gc_water_features_last_clean": {
-      "type": "string",
-      "description": "Date water features last cleaned/drained"
+      "type": "string"
     },
     "gc_misting_systems": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: misting/fogging systems present in greenhouse"
+      "default": false
     },
     "gc_misting_source": {
-      "type": "string",
-      "description": "Water source for misting systems (mains, tank, RO)"
+      "type": "string"
     },
     "gc_misting_last_service": {
-      "type": "string",
-      "description": "Date misting system last serviced/flushed"
+      "type": "string"
     },
     "gc_irrigation_systems": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: irrigation / hose reel systems present"
+      "default": false
     },
     "gc_irrigation_notes": {
-      "type": "string",
-      "description": "Notes on irrigation / hose reel systems"
+      "type": "string"
     },
     "gc_greenhouse_tanks": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: water storage tanks in greenhouse / warm areas"
+      "default": false
     },
     "gc_greenhouse_tank_temp": {
-      "type": "string",
-      "description": "Recorded temperature of greenhouse tank water"
+      "type": "string"
     },
     "gc_greenhouse_tank_last_clean": {
-      "type": "string",
-      "description": "Date greenhouse tank last cleaned"
+      "type": "string"
     },
     "gc_food_prep_area": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: food preparation / restaurant area present"
+      "default": false
     },
     "gc_animal_area": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: animal areas (farm animals, fish, pets) present"
+      "default": false
     },
     "gc_staff_facilities": {
       "type": "boolean",
-      "default": true,
-      "description": "Garden Centre: staff welfare / toilet / shower facilities present"
+      "default": true
     },
     "gc_public_toilets": {
       "type": "boolean",
-      "default": true,
-      "description": "Garden Centre: public toilet facilities present"
+      "default": true
     },
     "gc_seasonal_closure": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: site subject to seasonal closure / reduced use"
+      "default": false
     },
     "gc_seasonal_closure_notes": {
-      "type": "string",
-      "description": "Details of seasonal closure and recommissioning procedures"
+      "type": "string"
     },
     "gc_hsg274_p3_assessed": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: HSG274 Part 3 (decorative features) assessment completed"
+      "default": false
     },
     "gc_written_scheme_covers_features": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: written scheme covers water features and irrigation"
+      "default": false
     },
     "gc_biocide_records": {
       "type": "boolean",
-      "default": false,
-      "description": "Garden Centre: biocide dosing records available for water features"
+      "default": false
     },
     "gc_notes": {
-      "type": "string",
-      "description": "Garden centre specific notes"
+      "type": "string"
     },
     "water_samples_taken": {
       "type": "boolean",
@@ -627,6 +605,9 @@
           "hasTmv": {
             "type": "boolean"
           },
+          "tmv_ref": {
+            "type": "string"
+          },
           "hasCheckValve": {
             "type": "boolean"
           },
@@ -779,6 +760,47 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tmv_register": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "outlets_served": {
+            "type": "string"
+          },
+          "last_inspection": {
+            "type": "string"
+          },
+          "last_descale": {
+            "type": "string"
+          },
+          "failsafe_passed": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "photo_url": {
             "type": "string"
           }
         }
