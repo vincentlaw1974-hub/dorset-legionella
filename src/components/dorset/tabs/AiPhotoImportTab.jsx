@@ -3,45 +3,94 @@ import { base44 } from '@/api/base44Client';
 import { uid } from '@/lib/jobUtils';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
+export default function AiPhotoImportTab({ job, onChange }) {
+  const [dragOver, setDragOver] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [analysing, setAnalysing] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [applied, setApplied] = useState(false);
+  const inputRef = useRef();
 
-async function resizeImage(dataUrl, maxDim = 1500) {
-  return new Promise((resolve) => {
-    const imgEl = new Image();
-    imgEl.onload = () => {
-      const scale = Math.min(1, maxDim / Math.max(imgEl.width, imgEl.height));
-      const newWidth = Math.round(imgEl.width * scale);
-      const newHeight = Math.round(imgEl.height * scale);
-      const canvas = document.createElement('canvas');
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-      canvas.getContext('2d').drawImage(imgEl, 0, 0, newWidth, newHeight);
-      resolve(canvas.toDataURL('image/jpeg', 0.75));
-    };
-    imgEl.onerror = () => resolve(dataUrl);
-    imgEl.src = dataUrl;
-  });
-}
+  const addFiles = useCallback(async (newFiles) => {
+    const imageFiles = [...newFiles].filter(fileItem => fileItem.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+    setResult(null);
+    setApplied(false);
+    setError(null);
 
-async function analysePhotos(photoItems, job) {
-  // Resize images to max 1400px, then upload resized versions to CDN for the API
-  const fileUrls = await Promise.all(
-    photoItems.map(async (p) => {
-      const src = p.dataUrl;
-      if (!src) return null;
-      // Resize to stay under 2000px API limit
-      const resized = await resizeImage(src, 1400);
-      // Convert base64 data URL to a Blob/File and upload to CDN
-      const res = await fetch(resized);
-      const blob = await res.blob();
-      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      return file_url;
-    })
-  ).then(urls => urls.filter(Boolean));
+    const items = imageFiles.map(fileItem => ({ id: uid(), file: fileItem, dataUrl: null, cdnUrl: null, uploading: true }));
+    setFiles(prev => [...prev, ...items]);
 
-  const prompt = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
-You are given ${photoItems.length} site photos from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
+    await Promise.all(items.map(async (item) => {
+      const dataUrl = await fileToDataUrl(item.file);
+      item.dataUrl = dataUrl;
+      setFiles(prev => prev.map(existing => existing.id === item.id ? { ...existing, dataUrl } : existing));
+
+      const cdnUrl = await uploadToCdn(item.file).catch(() => null);
+      item.cdnUrl = cdnUrl;
+      setFiles(prev => prev.map(existing => existing.id === item.id ? { ...existing, cdnUrl, uploading: false } : existing));
+    }));
+  }, []);
+
+  const handleDrop = useCallback((evt) => {
+    evt.preventDefault();
+    setDragOver(false);
+    addFiles(evt.dataTransfer.files);
+  }, [addFiles]);
+
+  const handleFileInput = (evt) => {
+    addFiles(evt.target.files);
+    evt.target.value = '';
+  };
+
+  const removeFile = (fileId) => {
+    setFiles(prev => prev.filter(fileItem => fileItem.id !== fileId));
+    setResult(null);
+    setApplied(false);
+  };
+
+  const handleAnalyse = async () => {
+    if (files.length === 0) return;
+    setAnalysing(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      // Resize images and upload to CDN for the API
+      const fileUrls = await Promise.all(
+        files.map(async (photoItem) => {
+          const sourcData = photoItem.dataUrl;
+          if (!sourcData) return null;
+
+          // Resize to max 1400px
+          const resized = await new Promise((resolve) => {
+            const image = new Image();
+            image.onload = () => {
+              const maxDimension = 1400;
+              const scaleFactor = Math.min(1, maxDimension / Math.max(image.width, image.height));
+              const targetWidth = Math.round(image.width * scaleFactor);
+              const targetHeight = Math.round(image.height * scaleFactor);
+              const canvasEl = document.createElement('canvas');
+              canvasEl.width = targetWidth;
+              canvasEl.height = targetHeight;
+              canvasEl.getContext('2d').drawImage(image, 0, 0, targetWidth, targetHeight);
+              resolve(canvasEl.toDataURL('image/jpeg', 0.75));
+            };
+            image.onerror = () => resolve(sourcData);
+            image.src = sourcData;
+          });
+
+          const fetchResponse = await fetch(resized);
+          const blobData = await fetchResponse.blob();
+          const fileData = new File([blobData], 'photo.jpg', { type: 'image/jpeg' });
+          const uploadResult = await base44.integrations.Core.UploadFile({ file: fileData });
+          return uploadResult.file_url;
+        })
+      ).then(urlList => urlList.filter(Boolean));
+
+      const promptText = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
+You are given ${files.length} site photos from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
 
 Analyse every photo carefully and extract as much information as possible to populate a Legionella risk assessment report.
 
@@ -109,78 +158,25 @@ Rules:
 - "actions" should include any issues that need remediation.
 - Return EMPTY arrays for sections where nothing relevant is visible.`;
 
-  // No response_json_schema — let the model return a plain string for maximum reliability with vision
-  const result = await base44.integrations.Core.InvokeLLM({
-    prompt,
-    file_urls: fileUrls,
-    model: 'claude_sonnet_4_6',
-  });
+      const llmResult = await base44.integrations.Core.InvokeLLM({
+        prompt: promptText,
+        file_urls: fileUrls,
+        model: 'claude_sonnet_4_6',
+      });
 
-  // Result is a plain string — extract the JSON object from it
-  const str = typeof result === 'string' ? result : JSON.stringify(result);
-  const match = str.match(/```(?:json)?\s*([\s\S]*?)```/) || str.match(/(\{[\s\S]*\})/);
-  if (!match) return {};
-  try { return JSON.parse(match[1] !== undefined ? match[1] : match[0]); } catch { return {}; }
-}
+      // Extract JSON from the plain string response
+      const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
+      const codeBlockMatch = responseString.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const jsonObjectMatch = responseString.match(/(\{[\s\S]*\})/);
+      const jsonString = codeBlockMatch ? codeBlockMatch[1] : (jsonObjectMatch ? jsonObjectMatch[1] : null);
 
-// ─── component ────────────────────────────────────────────────────────────────
+      if (!jsonString) {
+        setError('AI returned an unexpected response. Please try again.');
+        return;
+      }
 
-export default function AiPhotoImportTab({ job, onChange }) {
-  const [dragOver, setDragOver] = useState(false);
-  const [files, setFiles] = useState([]); // { id, file, dataUrl, cdnUrl, uploading }
-  const [analysing, setAnalysing] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [applied, setApplied] = useState(false);
-  const inputRef = useRef();
-
-  const addFiles = useCallback(async (newFiles) => {
-    const imageFiles = [...newFiles].filter(f => f.type.startsWith('image/'));
-    if (!imageFiles.length) return;
-    setResult(null);
-    setApplied(false);
-    setError(null);
-
-    const items = imageFiles.map(file => ({ id: uid(), file, dataUrl: null, cdnUrl: null, uploading: true }));
-    setFiles(prev => [...prev, ...items]);
-
-    // Convert to data URLs and upload to CDN in parallel
-    await Promise.all(items.map(async (item) => {
-      const dataUrl = await fileToDataUrl(item.file);
-      item.dataUrl = dataUrl;
-      setFiles(prev => prev.map(f => f.id === item.id ? { ...f, dataUrl } : f));
-
-      const cdnUrl = await uploadToCdn(item.file).catch(() => null);
-      item.cdnUrl = cdnUrl;
-      setFiles(prev => prev.map(f => f.id === item.id ? { ...f, cdnUrl, uploading: false } : f));
-    }));
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragOver(false);
-    addFiles(e.dataTransfer.files);
-  }, [addFiles]);
-
-  const handleFileInput = (e) => {
-    addFiles(e.target.files);
-    e.target.value = '';
-  };
-
-  const removeFile = (id) => {
-    setFiles(prev => prev.filter(f => f.id !== id));
-    setResult(null);
-    setApplied(false);
-  };
-
-  const handleAnalyse = async () => {
-    if (files.length === 0) return;
-    setAnalysing(true);
-    setError(null);
-    setResult(null);
-    try {
-      const data = await analysePhotos(files, job);
-      setResult(data);
+      const parsedData = JSON.parse(jsonString);
+      setResult(parsedData);
     } catch (err) {
       setError('AI analysis failed: ' + err.message);
     } finally {
@@ -191,85 +187,78 @@ export default function AiPhotoImportTab({ job, onChange }) {
   const handleApply = () => {
     if (!result) return;
 
-    // Build the full updated job directly from job prop (always fresh)
-    const updated = { ...job };
+    const updatedJob = { ...job };
 
     // Merge rooms (avoid duplicates by name)
-    const existingRoomNames = new Set((job.rooms || []).map(r => r.name));
-    const newRooms = (result.rooms || []).filter(r => r.name && !existingRoomNames.has(r.name)).map(r => ({ id: uid(), name: r.name }));
-    if (newRooms.length) updated.rooms = [...(job.rooms || []), ...newRooms];
+    const existingRoomNames = new Set((job.rooms || []).map(roomItem => roomItem.name));
+    const newRooms = (result.rooms || [])
+      .filter(roomItem => roomItem.name && !existingRoomNames.has(roomItem.name))
+      .map(roomItem => ({ id: uid(), name: roomItem.name }));
+    if (newRooms.length) updatedJob.rooms = [...(job.rooms || []), ...newRooms];
 
-    // Merge outlets
     if ((result.outlets || []).length > 0) {
-      updated.outlets = [...(job.outlets || []), ...result.outlets.map(o => ({ id: uid(), ...o }))];
+      updatedJob.outlets = [...(job.outlets || []), ...result.outlets.map(outlet => ({ id: uid(), ...outlet }))];
     }
 
-    // Merge showers
     if ((result.showers || []).length > 0) {
-      updated.showers = [...(job.showers || []), ...result.showers.map(s => ({ id: uid(), ...s }))];
+      updatedJob.showers = [...(job.showers || []), ...result.showers.map(shower => ({ id: uid(), ...shower }))];
     }
 
-    // Merge TMV register
     if ((result.tmv_register || []).length > 0) {
-      const existingCount = (job.tmv_register || []).length;
-      updated.tmv_register = [
+      const existingTmvCount = (job.tmv_register || []).length;
+      updatedJob.tmv_register = [
         ...(job.tmv_register || []),
-        ...result.tmv_register.map((t, i) => ({
+        ...result.tmv_register.map((tmvItem, tmvIndex) => ({
           id: uid(),
-          ref: t.ref || `TMV-${String(existingCount + i + 1).padStart(2, '0')}`,
-          ...t
+          ref: tmvItem.ref || `TMV-${String(existingTmvCount + tmvIndex + 1).padStart(2, '0')}`,
+          ...tmvItem
         }))
       ];
     }
 
-    // Merge dead legs
     if ((result.dead_legs || []).length > 0) {
-      updated.dead_legs = [...(job.dead_legs || []), ...result.dead_legs.map(d => ({ id: uid(), ...d }))];
+      updatedJob.dead_legs = [...(job.dead_legs || []), ...result.dead_legs.map(deadLeg => ({ id: uid(), ...deadLeg }))];
     }
 
-    // Merge actions
     if ((result.actions || []).length > 0) {
-      const existingCount = (job.actions || []).length;
-      updated.actions = [
+      const existingActionCount = (job.actions || []).length;
+      updatedJob.actions = [
         ...(job.actions || []),
-        ...result.actions.map((a, i) => ({
+        ...result.actions.map((actionItem, actionIndex) => ({
           id: uid(),
-          ref: `A${existingCount + i + 1}`,
+          ref: `A${existingActionCount + actionIndex + 1}`,
           status: 'Open',
           responsible_person: job.responsible_person || '',
           deadline: '',
-          ...a
+          ...actionItem
         }))
       ];
     }
 
-    // Add photos (use cdnUrl if available, else dataUrl for preview)
-    const photoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
+    const validPhotoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
     if (files.length > 0) {
-      const newPhotos = files.map((f, i) => {
-        const meta = (result.photos || [])[i] || {};
+      const newPhotos = files.map((photoFile, photoIndex) => {
+        const photoMeta = (result.photos || [])[photoIndex] || {};
         return {
-          id: f.id,
-          file_url: f.cdnUrl || f.dataUrl,
-          kind: photoKinds.includes(meta.kind) ? meta.kind : 'General',
-          location: meta.location || '',
-          caption: meta.caption || ''
+          id: photoFile.id,
+          file_url: photoFile.cdnUrl || photoFile.dataUrl,
+          kind: validPhotoKinds.includes(photoMeta.kind) ? photoMeta.kind : 'General',
+          location: photoMeta.location || '',
+          caption: photoMeta.caption || ''
         };
       });
-      updated.photos = [...(job.photos || []), ...newPhotos];
+      updatedJob.photos = [...(job.photos || []), ...newPhotos];
     }
 
-    // Text fields — only fill if currently empty
-    if (result.summary && !(job.summary || '').trim()) updated.summary = result.summary;
-    if (result.site_description && !(job.site_description || '').trim()) updated.site_description = result.site_description;
-    if (result.issues_text && !(job.issues_text || '').trim()) updated.issues_text = result.issues_text;
+    if (result.summary && !(job.summary || '').trim()) updatedJob.summary = result.summary;
+    if (result.site_description && !(job.site_description || '').trim()) updatedJob.site_description = result.site_description;
+    if (result.issues_text && !(job.issues_text || '').trim()) updatedJob.issues_text = result.issues_text;
 
-    // Pass the complete updated job so handleChange can spread it correctly
-    onChange(updated);
+    onChange(updatedJob);
     setApplied(true);
   };
 
-  const uploadingCount = files.filter(f => f.uploading).length;
+  const uploadingCount = files.filter(photoFile => photoFile.uploading).length;
   const readyToAnalyse = files.length > 0 && uploadingCount === 0;
 
   return (
@@ -279,9 +268,8 @@ export default function AiPhotoImportTab({ job, onChange }) {
         <p className="text-xs text-gray-500 mt-0.5">Drop site photos and AI will analyse them to auto-populate outlets, rooms, TMVs, actions, and summary.</p>
       </div>
 
-      {/* Drop zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(evt) => { evt.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current.click()}
@@ -293,7 +281,6 @@ export default function AiPhotoImportTab({ job, onChange }) {
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileInput} />
       </div>
 
-      {/* Preview grid */}
       {files.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -301,20 +288,20 @@ export default function AiPhotoImportTab({ job, onChange }) {
             <button onClick={() => { setFiles([]); setResult(null); setApplied(false); }} className="text-xs text-red-600 hover:underline">Clear all</button>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {files.map(f => (
-              <div key={f.id} className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-100 aspect-square">
-                {f.dataUrl ? (
-                  <img src={f.dataUrl} alt="" className="w-full h-full object-cover" />
+            {files.map(photoFile => (
+              <div key={photoFile.id} className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-100 aspect-square">
+                {photoFile.dataUrl ? (
+                  <img src={photoFile.dataUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl">🖼️</div>
                 )}
-                {f.uploading && (
+                {photoFile.uploading && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
                 <button
-                  onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
+                  onClick={(evt) => { evt.stopPropagation(); removeFile(photoFile.id); }}
                   className="absolute top-1 right-1 bg-white/90 rounded-full w-5 h-5 text-xs font-bold text-red-600 flex items-center justify-center shadow"
                 >✕</button>
               </div>
@@ -323,14 +310,12 @@ export default function AiPhotoImportTab({ job, onChange }) {
         </div>
       )}
 
-      {/* Upload status */}
       {uploadingCount > 0 && (
         <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
           ⏫ Uploading {uploadingCount} photo{uploadingCount !== 1 ? 's' : ''}…
         </div>
       )}
 
-      {/* Analyse button */}
       {files.length > 0 && (
         <button
           onClick={handleAnalyse}
@@ -349,7 +334,6 @@ export default function AiPhotoImportTab({ job, onChange }) {
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
-      {/* Results preview */}
       {result && (
         <div className="space-y-3">
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
@@ -383,13 +367,13 @@ export default function AiPhotoImportTab({ job, onChange }) {
             <div className="border border-gray-200 rounded-xl p-3">
               <strong className="text-xs text-gray-500 uppercase block mb-2">Outlets Found</strong>
               <div className="space-y-1">
-                {result.outlets.map((o, i) => (
-                  <div key={i} className="text-xs flex items-center gap-2 py-1 border-b border-gray-100 last:border-0">
-                    <span className="font-semibold w-24 truncate">{o.location}</span>
-                    <span className="text-gray-500">{o.type}</span>
-                    {o.hot && <span className="text-red-600 font-mono">{o.hot}°H</span>}
-                    {o.cold && <span className="text-blue-600 font-mono">{o.cold}°C</span>}
-                    {o.notes && <span className="text-gray-400 truncate">{o.notes}</span>}
+                {result.outlets.map((outletItem, outletIndex) => (
+                  <div key={outletIndex} className="text-xs flex items-center gap-2 py-1 border-b border-gray-100 last:border-0">
+                    <span className="font-semibold w-24 truncate">{outletItem.location}</span>
+                    <span className="text-gray-500">{outletItem.type}</span>
+                    {outletItem.hot && <span className="text-red-600 font-mono">{outletItem.hot}°H</span>}
+                    {outletItem.cold && <span className="text-blue-600 font-mono">{outletItem.cold}°C</span>}
+                    {outletItem.notes && <span className="text-gray-400 truncate">{outletItem.notes}</span>}
                   </div>
                 ))}
               </div>
@@ -400,10 +384,10 @@ export default function AiPhotoImportTab({ job, onChange }) {
             <div className="border border-red-100 bg-red-50 rounded-xl p-3">
               <strong className="text-xs text-red-700 uppercase block mb-2">Actions Raised</strong>
               <div className="space-y-1">
-                {result.actions.map((a, i) => (
-                  <div key={i} className="text-xs border-b border-red-100 last:border-0 pb-1">
-                    <span className={`inline-block w-4 h-4 rounded text-center font-bold mr-1 text-white text-[10px] leading-4 ${a.priority === '1' ? 'bg-red-600' : a.priority === '2' ? 'bg-amber-500' : 'bg-gray-400'}`}>{a.priority}</span>
-                    <strong>{a.system}</strong> — {a.action}
+                {result.actions.map((actionItem, actionIndex) => (
+                  <div key={actionIndex} className="text-xs border-b border-red-100 last:border-0 pb-1">
+                    <span className={`inline-block w-4 h-4 rounded text-center font-bold mr-1 text-white text-[10px] leading-4 ${actionItem.priority === '1' ? 'bg-red-600' : actionItem.priority === '2' ? 'bg-amber-500' : 'bg-gray-400'}`}>{actionItem.priority}</span>
+                    <strong>{actionItem.system}</strong> — {actionItem.action}
                   </div>
                 ))}
               </div>
