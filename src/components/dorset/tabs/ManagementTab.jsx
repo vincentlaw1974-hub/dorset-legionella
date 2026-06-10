@@ -27,7 +27,7 @@ export default function ManagementTab({ job, onChange }) {
             N/A
           </label>
         </div>
-        <Input key={field} {...f(field)} disabled={!!job[naKey]} placeholder={job[naKey] ? 'Not applicable' : ''} />
+        <Input key={field} {...f(field)} disabled={!!job[naKey]} placeholder={job[naKey] ? 'Not applicable' : ''} autoComplete="off" />
       </div>
     );
   };
