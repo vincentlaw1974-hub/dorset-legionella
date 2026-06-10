@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,36 +59,23 @@ function blankTmv() {
 }
 
 export default function TmvsTab({ job, onChange }) {
-  const [tmvs, setTmvs] = useState(job.tmv_register || []);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  // Sync in if the job switches (different job loaded)
-  const jobIdRef = useRef(job.id);
-  useEffect(() => {
-    if (job.id !== jobIdRef.current) {
-      jobIdRef.current = job.id;
-      setTmvs(job.tmv_register || []);
-    }
-  }, [job.id, job.tmv_register]);
-
+  // No local state — read directly from props and call onChange immediately.
+  // This ensures every change flows through Home's handleChange → debounce → save.
+  const tmvs = job.tmv_register || [];
   const rooms = job.rooms || [];
 
-  const push = useCallback((newTmvs) => {
-    setTmvs(newTmvs);
-    onChangeRef.current({ tmv_register: newTmvs });
-  }, []);
+  const updateTmv = (id, patch) => {
+    const updated = tmvs.map(t => t.id === id ? { ...t, ...patch } : t);
+    onChange({ tmv_register: updated });
+  };
 
-  const updateTmv = useCallback((id, patch) => {
-    setTmvs(prev => {
-      const updated = prev.map(t => t.id === id ? { ...t, ...patch } : t);
-      onChangeRef.current({ tmv_register: updated });
-      return updated;
-    });
-  }, []);
+  const addTmv = () => {
+    onChange({ tmv_register: [...tmvs, blankTmv()] });
+  };
 
-  const addTmv = () => push([...tmvs, blankTmv()]);
-  const removeTmv = (id) => push(tmvs.filter(t => t.id !== id));
+  const removeTmv = (id) => {
+    onChange({ tmv_register: tmvs.filter(t => t.id !== id) });
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
@@ -117,12 +104,20 @@ export default function TmvsTab({ job, onChange }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div>
                 <Label>TMV Reference / ID</Label>
-                <Input value={tmv.ref} onChange={e => updateTmv(tmv.id, { ref: e.target.value })} placeholder="e.g. TMV-01" />
+                <Input
+                  value={tmv.ref}
+                  onChange={e => updateTmv(tmv.id, { ref: e.target.value })}
+                  placeholder="e.g. TMV-01"
+                />
               </div>
               <div>
                 <Label>Location</Label>
                 {rooms.length > 0 ? (
-                  <select value={tmv.location} onChange={e => updateTmv(tmv.id, { location: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                  <select
+                    value={tmv.location}
+                    onChange={e => updateTmv(tmv.id, { location: e.target.value })}
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                  >
                     <option value="">-- select location --</option>
                     {rooms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                     <option value="Plant room">Plant room</option>
@@ -131,18 +126,30 @@ export default function TmvsTab({ job, onChange }) {
                     <option value="Cupboard">Cupboard</option>
                   </select>
                 ) : (
-                  <Input value={tmv.location} onChange={e => updateTmv(tmv.id, { location: e.target.value })} placeholder="e.g. Ground floor plant room" />
+                  <Input
+                    value={tmv.location}
+                    onChange={e => updateTmv(tmv.id, { location: e.target.value })}
+                    placeholder="e.g. Ground floor plant room"
+                  />
                 )}
               </div>
               <div>
                 <Label>Type</Label>
-                <select value={tmv.type} onChange={e => updateTmv(tmv.id, { type: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                <select
+                  value={tmv.type}
+                  onChange={e => updateTmv(tmv.id, { type: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                >
                   {TMV_TYPES.map(t => <option key={t}>{t}</option>)}
                 </select>
               </div>
               <div className="col-span-full">
                 <Label>Outlets Served</Label>
-                <Input value={tmv.outlets_served} onChange={e => updateTmv(tmv.id, { outlets_served: e.target.value })} placeholder="e.g. Rooms 1, 2, 3, 4, 5, 6" />
+                <Input
+                  value={tmv.outlets_served}
+                  onChange={e => updateTmv(tmv.id, { outlets_served: e.target.value })}
+                  placeholder="e.g. Rooms 1, 2, 3, 4, 5, 6"
+                />
               </div>
               <div>
                 <Label>Last Inspection Date</Label>
@@ -154,20 +161,34 @@ export default function TmvsTab({ job, onChange }) {
               </div>
               <div>
                 <Label>Failsafe Test Passed</Label>
-                <select value={tmv.failsafe_passed} onChange={e => updateTmv(tmv.id, { failsafe_passed: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                <select
+                  value={tmv.failsafe_passed}
+                  onChange={e => updateTmv(tmv.id, { failsafe_passed: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                >
                   {FAILSAFE_OPTIONS.map(o => <option key={o}>{o}</option>)}
                 </select>
-                {tmv.failsafe_passed === 'No' && <div className="text-xs text-red-600 mt-1 font-bold">⚠ Failsafe test FAILED — immediate attention required</div>}
+                {tmv.failsafe_passed === 'No' && (
+                  <div className="text-xs text-red-600 mt-1 font-bold">⚠ Failsafe test FAILED — immediate attention required</div>
+                )}
               </div>
               <div>
                 <Label>Condition</Label>
-                <select value={tmv.condition} onChange={e => updateTmv(tmv.id, { condition: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                <select
+                  value={tmv.condition}
+                  onChange={e => updateTmv(tmv.id, { condition: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                >
                   {CONDITIONS.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div className="col-span-full">
                 <Label>Notes</Label>
-                <Textarea value={tmv.notes} onChange={e => updateTmv(tmv.id, { notes: e.target.value })} className="min-h-[56px]" />
+                <Textarea
+                  value={tmv.notes}
+                  onChange={e => updateTmv(tmv.id, { notes: e.target.value })}
+                  className="min-h-[56px]"
+                />
               </div>
               <div className="col-span-full">
                 <TmvPhotoUpload
@@ -178,7 +199,10 @@ export default function TmvsTab({ job, onChange }) {
               </div>
             </div>
 
-            <button onClick={() => removeTmv(tmv.id)} className="mt-3 text-sm px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50">
+            <button
+              onClick={() => removeTmv(tmv.id)}
+              className="mt-3 text-sm px-3 py-1.5 rounded-xl bg-white text-red-600 border border-red-200 font-bold hover:bg-red-50"
+            >
               Remove TMV
             </button>
           </div>
