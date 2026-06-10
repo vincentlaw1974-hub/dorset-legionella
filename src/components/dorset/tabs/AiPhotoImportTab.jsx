@@ -130,7 +130,14 @@ Rules:
     }
   });
 
-  return result?.data ?? result;
+  // InvokeLLM with response_json_schema returns the parsed object directly
+  // but the SDK wraps it in .data for axios responses
+  const raw = result?.data ?? result;
+  // If it's still a string (shouldn't be with json schema), parse it
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return {}; }
+  }
+  return raw;
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -190,6 +197,7 @@ export default function AiPhotoImportTab({ job, onChange }) {
     setResult(null);
     try {
       const data = await analysePhotos(files, job);
+      console.log('AI result received:', data);
       setResult(data);
     } catch (err) {
       setError('AI analysis failed: ' + err.message);
@@ -202,6 +210,7 @@ export default function AiPhotoImportTab({ job, onChange }) {
     if (!result) return;
 
     const updates = {};
+    console.log('Applying AI result:', result);
 
     // Merge rooms (avoid duplicates)
     if ((result.rooms || []).length > 0) {
