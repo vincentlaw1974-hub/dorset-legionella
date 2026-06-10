@@ -121,13 +121,26 @@ SITE CONTEXT (use this to inform your advice):
     try {
       const fileUrls = [];
 
-      // Upload images to CDN first if any
+      // Upload images to CDN first if any (resize to max 1000px for Claude multi-image limit)
       for (const img of userMsg.images || []) {
         if (img.startsWith('data:')) {
-          // Convert data URL to blob and upload
-          const res = await fetch(img);
+          const resized = await new Promise((resolve) => {
+            const image = new Image();
+            image.onload = () => {
+              const maxDim = 1000;
+              const scale = Math.min(1, maxDim / Math.max(image.width, image.height));
+              const canvasEl = document.createElement('canvas');
+              canvasEl.width = Math.round(image.width * scale);
+              canvasEl.height = Math.round(image.height * scale);
+              canvasEl.getContext('2d').drawImage(image, 0, 0, canvasEl.width, canvasEl.height);
+              resolve(canvasEl.toDataURL('image/jpeg', 0.75));
+            };
+            image.onerror = () => resolve(img);
+            image.src = img;
+          });
+          const res = await fetch(resized);
           const blob = await res.blob();
-          const file = new File([blob], 'image.jpg', { type: blob.type });
+          const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
           const uploaded = await base44.integrations.Core.UploadFile({ file });
           fileUrls.push(uploaded.file_url);
         }
