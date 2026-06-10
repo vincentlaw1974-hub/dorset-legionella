@@ -9,7 +9,7 @@ const TMV_TYPES = ['Central / Shared TMV', 'Point-of-use TMV'];
 const CONDITIONS = ['Good', 'Requires Attention', 'Failed'];
 const FAILSAFE_OPTIONS = ['Yes', 'No', 'Not tested'];
 
-function TmvPhotoUpload({ url, onChange }) {
+function TmvPhotoUpload({ url, onPreview, onCdn }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
   const handle = async (e) => {
@@ -17,9 +17,9 @@ function TmvPhotoUpload({ url, onChange }) {
     if (!file) return;
     setUploading(true);
     const dataUrl = await fileToDataUrl(file);
-    onChange({ photo_url: dataUrl });
+    onPreview(dataUrl);
     const cdnUrl = await uploadToCdn(file);
-    if (cdnUrl) onChange({ photo_url: cdnUrl });
+    if (cdnUrl) onCdn(cdnUrl);
     setUploading(false);
     e.target.value = '';
   };
@@ -29,7 +29,7 @@ function TmvPhotoUpload({ url, onChange }) {
       {url ? (
         <div className="relative mt-1">
           <img src={url} alt="TMV" className="w-full rounded-xl border border-gray-200" style={{ maxHeight: 160, objectFit: 'cover' }} />
-          <button onClick={() => onChange({ photo_url: null })} className="absolute top-2 right-2 bg-white border border-gray-300 rounded-full px-2 py-0.5 text-xs text-red-600 font-bold shadow">✕</button>
+          <button onClick={() => onPreview(null)} className="absolute top-2 right-2 bg-white border border-gray-300 rounded-full px-2 py-0.5 text-xs text-red-600 font-bold shadow">✕</button>
         </div>
       ) : (
         <button onClick={() => inputRef.current.click()} disabled={uploading}
@@ -60,9 +60,11 @@ function blankTmv() {
 
 export default function TmvsTab({ job, onChange }) {
   const tmvs = job.tmv_register || [];
+  const rooms = job.rooms || [];
 
   const updateTmv = (id, patch) => {
-    onChange({ tmv_register: tmvs.map(t => t.id === id ? { ...t, ...patch } : t) });
+    const updated = (job.tmv_register || []).map(t => t.id === id ? { ...t, ...patch } : t);
+    onChange({ tmv_register: updated });
   };
 
   const addTmv = () => {
@@ -104,7 +106,18 @@ export default function TmvsTab({ job, onChange }) {
               </div>
               <div>
                 <Label>Location</Label>
-                <Input value={tmv.location} onChange={e => updateTmv(tmv.id, { location: e.target.value })} placeholder="e.g. Ground floor plant room" />
+                {rooms.length > 0 ? (
+                  <select value={tmv.location} onChange={e => updateTmv(tmv.id, { location: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm">
+                    <option value="">-- select location --</option>
+                    {rooms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    <option value="Plant room">Plant room</option>
+                    <option value="Roof space">Roof space</option>
+                    <option value="Boiler room">Boiler room</option>
+                    <option value="Cupboard">Cupboard</option>
+                  </select>
+                ) : (
+                  <Input value={tmv.location} onChange={e => updateTmv(tmv.id, { location: e.target.value })} placeholder="e.g. Ground floor plant room" />
+                )}
               </div>
               <div>
                 <Label>Type</Label>
@@ -142,7 +155,11 @@ export default function TmvsTab({ job, onChange }) {
                 <Textarea value={tmv.notes} onChange={e => updateTmv(tmv.id, { notes: e.target.value })} className="min-h-[56px]" />
               </div>
               <div className="col-span-full">
-                <TmvPhotoUpload url={tmv.photo_url} onChange={patch => updateTmv(tmv.id, patch)} />
+                <TmvPhotoUpload
+                  url={tmv.photo_url}
+                  onPreview={url => updateTmv(tmv.id, { photo_url: url })}
+                  onCdn={url => updateTmv(tmv.id, { photo_url: url })}
+                />
               </div>
             </div>
 
