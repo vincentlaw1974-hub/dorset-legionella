@@ -58,6 +58,7 @@ export function stripBase64(job) {
       photos: (b.photos || []).map(p => ({ ...p, file_url: clean(p.file_url) || '' })),
       outlets: (b.outlets || []).map(o => ({ ...o, photo_url: clean(o.photo_url) })),
     })),
+    tmv_register: (job.tmv_register || []).map(t => ({ ...t, photo_url: clean(t.photo_url) })),
   };
 }
 
@@ -78,5 +79,6 @@ export function jobHasBase64Photos(job) {
     (b.photos || []).some(p => isB64(p.file_url)) ||
     (b.outlets || []).some(o => isB64(o.photo_url))
   )) return true;
+  if ((job.tmv_register || []).some(t => isB64(t.photo_url))) return true;
   return false;
 }
