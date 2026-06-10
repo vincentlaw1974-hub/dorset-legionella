@@ -28,6 +28,7 @@ import AiAdviceTab from '@/components/dorset/tabs/AiAdviceTab';
 import BuildingsTab from '@/components/dorset/tabs/BuildingsTab';
 import StatusGroupedTab from '@/components/dorset/tabs/StatusGroupedTab';
 import TmvsTab from '@/components/dorset/tabs/TmvsTab';
+import AiPhotoImportTab from '@/components/dorset/tabs/AiPhotoImportTab';
 import OfflineBanner from '@/components/dorset/OfflineBanner';
 
 const TABS = [
@@ -46,6 +47,7 @@ const TABS = [
   { id: 'photos', label: 'Photos' },
   { id: 'logbook', label: 'Logbook' },
   { id: 'report', label: '📄 Report' },
+  { id: 'ai_photo_import', label: '📸 AI Import' },
   { id: 'ai_advice', label: '🤖 AI Advice' },
 ];
 
@@ -463,6 +465,7 @@ export default function Home() {
                   {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'ai_photo_import' && <AiPhotoImportTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} />}
                   {activeTab === 'report' && (
                     <div className="space-y-3">
