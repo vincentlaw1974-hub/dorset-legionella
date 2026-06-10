@@ -12,8 +12,9 @@ export default function ManagementTab({ job, onChange }) {
   });
 
   const ROLE_OPTIONS = [
-    'Duty Holder',
-    'Responsible Person',
+    'Duty Holder — responsible for ensuring risks from Legionella are assessed and controlled',
+    'Responsible Person — oversees implementation and operation of the written scheme',
+    'Assessor — provides assessment and recommendations only',
     'Deputy Responsible Person',
     'Facilities Manager',
     'Building Manager',
