@@ -155,10 +155,9 @@ INSTRUCTIONS:
         model: 'claude_sonnet_4_6',
       });
 
-      const raw = result?.data ?? result;
-      const text = typeof raw === 'string' ? raw.trim() : (raw?.text || raw?.content || JSON.stringify(raw) || '');
+      const responseText = typeof result === 'string' ? result.trim() : (result?.text || result?.content || JSON.stringify(result) || '');
       setMessages(prev => prev.map((m, i) =>
-        i === prev.length - 1 ? { role: 'assistant', text } : m
+        i === prev.length - 1 ? { role: 'assistant', text: responseText } : m
       ));
     } catch (err) {
       setMessages(prev => prev.map((m, i) =>
