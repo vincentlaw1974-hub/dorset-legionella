@@ -11,7 +11,25 @@ export default function ManagementTab({ job, onChange }) {
     onChange: (e) => onChange({ [field]: e.target.value })
   });
 
-  const naInput = (field, label) => {
+  const ROLE_OPTIONS = [
+    'Duty Holder',
+    'Responsible Person',
+    'Deputy Responsible Person',
+    'Facilities Manager',
+    'Building Manager',
+    'Estates Manager',
+    'Property Manager',
+    'Site Manager',
+    'Maintenance Manager',
+    'Health & Safety Manager',
+    'Director',
+    'Owner',
+    'Landlord',
+    'Managing Agent',
+    'Operations Manager',
+  ];
+
+  const naInput = (field, label, isRole = false) => {
     const naKey = `${field}_na`;
     return (
       <div key={field}>
@@ -28,16 +46,28 @@ export default function ManagementTab({ job, onChange }) {
             N/A
           </label>
         </div>
-        <Input
-          key={field}
-          {...f(field)}
-          disabled={!!job[naKey]}
-          placeholder={job[naKey] ? 'Not applicable' : ''}
-          autoComplete="off"
-          readOnly
-          onFocus={e => e.target.removeAttribute('readonly')}
-          name={`no-autofill-${field}-${Math.random()}`}
-        />
+        {isRole ? (
+          <select
+            value={job[field] || ''}
+            onChange={e => onChange({ [field]: e.target.value })}
+            disabled={!!job[naKey]}
+            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+          >
+            <option value="">— select role —</option>
+            {ROLE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        ) : (
+          <Input
+            key={field}
+            {...f(field)}
+            disabled={!!job[naKey]}
+            placeholder={job[naKey] ? 'Not applicable' : ''}
+            autoComplete="off"
+            readOnly
+            onFocus={e => e.target.removeAttribute('readonly')}
+            name={`no-autofill-${field}-${Math.random()}`}
+          />
+        )}
       </div>
     );
   };
@@ -144,11 +174,11 @@ export default function ManagementTab({ job, onChange }) {
         <strong>Management responsibilities and key roles</strong>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           {naInput('duty_holder', 'Duty Holder')}
-          {naInput('duty_holder_role', 'Duty Holder role/company')}
+          {naInput('duty_holder_role', 'Duty Holder role/company', true)}
           {naInput('responsible_person', 'Responsible Person')}
-          {naInput('responsible_role', 'Responsible Person role')}
+          {naInput('responsible_role', 'Responsible Person role', true)}
           {naInput('deputy_person', 'Deputy Responsible Person')}
-          {naInput('deputy_role', 'Deputy role')}
+          {naInput('deputy_role', 'Deputy role', true)}
           {naInput('assessor', 'Assessor')}
           {naInput('reviewer', 'Peer reviewer / authoriser')}
         </div>
