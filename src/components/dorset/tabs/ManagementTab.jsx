@@ -28,7 +28,16 @@ export default function ManagementTab({ job, onChange }) {
             N/A
           </label>
         </div>
-        <Input key={field} {...f(field)} disabled={!!job[naKey]} placeholder={job[naKey] ? 'Not applicable' : ''} autoComplete="new-password" />
+        <Input
+          key={field}
+          {...f(field)}
+          disabled={!!job[naKey]}
+          placeholder={job[naKey] ? 'Not applicable' : ''}
+          autoComplete="off"
+          readOnly
+          onFocus={e => e.target.removeAttribute('readonly')}
+          name={`no-autofill-${field}-${Math.random()}`}
+        />
       </div>
     );
   };
