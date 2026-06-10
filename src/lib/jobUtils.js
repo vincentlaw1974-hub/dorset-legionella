@@ -182,6 +182,11 @@ export function calculateRisk(job) {
 }
 
 export function reportChecks(job) {
+  const outletWithTmv = (job.outlets || []).some(o => o.hasTmv);
+  const tmvRegisterCount = (job.tmv_register || []).length;
+  const tmvCheck = outletWithTmv
+    ? [tmvRegisterCount > 0 ? '✅ TMV register entries recorded' : '⚠️ TMV register entries recorded', tmvRegisterCount > 0]
+    : ['TMV register entries recorded', true];
   return [
     ['Client entered', !!(job.client || '').trim()],
     ['Site name entered', !!(job.site_name || '').trim()],
@@ -192,5 +197,6 @@ export function reportChecks(job) {
     ['At least one outlet recorded', (job.outlets || []).length > 0],
     ['Front cover photo added', (job.photos || []).some(p => p.kind === 'Cover Photo')],
     ['All photos captioned', (job.photos || []).every(p => p.kind && (p.location || '').trim() && (p.caption || '').trim())],
+    tmvCheck,
   ];
 }

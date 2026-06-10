@@ -143,15 +143,17 @@ export default function ReportTab({ job, onPrint, onChange }) {
       </div>`;
     }).join('');
 
+    const anyTmvRef = allOutlets.some(o => o.hasTmv && o.tmv_ref);
     const outletRows = allOutlets.map(o => {
       const st = outletStatus(o, job.cqc_mode, isDomesticJob(job));
       const badgeColor = st.cls === 'ok' ? '#dcfce7;color:#166534;-webkit-print-color-adjust:exact;print-color-adjust:exact' : st.cls === 'warn' ? '#fef3c7;color:#92400e;-webkit-print-color-adjust:exact;print-color-adjust:exact' : '#fee2e2;color:#991b1b;-webkit-print-color-adjust:exact;print-color-adjust:exact';
       const isOutsideTap = o.type === 'Outside Tap';
       const hotCell = isOutsideTap ? '<em style="color:#888">cold only</em>' : (o.hot || '—');
-      const tmvNote = o.hasTmv ? 'TMV blended reading (target 39–43°C)' : '';
+      const tmvNote = o.hasTmv ? `TMV blended reading (target 39–43°C)${o.tmv_type ? ' · '+o.tmv_type : ''}` : '';
       const extraNote = isOutsideTap ? (o.check_valve ? 'Check valve: ✓' : 'Check valve status: not confirmed — client to verify') : (o.infrequent ? 'Infrequent use' : '');
       const noteText = [o.notes, tmvNote, extraNote].filter(Boolean).join(' | ');
-      return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td><td>${noteText||'—'}</td></tr>`;
+      const tmvRefCell = anyTmvRef ? `<td>${o.tmv_ref || '—'}</td>` : '';
+      return `<tr><td>${o.displayLocation||''}</td><td>${o.type||''}</td><td>${hotCell}</td><td>${o.cold||'—'}</td><td><span style="background:${badgeColor};padding:2px 7px;border-radius:99px;font-weight:bold;font-size:10px">${st.text}</span></td>${tmvRefCell}<td>${noteText||'—'}</td></tr>`;
     }).join('');
 
     const actionRows = (job.actions || []).map(a => {
@@ -172,6 +174,25 @@ export default function ReportTab({ job, onPrint, onChange }) {
 
     const hasDeadLegs = (job.dead_legs || []).length > 0;
     const hasBuildings = (job.buildings || []).length > 0;
+    const hasTmvRegister = (job.tmv_register || []).length > 0;
+
+    const tmvRegisterRows = (job.tmv_register || []).map(t => {
+      const condColor = t.condition === 'Good' ? '#166534' : t.condition === 'Failed' ? '#991b1b' : '#92400e';
+      const condBg = t.condition === 'Good' ? '#dcfce7' : t.condition === 'Failed' ? '#fee2e2' : '#fef3c7';
+      const failColor = t.failsafe_passed === 'Yes' ? '#166534' : t.failsafe_passed === 'No' ? '#991b1b' : '#92400e';
+      return `<tr>
+        <td>${t.ref||'—'}</td>
+        <td>${t.location||'—'}</td>
+        <td>${t.type||'—'}</td>
+        <td>${t.outlets_served||'—'}</td>
+        <td>${t.last_inspection||'—'}</td>
+        <td>${t.last_descale||'—'}</td>
+        <td style="color:${failColor};font-weight:bold">${t.failsafe_passed||'—'}</td>
+        <td><span style="background:${condBg};color:${condColor};padding:2px 6px;border-radius:4px;font-weight:bold;font-size:9px;-webkit-print-color-adjust:exact;print-color-adjust:exact">${t.condition||'—'}</span></td>
+        <td>${t.notes||'—'}</td>
+        <td>${t.photo_url?`<img src="${ci(t.photo_url)}" style="width:60px;height:45px;object-fit:cover;border-radius:4px"/>`:'-'}</td>
+      </tr>`;
+    }).join('');
     const cylTemp = parseFloat(job.hw_not_stored ? job.hw_boiler_set_temp : job.cylinder_temp);
     const hwTempFail = !isNaN(cylTemp) && cylTemp < 60;
     const targetHot = job.cqc_mode ? 55 : 50;
@@ -416,10 +437,18 @@ export default function ReportTab({ job, onPrint, onChange }) {
   <div class="section-title">System Overview</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:10px">${[['Property Type',job.property_type||'—'],['CWST Present',job.cwst_present?'Yes':'No'],['Building Age',job.building_age||'Not entered'],['Cold Water Supply',job.cold_source||'Mains'],['Hot Water System',job.hot_system||'—'],['HW Storage Temp',job.cylinder_temp?job.cylinder_temp+'°C (target >=60°C)':'—'],['Vulnerable Users',job.vulnerable_users?'Yes':'No'],['Dead Legs',hasDeadLegs?(job.dead_legs||[]).length+' identified':'None identified'],['Previous Assessment',job.previous_assessment_date||'Not recorded']].map(([k,v])=>`<div style="padding:3px 0;border-bottom:1px solid #f0f0f0">${k}: <strong>${v}</strong></div>`).join('')}</div>
   ${(job.tmv_locations||[]).length>0?`<div style="margin-top:6px;font-size:10px"><strong>TMV Locations:</strong><ul style="margin:3px 0 0 14px;padding:0">${(job.tmv_locations||[]).map(t=>`<li>${t.location||'—'}${t.last_service?' — last serviced: '+t.last_service:' — <span style="color:#c0392b">no service date</span>'}</li>`).join('')}</ul></div>`:''}
-  ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div><table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
+  ${allOutlets.length>0?`<div class="section-title">Outlet Temperature Register (${allOutlets.length} outlets)</div><table style="margin-top:10px"><thead><tr><th>Location</th><th>Type</th><th>Hot °C</th><th>Cold °C</th><th>Status</th>${anyTmvRef?'<th>TMV Ref</th>':''}<th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>`:''}
   </div>
   <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>Page 2</span></div>
 </div>
+${hasTmvRegister?`<div class="page" style="page-break-before:always">
+  <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
+  <div class="page-body">
+  <div class="section-title">🔧 TMV Register (${(job.tmv_register||[]).length} TMVs)</div>
+  <table><thead><tr><th>TMV Ref</th><th>Location</th><th>Type</th><th>Outlets Served</th><th>Last Inspection</th><th>Last Descale</th><th>Failsafe Test</th><th>Condition</th><th>Notes</th><th>Photo</th></tr></thead><tbody>${tmvRegisterRows}</tbody></table>
+  </div>
+  <div class="footer"><span>Dorset Plumbing · Legionella Risk Assessment · ${job.site_name||job.client||''} · ${job.assessment_date||''}</span><span>TMV Register</span></div>
+</div>`:''}
 <div class="page" style="page-break-before:always">
   <div class="page-header"><div class="page-header-brand"><h1>Dorset Plumbing</h1><p>Gas Safe Registered · Legionella Risk Assessment</p></div><div class="ref">Ref: ${reportRef}</div></div>
   <div class="page-body">
@@ -581,6 +610,7 @@ ${buildingPageHtml}
       ...(job.outlets || []).map(o => o.photo_url),
       ...(job.dead_legs || []).map(d => d.photo_url),
       ...(job.showers || []).map(s => s.photo_url),
+      ...(job.tmv_register || []).map(t => t.photo_url),
       ...(job.photos || []).map(p => p.file_url),
       ...(job.buildings || []).flatMap(b => [
         ...((b.photos || []).map(p => p.file_url)),

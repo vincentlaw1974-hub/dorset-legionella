@@ -5,6 +5,28 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function ActionsTab({ job, onChange }) {
+  // Check if a central TMV action suggestion should be shown
+  const hasCentralTmv = (job.outlets || []).some(o => o.hasTmv && o.tmv_type === 'Central / Shared TMV');
+  const centralTmvActionExists = (job.actions || []).some(a =>
+    a.system === 'TMVs' && (a.action || '').includes('Central TMV')
+  );
+  const showCentralTmvSuggestion = hasCentralTmv && !centralTmvActionExists;
+
+  const addCentralTmvAction = () => {
+    const actions = [...(job.actions || []), {
+      id: uid(),
+      ref: `A${(job.actions || []).length + 1}`,
+      system: 'TMVs',
+      observation: 'Central / Shared TMV identified serving multiple outlets. Long blended pipe runs noted.',
+      action: 'Central TMV identified serving multiple outlets. Long blended pipe runs present an increased Legionella risk. Consider fitting point-of-use TMVs at individual outlets to reduce pipe run length and biofilm risk.',
+      priority: '3',
+      responsible_person: job.responsible_person || '',
+      deadline: '',
+      status: 'Open'
+    }];
+    onChange({ actions });
+  };
+
   const updateAction = (id, field, value) => {
     const actions = (job.actions || []).map(a => a.id === id ? { ...a, [field]: value } : a);
     onChange({ actions });
@@ -30,6 +52,17 @@ export default function ActionsTab({ job, onChange }) {
         <button onClick={addAction} className="text-sm px-4 py-3 rounded-xl font-bold text-white" style={{ background: '#d71920' }}>+ Add action</button>
       </div>
       <div className="text-xs text-gray-500 mb-3">Priority: 1 Immediate, 2 ASAP, 3 Planned, 4 Future, O Observation.</div>
+
+      {showCentralTmvSuggestion && (
+        <div className="mb-3 border border-amber-200 bg-amber-50 rounded-xl p-3 flex items-start gap-3">
+          <span className="text-xl">⚠️</span>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-amber-800 text-sm mb-1">Suggested action: Central TMV risk</div>
+            <div className="text-xs text-amber-700">A Central / Shared TMV is fitted on one or more outlets. Add the pre-filled action recommendation?</div>
+          </div>
+          <button onClick={addCentralTmvAction} className="flex-shrink-0 text-xs px-3 py-1.5 rounded-xl font-bold text-white bg-amber-600 hover:bg-amber-700">+ Add action</button>
+        </div>
+      )}
 
       {(job.actions || []).length === 0 && (
         <div className="text-sm text-gray-400 text-center py-6">No actions yet.</div>

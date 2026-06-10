@@ -96,14 +96,41 @@ export default function OutletsTab({ job, onChange }) {
                     <div className="flex flex-wrap gap-4 mt-1">
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input type="checkbox" checked={!!o.hasTmv} onChange={e => updateOutlet(o.id, 'hasTmv', e.target.checked)} className="w-4 h-4 accent-red-600" />
-                        TMV fitted — record blended outlet temp (38–46°C)
+                        TMV fitted — record blended outlet temp (39–43°C)
                       </label>
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input type="checkbox" checked={!!o.infrequent} onChange={e => updateOutlet(o.id, 'infrequent', e.target.checked)} className="w-4 h-4 accent-red-600" />
                         Infrequently used
                       </label>
                     </div>
-                    {o.hasTmv && <div className="text-xs text-blue-700 mt-1">⚠ Enter the blended outlet temp, NOT the system/boiler temp. Pass range: 38–46°C.</div>}
+                    {o.hasTmv && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                          <Label>TMV Type</Label>
+                          <select
+                            value={o.tmv_type || ''}
+                            onChange={e => updateOutlet(o.id, 'tmv_type', e.target.value)}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                          >
+                            <option value="">-- select type --</option>
+                            <option value="Central / Shared TMV">Central / Shared TMV</option>
+                            <option value="Point-of-use TMV">Point-of-use TMV</option>
+                          </select>
+                          {o.tmv_type === 'Central / Shared TMV' && (
+                            <div className="text-xs text-amber-700 mt-1">⚠ Central TMV — long blended pipe runs increase Legionella risk</div>
+                          )}
+                        </div>
+                        <div>
+                          <Label>TMV Reference</Label>
+                          <Input
+                            value={o.tmv_ref || ''}
+                            onChange={e => updateOutlet(o.id, 'tmv_ref', e.target.value)}
+                            placeholder='e.g. "Plant room valve 1"'
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {o.hasTmv && <div className="text-xs text-blue-700 mt-1">⚠ Enter the blended outlet temp, NOT the system/boiler temp. Pass range: 39–43°C.</div>}
                   </div>
                 )}
               </div>

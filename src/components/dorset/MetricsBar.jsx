@@ -21,8 +21,8 @@ export default function MetricsBar({ job }) {
         if (o.hasTmv) return !isNaN(hot) && (hot < 38 || hot > 46);
         return (!isNaN(hot) && hot < (job.cqc_mode ? 55 : 50)) || (!isNaN(cold) && cold > 20);
       }).length} />
+      <Metric label="TMVs" value={(job.tmv_register || []).length} />
       <Metric label="Photos" value={(job.photos || []).length} />
-      <Metric label="Log entries" value={(job.logs || []).length} />
     </div>
   );
 }

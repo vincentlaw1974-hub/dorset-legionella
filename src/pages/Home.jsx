@@ -27,6 +27,7 @@ import SchematicTab from '@/components/dorset/tabs/SchematicTab';
 import AiAdviceTab from '@/components/dorset/tabs/AiAdviceTab';
 import BuildingsTab from '@/components/dorset/tabs/BuildingsTab';
 import StatusGroupedTab from '@/components/dorset/tabs/StatusGroupedTab';
+import TmvsTab from '@/components/dorset/tabs/TmvsTab';
 import OfflineBanner from '@/components/dorset/OfflineBanner';
 
 const TABS = [
@@ -36,6 +37,7 @@ const TABS = [
   { id: 'rooms', label: 'Rooms' },
   { id: 'buildings', label: '🏘️ Buildings', holidayParkOnly: true },
   { id: 'systems', label: 'Systems' },
+  { id: 'tmvs', label: '🔧 TMVs' },
   { id: 'outlets', label: 'Outlets' },
   { id: 'issues', label: 'Issues' },
   { id: 'dead_legs', label: 'Dead Legs' },
@@ -452,6 +454,7 @@ export default function Home() {
                   {activeTab === 'overview' && <OverviewTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'management' && <ManagementTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'systems' && <SystemsTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'tmvs' && <TmvsTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'outlets' && <OutletsTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'rooms' && <RoomsTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'dead_legs' && <DeadLegsTab job={localJob} onChange={handleChange} />}
