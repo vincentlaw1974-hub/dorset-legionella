@@ -208,6 +208,10 @@ export default function AiPhotoImportTab({ job, onChange }) {
   const handleApply = () => {
     if (!result) return;
 
+    // Debug: show exactly what we got
+    const debugInfo = `outlets: ${(result.outlets||[]).length}, actions: ${(result.actions||[]).length}, rooms: ${(result.rooms||[]).length}, summary: ${result.summary ? 'yes' : 'no'}, job.id: ${job?.id || 'MISSING'}`;
+    alert('Applying: ' + debugInfo);
+
     // Build the full updated job directly from job prop (always fresh)
     const updated = { ...job };
 
