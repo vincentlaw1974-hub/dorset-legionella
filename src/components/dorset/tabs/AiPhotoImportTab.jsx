@@ -24,12 +24,19 @@ async function resizeImage(dataUrl, maxDim = 1500) {
 }
 
 async function analysePhotos(photoItems, job) {
-  // Always use local dataUrl (already downloaded) and resize to stay under API limit
+  // Resize images to max 1400px, then upload resized versions to CDN for the API
   const fileUrls = await Promise.all(
     photoItems.map(async (p) => {
       const src = p.dataUrl;
       if (!src) return null;
-      return resizeImage(src, 1400);
+      // Resize to stay under 2000px API limit
+      const resized = await resizeImage(src, 1400);
+      // Convert base64 data URL to a Blob/File and upload to CDN
+      const res = await fetch(resized);
+      const blob = await res.blob();
+      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      return file_url;
     })
   ).then(urls => urls.filter(Boolean));
 
