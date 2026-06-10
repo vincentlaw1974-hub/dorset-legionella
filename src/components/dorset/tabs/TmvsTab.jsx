@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,21 +59,36 @@ function blankTmv() {
 }
 
 export default function TmvsTab({ job, onChange }) {
-  const tmvs = job.tmv_register || [];
+  const [tmvs, setTmvs] = useState(job.tmv_register || []);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Sync in if the job switches (different job loaded)
+  const jobIdRef = useRef(job.id);
+  useEffect(() => {
+    if (job.id !== jobIdRef.current) {
+      jobIdRef.current = job.id;
+      setTmvs(job.tmv_register || []);
+    }
+  }, [job.id, job.tmv_register]);
+
   const rooms = job.rooms || [];
 
-  const updateTmv = (id, patch) => {
-    const updated = (job.tmv_register || []).map(t => t.id === id ? { ...t, ...patch } : t);
-    onChange({ tmv_register: updated });
-  };
+  const push = useCallback((newTmvs) => {
+    setTmvs(newTmvs);
+    onChangeRef.current({ tmv_register: newTmvs });
+  }, []);
 
-  const addTmv = () => {
-    onChange({ tmv_register: [...tmvs, blankTmv()] });
-  };
+  const updateTmv = useCallback((id, patch) => {
+    setTmvs(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, ...patch } : t);
+      onChangeRef.current({ tmv_register: updated });
+      return updated;
+    });
+  }, []);
 
-  const removeTmv = (id) => {
-    onChange({ tmv_register: tmvs.filter(t => t.id !== id) });
-  };
+  const addTmv = () => push([...tmvs, blankTmv()]);
+  const removeTmv = (id) => push(tmvs.filter(t => t.id !== id));
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
