@@ -22,6 +22,7 @@ export default function ManagementTab({ job, onChange }) {
               type="checkbox"
               checked={!!job[naKey]}
               onChange={e => onChange({ [naKey]: e.target.checked, ...(e.target.checked ? { [field]: '' } : {}) })}
+              autoComplete="off"
               className="w-3.5 h-3.5 accent-gray-400"
             />
             N/A
