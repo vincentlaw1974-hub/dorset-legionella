@@ -109,35 +109,18 @@ Rules:
 - "actions" should include any issues that need remediation.
 - Return EMPTY arrays for sections where nothing relevant is visible.`;
 
+  // No response_json_schema — let the model return a plain string for maximum reliability with vision
   const result = await base44.integrations.Core.InvokeLLM({
     prompt,
     file_urls: fileUrls,
     model: 'claude_sonnet_4_6',
-    response_json_schema: {
-      type: 'object',
-      properties: {
-        site_description: { type: 'string' },
-        summary: { type: 'string' },
-        rooms: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } } },
-        outlets: { type: 'array', items: { type: 'object' } },
-        showers: { type: 'array', items: { type: 'object' } },
-        tmv_register: { type: 'array', items: { type: 'object' } },
-        dead_legs: { type: 'array', items: { type: 'object' } },
-        issues_text: { type: 'string' },
-        actions: { type: 'array', items: { type: 'object' } },
-        photos: { type: 'array', items: { type: 'object' } }
-      }
-    }
   });
 
-  // InvokeLLM with response_json_schema returns the parsed object directly
-  // but the SDK wraps it in .data for axios responses
-  const raw = result?.data ?? result;
-  // If it's still a string (shouldn't be with json schema), parse it
-  if (typeof raw === 'string') {
-    try { return JSON.parse(raw); } catch { return {}; }
-  }
-  return raw;
+  // Result is a plain string — extract the JSON object from it
+  const str = typeof result === 'string' ? result : JSON.stringify(result);
+  const match = str.match(/```(?:json)?\s*([\s\S]*?)```/) || str.match(/(\{[\s\S]*\})/);
+  if (!match) return {};
+  try { return JSON.parse(match[1] !== undefined ? match[1] : match[0]); } catch { return {}; }
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
