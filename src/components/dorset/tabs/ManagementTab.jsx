@@ -130,7 +130,7 @@ export default function ManagementTab({ job, onChange }) {
   }
 
   return (
-    <div className="space-y-3">
+    <form autoComplete="off" onSubmit={e => e.preventDefault()} className="space-y-3">
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <strong>Management responsibilities and key roles</strong>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
@@ -179,6 +179,6 @@ export default function ManagementTab({ job, onChange }) {
       {isGardenCentre && <GardenCentreSection job={job} onChange={onChange} />}
 
       <WaterSamplingSection job={job} onChange={onChange} />
-    </div>
+    </form>
   );
 }
