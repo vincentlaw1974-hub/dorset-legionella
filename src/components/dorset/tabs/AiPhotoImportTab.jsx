@@ -5,9 +5,35 @@ import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+async function resizeImage(dataUrl, maxDim = 1500) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 async function analysePhotos(photoItems, job) {
-  // Build a structured prompt with all images at once
-  const fileUrls = photoItems.map(p => p.cdnUrl || p.dataUrl).filter(Boolean);
+  // Resize all images to max 1500px before sending (API limit)
+  const fileUrls = await Promise.all(
+    photoItems.map(async (p) => {
+      const src = p.cdnUrl || p.dataUrl;
+      if (!src) return null;
+      // CDN urls are fine; only resize base64 data URLs
+      if (src.startsWith('data:')) return resizeImage(src, 1500);
+      return src;
+    })
+  ).then(urls => urls.filter(Boolean));
 
   const prompt = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
 You are given ${photoItems.length} site photos from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
