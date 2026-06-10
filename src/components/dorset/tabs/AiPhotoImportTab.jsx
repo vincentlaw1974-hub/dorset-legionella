@@ -197,7 +197,6 @@ export default function AiPhotoImportTab({ job, onChange }) {
     setResult(null);
     try {
       const data = await analysePhotos(files, job);
-      console.log('AI result received:', data);
       setResult(data);
     } catch (err) {
       setError('AI analysis failed: ' + err.message);
@@ -209,82 +208,81 @@ export default function AiPhotoImportTab({ job, onChange }) {
   const handleApply = () => {
     if (!result) return;
 
-    const updates = {};
-    console.log('Applying AI result:', result);
+    // Build the full updated job directly from job prop (always fresh)
+    const updated = { ...job };
 
-    // Merge rooms (avoid duplicates)
-    if ((result.rooms || []).length > 0) {
-      const existingNames = new Set((job.rooms || []).map(r => r.name));
-      const newRooms = result.rooms.filter(r => r.name && !existingNames.has(r.name)).map(r => ({ id: uid(), name: r.name }));
-      updates.rooms = [...(job.rooms || []), ...newRooms];
-    }
+    // Merge rooms (avoid duplicates by name)
+    const existingRoomNames = new Set((job.rooms || []).map(r => r.name));
+    const newRooms = (result.rooms || []).filter(r => r.name && !existingRoomNames.has(r.name)).map(r => ({ id: uid(), name: r.name }));
+    if (newRooms.length) updated.rooms = [...(job.rooms || []), ...newRooms];
 
     // Merge outlets
     if ((result.outlets || []).length > 0) {
-      const newOutlets = result.outlets.map(o => ({ id: uid(), ...o }));
-      updates.outlets = [...(job.outlets || []), ...newOutlets];
+      updated.outlets = [...(job.outlets || []), ...result.outlets.map(o => ({ id: uid(), ...o }))];
     }
 
     // Merge showers
     if ((result.showers || []).length > 0) {
-      const newShowers = result.showers.map(s => ({ id: uid(), ...s }));
-      updates.showers = [...(job.showers || []), ...newShowers];
+      updated.showers = [...(job.showers || []), ...result.showers.map(s => ({ id: uid(), ...s }))];
     }
 
     // Merge TMV register
     if ((result.tmv_register || []).length > 0) {
       const existingCount = (job.tmv_register || []).length;
-      const newTmvs = result.tmv_register.map((t, i) => ({
-        id: uid(),
-        ref: t.ref || `TMV-${String(existingCount + i + 1).padStart(2, '0')}`,
-        ...t
-      }));
-      updates.tmv_register = [...(job.tmv_register || []), ...newTmvs];
+      updated.tmv_register = [
+        ...(job.tmv_register || []),
+        ...result.tmv_register.map((t, i) => ({
+          id: uid(),
+          ref: t.ref || `TMV-${String(existingCount + i + 1).padStart(2, '0')}`,
+          ...t
+        }))
+      ];
     }
 
     // Merge dead legs
     if ((result.dead_legs || []).length > 0) {
-      const newLegs = result.dead_legs.map(d => ({ id: uid(), ...d }));
-      updates.dead_legs = [...(job.dead_legs || []), ...newLegs];
+      updated.dead_legs = [...(job.dead_legs || []), ...result.dead_legs.map(d => ({ id: uid(), ...d }))];
     }
 
     // Merge actions
     if ((result.actions || []).length > 0) {
       const existingCount = (job.actions || []).length;
-      const newActions = result.actions.map((a, i) => ({
-        id: uid(),
-        ref: `A${existingCount + i + 1}`,
-        status: 'Open',
-        responsible_person: job.responsible_person || '',
-        deadline: '',
-        ...a
-      }));
-      updates.actions = [...(job.actions || []), ...newActions];
+      updated.actions = [
+        ...(job.actions || []),
+        ...result.actions.map((a, i) => ({
+          id: uid(),
+          ref: `A${existingCount + i + 1}`,
+          status: 'Open',
+          responsible_person: job.responsible_person || '',
+          deadline: '',
+          ...a
+        }))
+      ];
     }
 
-    // Add photos
-    if ((result.photos || []).length > 0) {
-      const photoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
+    // Add photos (use cdnUrl if available, else dataUrl for preview)
+    const photoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
+    if (files.length > 0) {
       const newPhotos = files.map((f, i) => {
-        const meta = result.photos[i] || {};
-        const kind = photoKinds.includes(meta.kind) ? meta.kind : 'General';
+        const meta = (result.photos || [])[i] || {};
         return {
           id: f.id,
           file_url: f.cdnUrl || f.dataUrl,
-          kind,
+          kind: photoKinds.includes(meta.kind) ? meta.kind : 'General',
           location: meta.location || '',
           caption: meta.caption || ''
         };
       });
-      updates.photos = [...(job.photos || []), ...newPhotos];
+      updated.photos = [...(job.photos || []), ...newPhotos];
     }
 
     // Text fields — only fill if currently empty
-    if (result.summary && !(job.summary || '').trim()) updates.summary = result.summary;
-    if (result.site_description && !(job.site_description || '').trim()) updates.site_description = result.site_description;
-    if (result.issues_text && !(job.issues_text || '').trim()) updates.issues_text = result.issues_text;
+    if (result.summary && !(job.summary || '').trim()) updated.summary = result.summary;
+    if (result.site_description && !(job.site_description || '').trim()) updated.site_description = result.site_description;
+    if (result.issues_text && !(job.issues_text || '').trim()) updated.issues_text = result.issues_text;
 
-    onChange(updates);
+    // Pass the complete updated job so handleChange can spread it correctly
+    onChange(updated);
     setApplied(true);
   };
 
