@@ -1,25 +1,25 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { uid, today } from '@/lib/jobUtils';
+import { uid } from '@/lib/jobUtils';
 import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 async function resizeImage(dataUrl, maxDim = 1500) {
   return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
+    const imgEl = new Image();
+    imgEl.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(imgEl.width, imgEl.height));
+      const newWidth = Math.round(imgEl.width * scale);
+      const newHeight = Math.round(imgEl.height * scale);
       const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      canvas.getContext('2d').drawImage(imgEl, 0, 0, newWidth, newHeight);
       resolve(canvas.toDataURL('image/jpeg', 0.75));
     };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
+    imgEl.onerror = () => resolve(dataUrl);
+    imgEl.src = dataUrl;
   });
 }
 
