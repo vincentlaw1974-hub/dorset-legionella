@@ -24,14 +24,12 @@ async function resizeImage(dataUrl, maxDim = 1500) {
 }
 
 async function analysePhotos(photoItems, job) {
-  // Resize all images to max 1500px before sending (API limit)
+  // Always use local dataUrl (already downloaded) and resize to stay under API limit
   const fileUrls = await Promise.all(
     photoItems.map(async (p) => {
-      const src = p.cdnUrl || p.dataUrl;
+      const src = p.dataUrl;
       if (!src) return null;
-      // CDN urls are fine; only resize base64 data URLs
-      if (src.startsWith('data:')) return resizeImage(src, 1500);
-      return src;
+      return resizeImage(src, 1400);
     })
   ).then(urls => urls.filter(Boolean));
 
