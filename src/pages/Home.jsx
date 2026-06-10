@@ -465,7 +465,17 @@ export default function Home() {
                   {activeTab === 'actions' && <ActionsTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'photos' && <PhotosTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'logbook' && <LogbookTab job={localJob} onChange={handleChange} />}
-                  {activeTab === 'ai_photo_import' && <AiPhotoImportTab job={localJob} onChange={handleChange} />}
+                  {activeTab === 'ai_photo_import' && <AiPhotoImportTab job={localJob} onChange={(updatedJob) => {
+                    // AiPhotoImportTab passes a full updated job object — apply it directly
+                    const withRisk = { ...updatedJob, risk: updatedJob.risk_override ? updatedJob.risk : calculateRisk(updatedJob) };
+                    localJobRef.current = withRisk;
+                    setLocalJob(withRisk);
+                    setSaveState('saving');
+                    clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateMutation.mutate({ id: withRisk.id, data: stripBase64(withRisk) });
+                    }, 800);
+                  }} />}
                   {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} />}
                   {activeTab === 'report' && (
                     <div className="space-y-3">
