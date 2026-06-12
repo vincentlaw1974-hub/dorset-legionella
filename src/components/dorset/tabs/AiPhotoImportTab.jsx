@@ -6,6 +6,7 @@ import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 export default function AiPhotoImportTab({ job, onChange }) {
   const [dragOver, setDragOver] = useState(false);
   const [files, setFiles] = useState([]);
+  const [engineerNotes, setEngineerNotes] = useState('');
   const [analysing, setAnalysing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -51,7 +52,7 @@ export default function AiPhotoImportTab({ job, onChange }) {
   };
 
   const handleAnalyse = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 && !engineerNotes.trim()) return;
     setAnalysing(true);
     setError(null);
     setResult(null);
@@ -90,7 +91,8 @@ export default function AiPhotoImportTab({ job, onChange }) {
       ).then(urlList => urlList.filter(Boolean));
 
       const promptText = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
-You are given ${files.length} site photos from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
+You are given ${files.length > 0 ? `${files.length} site photos` : 'no photos'}${engineerNotes.trim() ? ' and engineer\'s written notes' : ''} from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
+${engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : ''}
 
 Analyse every photo carefully and extract as much information as possible to populate a Legionella risk assessment report.
 
@@ -160,7 +162,7 @@ Rules:
 
       const llmResult = await base44.integrations.Core.InvokeLLM({
         prompt: promptText,
-        file_urls: fileUrls,
+        ...(fileUrls.length > 0 ? { file_urls: fileUrls } : {}),
         model: 'claude_sonnet_4_6',
       });
 
@@ -259,13 +261,13 @@ Rules:
   };
 
   const uploadingCount = files.filter(photoFile => photoFile.uploading).length;
-  const readyToAnalyse = files.length > 0 && uploadingCount === 0;
+  const readyToAnalyse = (files.length > 0 || engineerNotes.trim().length > 0) && uploadingCount === 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
       <div>
-        <strong className="text-base block">🤖 AI Photo Report Builder</strong>
-        <p className="text-xs text-gray-500 mt-0.5">Drop site photos and AI will analyse them to auto-populate outlets, rooms, TMVs, actions, and summary.</p>
+        <strong className="text-base block">🤖 AI Report Builder</strong>
+        <p className="text-xs text-gray-500 mt-0.5">Drop site photos and/or paste engineer's notes — AI will auto-populate outlets, rooms, TMVs, actions, and summary.</p>
       </div>
 
       <div
@@ -273,12 +275,23 @@ Rules:
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current.click()}
-        className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${dragOver ? 'border-red-500 bg-red-50 scale-[1.01]' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}
+        className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${dragOver ? 'border-red-500 bg-red-50 scale-[1.01]' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}
       >
-        <div className="text-4xl mb-2">📸</div>
+        <div className="text-3xl mb-1">📸</div>
         <div className="text-sm font-bold text-gray-700">Drag &amp; drop photos here</div>
-        <div className="text-xs text-gray-400 mt-1">or click to browse — all formats supported</div>
+        <div className="text-xs text-gray-400 mt-0.5">or click to browse — all formats supported</div>
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileInput} />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">📝 Engineer's notes <span className="text-gray-400 font-normal">(optional — paste or type site observations)</span></label>
+        <textarea
+          value={engineerNotes}
+          onChange={e => { setEngineerNotes(e.target.value); setResult(null); setApplied(false); }}
+          placeholder="e.g. Site has 3 floors. TMV in plant room needs servicing. Shower head in room 12 heavily scaled. Cold water tank on roof — no insulation. Temperature readings: WHB room 1 hot 48°C cold 19°C..."
+          rows={5}
+          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-red-400 resize-y"
+        />
       </div>
 
       {files.length > 0 && (
@@ -316,7 +329,7 @@ Rules:
         </div>
       )}
 
-      {files.length > 0 && (
+      {(files.length > 0 || engineerNotes.trim()) && (
         <button
           onClick={handleAnalyse}
           disabled={!readyToAnalyse || analysing}
@@ -324,8 +337,8 @@ Rules:
           style={{ background: analysing ? '#888' : '#d71920' }}
         >
           {analysing
-            ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> Analysing {files.length} photo{files.length !== 1 ? 's' : ''}… this may take 20–40 seconds</span>
-            : `✨ Analyse ${files.length} photo${files.length !== 1 ? 's' : ''} & build report`
+            ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> Analysing… this may take 20–40 seconds</span>
+            : `✨ Analyse ${[files.length > 0 ? `${files.length} photo${files.length !== 1 ? 's' : ''}` : '', engineerNotes.trim() ? 'notes' : ''].filter(Boolean).join(' + ')} & build report`
           }
         </button>
       )}
