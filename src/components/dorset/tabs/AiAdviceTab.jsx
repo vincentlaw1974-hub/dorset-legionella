@@ -146,14 +146,24 @@ SITE CONTEXT (use this to inform your advice):
         }
       }
 
+      // Build conversation history from all prior messages (excluding the loading placeholder we just added)
+      const priorMessages = messages.filter(m => !m.loading);
+      const conversationHistory = priorMessages
+        .map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.text || '(image)'}`)
+        .join('\n\n');
+
       const prompt = `You are a specialist Legionella risk assessment advisor with expertise in UK water hygiene regulations (ACoP L8, HSG274 Parts 1-3, HTM 04-01, HTM 01-05, BS 8580-1:2019, COSHH 2002).
 
 ${jobContext}
 
-USER QUESTION / REQUEST:
+CONVERSATION HISTORY (for context — continue naturally from where this left off):
+${conversationHistory}
+
+LATEST USER MESSAGE:
 ${text || '(Please analyse the attached image(s) for any visible faults, compliance concerns, or risks related to Legionella / water hygiene)'}
 
 INSTRUCTIONS:
+- Continue the conversation naturally, taking into account everything said above
 - Provide clear, accurate, professional advice grounded in UK regulations
 - Reference specific regulation sections where relevant (e.g. "Under HSG274 Part 2 §2.38...")
 - For water sampling advice, specify the number of samples, sample types (e.g. L1, L2), sample points, and frequency based on property type and risk level
