@@ -60,6 +60,7 @@ export default function Home() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [tabMemory, setTabMemory] = useState({});
+  const [aiConversations, setAiConversations] = useState({}); // jobId -> messages[]
   const [unlockedJobs, setUnlockedJobs] = useState({}); // jobId -> true when unlocked
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockPin, setUnlockPin] = useState('');
@@ -476,7 +477,7 @@ export default function Home() {
                       updateMutation.mutate({ id: withRisk.id, data: stripBase64(withRisk) });
                     }, 800);
                   }} />}
-                  {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} />}
+                  {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} onChange={handleChange} messages={aiConversations[localJob.id]} onMessagesChange={(msgs) => setAiConversations(prev => ({ ...prev, [localJob.id]: msgs }))} />}
                   {activeTab === 'report' && (
                     <div className="space-y-3">
                       <SchematicTab job={localJob} onChange={handleChange} />

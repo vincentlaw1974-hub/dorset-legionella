@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { uid } from '@/lib/jobUtils';
 
 const QUICK_QUESTIONS = [
   'Does this property need water samples taken, and how many?',
@@ -11,7 +11,7 @@ const QUICK_QUESTIONS = [
   'Based on the risk score, what priority actions should be recommended?',
 ];
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onApply }) {
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end gap-2">
@@ -36,27 +36,56 @@ function MessageBubble({ msg }) {
   return (
     <div className="flex gap-2 items-start">
       <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style={{ background: '#d71920' }}>AI</div>
-      <div className="max-w-[90%] bg-white border border-gray-200 rounded-2xl rounded-tl-md px-4 py-3 text-sm shadow-sm">
-        {msg.loading ? (
-          <div className="flex items-center gap-2 text-gray-400">
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin" />
-            Analysing…
-          </div>
-        ) : (
-          <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+      <div className="max-w-[90%]">
+        <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-md px-4 py-3 text-sm shadow-sm">
+          {msg.loading ? (
+            <div className="flex items-center gap-2 text-gray-400">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin" />
+              Analysing…
+            </div>
+          ) : (
+            <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+          )}
+        </div>
+        {msg.findings && !msg.applied && onApply && (
+          <button
+            onClick={() => onApply(msg.findings)}
+            className="mt-2 w-full py-2 px-4 rounded-xl text-sm font-bold text-white"
+            style={{ background: '#16a34a' }}
+          >
+            ✅ Apply findings to report ({[
+              msg.findings.actions?.length && `${msg.findings.actions.length} action${msg.findings.actions.length !== 1 ? 's' : ''}`,
+              msg.findings.outlets?.length && `${msg.findings.outlets.length} outlet${msg.findings.outlets.length !== 1 ? 's' : ''}`,
+              msg.findings.showers?.length && `${msg.findings.showers.length} shower${msg.findings.showers.length !== 1 ? 's' : ''}`,
+              msg.findings.dead_legs?.length && `${msg.findings.dead_legs.length} dead leg${msg.findings.dead_legs.length !== 1 ? 's' : ''}`,
+            ].filter(Boolean).join(', ')})
+          </button>
+        )}
+        {msg.applied && (
+          <div className="mt-2 text-xs text-green-700 font-semibold px-2">✅ Applied to report</div>
         )}
       </div>
     </div>
   );
 }
 
-export default function AiAdviceTab({ job }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      text: `Hello! I'm your Legionella compliance advisor. I can:\n\n• Analyse photos of water systems, outlets, tanks, or plant rooms for visible faults\n• Answer compliance questions based on this job's property type (${job?.property_type || 'unknown'}), systems, and recorded data\n• Advise on water sampling requirements, reassessment intervals, and control measures\n\nUpload a photo or ask me a question below.`,
-    }
-  ]);
+const DEFAULT_GREETING = (job) => ({
+  role: 'assistant',
+  text: `Hello! I'm your Legionella compliance advisor. I can:\n\n• Analyse photos of water systems, outlets, tanks, or plant rooms for visible faults\n• Answer compliance questions based on this job's property type (${job?.property_type || 'unknown'}), systems, and recorded data\n• Advise on water sampling requirements, reassessment intervals, and control measures\n\nUpload a photo or ask me a question below.`,
+});
+
+export default function AiAdviceTab({ job, onChange, messages: persistedMessages, onMessagesChange }) {
+  const [messages, setMessages] = useState(persistedMessages || [DEFAULT_GREETING(job)]);
+  const [pendingApply, setPendingApply] = useState(null); // parsed findings from AI ready to apply
+
+  // Sync messages up to parent for persistence
+  const updateMessages = (updater) => {
+    setMessages(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      onMessagesChange?.(next);
+      return next;
+    });
+  };
   const [input, setInput] = useState('');
   const [images, setImages] = useState([]); // { dataUrl, file }[]
   const [loading, setLoading] = useState(false);
@@ -64,6 +93,34 @@ export default function AiAdviceTab({ job }) {
   const bottomRef = useRef();
 
   const scrollDown = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+  const handleApplyFindings = (findings) => {
+    if (!findings || !onChange) return;
+    const updatedJob = { ...job };
+    if (findings.actions?.length) {
+      const existingCount = (job.actions || []).length;
+      updatedJob.actions = [...(job.actions || []), ...findings.actions.map((a, i) => ({
+        id: uid(), ref: `A${existingCount + i + 1}`, status: 'Open',
+        responsible_person: job.responsible_person || '', deadline: '', ...a
+      }))];
+    }
+    if (findings.outlets?.length) {
+      updatedJob.outlets = [...(job.outlets || []), ...findings.outlets.map(o => ({ id: uid(), ...o }))];
+    }
+    if (findings.showers?.length) {
+      updatedJob.showers = [...(job.showers || []), ...findings.showers.map(s => ({ id: uid(), ...s }))];
+    }
+    if (findings.dead_legs?.length) {
+      updatedJob.dead_legs = [...(job.dead_legs || []), ...findings.dead_legs.map(d => ({ id: uid(), ...d }))];
+    }
+    if (findings.issues_text && !(job.issues_text || '').trim()) {
+      updatedJob.issues_text = findings.issues_text;
+    }
+    onChange(updatedJob);
+    setPendingApply(null);
+    // Mark the message as applied
+    updateMessages(prev => prev.map(m => m.findings === findings ? { ...m, applied: true } : m));
+  };
 
   const handleImageAdd = (files) => {
     Array.from(files).forEach(file => {
@@ -112,7 +169,7 @@ SITE CONTEXT (use this to inform your advice):
 
     const userMsg = { role: 'user', text, images: images.map(i => i.dataUrl) };
     const assistantMsg = { role: 'assistant', text: '', loading: true };
-    setMessages(prev => [...prev, userMsg, assistantMsg]);
+    updateMessages(prev => [...prev, userMsg, assistantMsg]);
     setInput('');
     setImages([]);
     setLoading(true);
@@ -179,11 +236,45 @@ INSTRUCTIONS:
       });
 
       const responseText = typeof result === 'string' ? result.trim() : (result?.text || result?.content || JSON.stringify(result) || '');
-      setMessages(prev => prev.map((m, i) =>
-        i === prev.length - 1 ? { role: 'assistant', text: responseText } : m
+
+      // Try to extract structured findings from AI response to enable "Apply to report"
+      let extractedFindings = null;
+      if (fileUrls.length > 0 || text.toLowerCase().includes('analys') || text.toLowerCase().includes('photo') || text.toLowerCase().includes('image')) {
+        try {
+          const extractResult = await base44.integrations.Core.InvokeLLM({
+            prompt: `Given this Legionella risk assessment AI response, extract any specific findings that could be added to a report. Return ONLY valid JSON or null if there's nothing actionable.
+
+AI RESPONSE:
+${responseText}
+
+Return JSON matching this schema (omit empty arrays):
+{
+  "actions": [{"system": "string", "observation": "string", "action": "string", "priority": "1|2|3"}],
+  "outlets": [{"location": "string", "type": "string", "hot": "string", "cold": "string", "notes": "string", "hasTmv": false, "infrequent": false}],
+  "showers": [{"location": "string", "condition": "string", "notes": "string"}],
+  "dead_legs": [{"location": "string", "description": "string", "pipe_material": "string"}],
+  "issues_text": "string — bullet points of concerns found (only if findings exist)"
+}
+
+Return null if the response is just general advice with no specific site findings to record.`,
+            model: 'gpt_5_mini',
+          });
+          const raw = typeof extractResult === 'string' ? extractResult : JSON.stringify(extractResult);
+          const jsonMatch = raw.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[1]);
+            const hasFindings = (parsed.actions?.length || parsed.outlets?.length || parsed.showers?.length || parsed.dead_legs?.length || parsed.issues_text);
+            if (hasFindings) extractedFindings = parsed;
+          }
+        } catch (_) { /* silent — apply button just won't show */ }
+      }
+
+      updateMessages(prev => prev.map((m, i) =>
+        i === prev.length - 1 ? { role: 'assistant', text: responseText, findings: extractedFindings } : m
       ));
+      if (extractedFindings) setPendingApply(extractedFindings);
     } catch (err) {
-      setMessages(prev => prev.map((m, i) =>
+      updateMessages(prev => prev.map((m, i) =>
         i === prev.length - 1 ? { role: 'assistant', text: `Sorry, an error occurred: ${err.message}` } : m
       ));
     }
@@ -205,7 +296,7 @@ INSTRUCTIONS:
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
+        {messages.map((msg, i) => <MessageBubble key={i} msg={msg} onApply={handleApplyFindings} />)}
         <div ref={bottomRef} />
       </div>
 
