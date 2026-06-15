@@ -115,17 +115,12 @@ Return ONLY a JSON object (no markdown fences) with these exact keys:
       if (start === -1 || end === -1) throw new Error('AI did not return valid JSON — try again');
       const data = JSON.parse(text.slice(start, end + 1));
 
-      // 4. Build HTML and trigger download
+      // 4. Build HTML and open directly in new tab
       const html = buildReport(data, job, uploaded);
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${siteName.replace(/\s+/g, '_')}_LRA.html`;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 5000);
+      const win = window.open('', '_blank');
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
 
       setDone(true);
     } catch (err) {
@@ -200,7 +195,7 @@ Return ONLY a JSON object (no markdown fences) with these exact keys:
 
       {done && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800 font-semibold text-center">
-          ✅ Report downloaded — open the .html file in your browser, then File → Print → Save as PDF
+          ✅ Report opened in a new tab — use File → Print → Save as PDF to save it
         </div>
       )}
 
