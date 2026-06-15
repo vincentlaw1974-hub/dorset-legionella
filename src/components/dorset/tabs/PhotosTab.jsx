@@ -56,7 +56,7 @@ export default function PhotosTab({ job, onChange }) {
       const dataUrl = await fileToDataUrl(file);
 
       let meta = { kind: 'General', location: '', caption: '' };
-      if (useAI && (job.rooms || []).length > 0) {
+      if (useAI) {
         meta = await detectPhotoMeta(file.name, job.rooms || []);
         if (!photoKinds.includes(meta.kind)) meta.kind = 'General';
         const knownRooms = (job.rooms || []).map(r => r.name);
@@ -84,7 +84,7 @@ export default function PhotosTab({ job, onChange }) {
 
   const handleInput = (e) => {
     const files = [...e.target.files];
-    if (files.length > 0) upload(files, false);
+    if (files.length > 0) upload(files, true);
     e.target.value = '';
   };
 
@@ -93,7 +93,7 @@ export default function PhotosTab({ job, onChange }) {
     setDragOver(false);
     const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
     if (files.length > 0) upload(files, true);
-  }, [job.rooms]);
+  }, []);
 
   const updatePhoto = (id, field, value) => {
     onChange({ photos: (job.photos || []).map(p => p.id === id ? { ...p, [field]: value } : p) });
