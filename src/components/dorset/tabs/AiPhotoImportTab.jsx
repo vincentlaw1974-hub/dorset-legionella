@@ -76,32 +76,36 @@ export default function AiPhotoImportTab({ job, onChange }) {
     return uploaded.file_url;
   };
 
-  const analysePhotoBatch = async (batchFiles, batchIndex, totalBatches) => {
-    const fileUrls = [];
-    for (const photoItem of batchFiles) {
-      const url = await resizeAndUpload(photoItem);
-      if (url) fileUrls.push(url);
-    }
+  const buildPrompt = (photoCount, batchIndex, totalBatches) => {
+    const notesSection = engineerNotes.trim()
+      ? `\n=== ENGINEER'S NOTES ===\n${engineerNotes.trim()}\n=== END NOTES ===\n`
+      : '';
+    const batchNote = totalBatches > 1 ? ` (photo batch ${batchIndex + 1} of ${totalBatches} — engineer's notes apply to the whole job)` : '';
 
-    const notesSection = engineerNotes.trim() ? `\nENGINEER'S NOTES (use these heavily — they contain temperature readings, observations and locations):\n${engineerNotes.trim()}\n` : '';
-
-    const prompt = `You are an expert Legionella risk assessor writing a professional ACoP L8 / HSG274 risk assessment report for Dorset Plumbing (UK).
-Site: ${job.site_name || job.client || 'the site'} | Type: ${job.property_type || 'Commercial'} | Batch: ${batchIndex + 1} of ${totalBatches}
+    return `You are an expert Legionella risk assessor producing a full ACoP L8 / HSG274 Part 2 risk assessment report for Dorset Plumbing (UK).
+Site: ${job.site_name || job.client || 'the site'} | Property type: ${job.property_type || 'Commercial'}${batchNote}
 ${notesSection}
+INSTRUCTIONS — read every word of the engineer's notes and examine every photo. Extract the maximum possible detail:
 
-You MUST extract as much detail as possible from both the photos AND the engineer's notes. Be thorough and specific — don't be vague.
+OUTLETS: List EVERY outlet mentioned in the notes or visible in photos. For each one record the exact location, type, hot temp (number only e.g. "52"), cold temp (number only e.g. "18"), whether it has a TMV (true/false), whether it is infrequently used (true/false), and any defect notes. Read temperature gauge values precisely from photos.
 
-For OUTLETS: list every individual outlet you can identify from the photos or notes. Include temperature readings exactly as written (e.g. "52" for hot, "18" for cold — numbers only, no °C). If a temperature thermometer/gauge is visible in a photo, read the exact value.
-For ACTIONS: raise a specific remedial action for EVERY defect, non-compliance or risk you identify. Use priority "1" (immediate), "2" (within 1 month), "3" (within 3 months).
-For ROOMS: list every distinct room, area or location mentioned in notes or visible in photos.
-For SHOWERS: list every shower head — note condition (Good/Fair/Poor/Heavily Scaled).
-For TMVs: list every TMV visible, with location and condition.
-For DEAD LEGS: identify any pipework that appears unused, capped, or redundant.
-For SITE DESCRIPTION: write a detailed professional paragraph describing the water systems, building type, and infrastructure observed.
-For SUMMARY: write a thorough professional executive summary (3-5 sentences) suitable for a formal risk assessment report, covering key findings and risk level.
-For ISSUES TEXT: list all deficiencies, non-compliances and hazards found, one per line starting with "•".
+ROOMS: List every room, floor, ward, or area mentioned anywhere in the notes or visible in photos.
 
-Return ONLY valid JSON (no markdown, no explanation):
+SHOWERS: List every shower — location, condition (Good / Fair / Poor / Heavily Scaled), last descale date if mentioned, notes.
+
+TMVs: List every TMV — ref if given, location, type (e.g. "Type 3"), condition, notes.
+
+DEAD LEGS: Any redundant, capped, or seldom-used pipework branches.
+
+ACTIONS: Raise a SPECIFIC remedial action for EVERY defect, temperature failure, missing record, or non-compliance. Priority: "1" = immediate risk (e.g. Legionella growth temp, no written scheme), "2" = within 1 month, "3" = within 3 months.
+
+SITE DESCRIPTION: A thorough professional paragraph about the property, water systems, infrastructure, and key observations.
+
+SUMMARY: A thorough professional executive summary (4–6 sentences) covering what was inspected, key findings, risk level, and the main actions required. Write as if it will appear verbatim in a formal report.
+
+ISSUES TEXT: Every deficiency, non-compliance, and hazard found — one bullet per line starting with "•". Be specific (include locations and values).
+
+Return ONLY valid JSON — no markdown fences, no explanation:
 {
   "site_description": "string",
   "summary": "string",
@@ -114,15 +118,17 @@ Return ONLY valid JSON (no markdown, no explanation):
   "actions": [{"system": "string","observation": "string","action": "string","priority": "string"}],
   "photos": [{"caption": "string","kind": "string","location": "string"}]
 }
-outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV
-photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General`;
+Valid outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV
+Valid photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General`;
+  };
 
+  const runLLM = async (fileUrls, batchIndex, totalBatches) => {
+    const prompt = buildPrompt(fileUrls.length, batchIndex, totalBatches);
     const llmResult = await base44.integrations.Core.InvokeLLM({
       prompt,
       file_urls: fileUrls.length > 0 ? fileUrls : undefined,
       model: 'claude_sonnet_4_6',
     });
-
     const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
     const match = responseString.match(/```(?:json)?\s*([\s\S]*?)```/) || responseString.match(/(\{[\s\S]*\})/);
     if (!match) return null;
@@ -144,7 +150,6 @@ photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Show
       if (!merged.summary && r.summary) merged.summary = r.summary;
       if (!merged.site_description && r.site_description) merged.site_description = r.site_description;
     }
-    // Deduplicate rooms by name
     const seen = new Set();
     merged.rooms = merged.rooms.filter(r => { if (seen.has(r.name)) return false; seen.add(r.name); return true; });
     return merged;
@@ -157,53 +162,56 @@ photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Show
     setResult(null);
 
     try {
-      const BATCH_SIZE = 10;
       setProcessedFiles(files);
+
+      // Upload all photos first
+      const allFileUrls = [];
+      for (const photoItem of files) {
+        setBatchProgress({ current: allFileUrls.length, total: files.length });
+        const url = await resizeAndUpload(photoItem);
+        if (url) allFileUrls.push(url);
+      }
+
+      // Split into batches of 20 for the LLM calls (engineer notes go in every batch)
+      const BATCH_SIZE = 20;
       const batches = [];
-      for (let i = 0; i < files.length; i += BATCH_SIZE) {
-        batches.push(files.slice(i, i + BATCH_SIZE));
+      if (allFileUrls.length === 0) {
+        batches.push([]); // notes-only
+      } else {
+        for (let i = 0; i < allFileUrls.length; i += BATCH_SIZE) {
+          batches.push(allFileUrls.slice(i, i + BATCH_SIZE));
+        }
       }
 
-      // If only notes, no photos
-      if (files.length === 0) {
-        batches.push([]);
-      }
-
-      setBatchProgress({ current: 0, total: batches.length + (batches.length > 1 ? 1 : 0) });
+      setBatchProgress({ current: 0, total: batches.length });
       const batchResults = [];
       for (let i = 0; i < batches.length; i++) {
-        setBatchProgress({ current: i + 1, total: batches.length + (batches.length > 1 ? 1 : 0) });
-        const batchResult = await analysePhotoBatch(batches[i], i, batches.length);
+        setBatchProgress({ current: i + 1, total: batches.length });
+        const batchResult = await runLLM(batches[i], i, batches.length);
         batchResults.push(batchResult);
       }
 
       const merged = mergeResults(batchResults);
 
-      // If multiple batches, do a final synthesis pass to write a cohesive summary
-      if (batches.length > 1 && engineerNotes.trim()) {
+      // If multiple photo batches, do a final synthesis pass so the summary & issues cover everything
+      if (batches.length > 1) {
         setBatchProgress({ current: batches.length + 1, total: batches.length + 1 });
+        const notesSection = engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : '';
         const synthResult = await base44.integrations.Core.InvokeLLM({
-          prompt: `You are writing the final executive summary and issues list for a professional Legionella risk assessment report for Dorset Plumbing (UK).
+          prompt: `You are finalising a professional Legionella risk assessment report for Dorset Plumbing (UK).
 Site: ${job.site_name || job.client || 'the site'} | Type: ${job.property_type || 'Commercial'}
+${notesSection}
+DATA EXTRACTED ACROSS ALL PHOTO BATCHES:
+Outlets (${merged.outlets.length}): ${merged.outlets.map(o => `${o.location} ${o.type} H:${o.hot||'?'} C:${o.cold||'?'}`).join(' | ')}
+Rooms: ${merged.rooms.map(r => r.name).join(', ') || 'none'}
+Showers (${merged.showers.length}): ${merged.showers.map(s => `${s.location} ${s.condition}`).join(', ')}
+TMVs (${merged.tmv_register.length}): ${merged.tmv_register.map(t => t.location).join(', ')}
+Dead legs (${merged.dead_legs.length}): ${merged.dead_legs.map(d => d.location).join(', ')}
+Issues found: ${merged.issues_text || 'none yet'}
 
-ENGINEER'S NOTES:
-${engineerNotes.trim()}
-
-DATA EXTRACTED FROM SITE PHOTOS:
-- ${merged.outlets.length} outlets identified
-- ${merged.showers.length} showers
-- ${merged.tmv_register.length} TMVs
-- ${merged.dead_legs.length} dead legs
-- Rooms: ${merged.rooms.map(r => r.name).join(', ') || 'none listed'}
-- Existing issues: ${merged.issues_text || 'none'}
-
-Write a thorough professional executive summary (4-6 sentences) and a comprehensive bullet-point issues list.
+Write a cohesive professional executive summary (4–6 sentences) and a comprehensive bullet-point issues list covering the FULL job.
 Return ONLY valid JSON:
-{
-  "summary": "string",
-  "site_description": "string",
-  "issues_text": "string (bullet points starting with •, one per line)"
-}`,
+{"summary":"string","site_description":"string","issues_text":"string"}`,
           model: 'claude_sonnet_4_6',
         });
         const synthStr = typeof synthResult === 'string' ? synthResult : JSON.stringify(synthResult);
@@ -379,8 +387,8 @@ Return ONLY valid JSON:
             ? <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
                 {batchProgress.total > 1
-                  ? `Analysing batch ${batchProgress.current} of ${batchProgress.total}… please wait`
-                  : 'Analysing… this may take 20–40 seconds'}
+                  ? `Analysing batch ${batchProgress.current} of ${batchProgress.total}…`
+                  : 'Analysing with full context… 20–40 seconds'}
               </span>
             : <span>✨ Analyse {[files.length > 0 ? `${files.length} photo${files.length !== 1 ? 's' : ''}` : '', engineerNotes.trim() ? 'notes' : ''].filter(Boolean).join(' + ')} &amp; build report
                 {files.length > 10 && <span className="block text-xs font-normal opacity-80 mt-0.5">Will process in {Math.ceil(files.length / 10)} batches of 10</span>}
