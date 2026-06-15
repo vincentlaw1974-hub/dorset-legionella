@@ -8,26 +8,38 @@ import { base44 } from '@/api/base44Client';
 
 const photoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
 
-// Use AI to guess room + kind from filename, given the list of known rooms
-async function detectPhotoMeta(filename, rooms) {
+// Use AI to analyse the actual image content and tag it
+async function detectPhotoMeta(dataUrl, rooms) {
   const roomNames = rooms.map(r => r.name);
   try {
+    // Resize image to max 800px before uploading to save credits
+    const resized = await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 800;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+    const blob = await (await fetch(resized)).blob();
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: new File([blob], 'photo.jpg', { type: 'image/jpeg' }) });
+
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are helping tag photos for a Legionella risk assessment report.
-Given a photo filename: "${filename}"
-And the list of rooms at this site: ${JSON.stringify(roomNames)}
-
-Respond with JSON only:
+      prompt: `You are tagging a photo for a Legionella water safety risk assessment report.
+Look at the image and respond with JSON only:
 {
-  "location": "<best matching room name from the list, or empty string if none match>",
+  "location": "<best matching room name from this list: ${JSON.stringify(roomNames)} — or empty string if none match or list is empty>",
   "kind": "<one of: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General>",
-  "caption": "<short descriptive caption based on the filename>"
+  "caption": "<short descriptive caption of what the photo shows, under 10 words>"
 }
-
-Rules:
-- Match location to the closest room name if the filename mentions a room, number, or area.
-- Pick the most appropriate kind based on keywords in the filename.
-- Keep caption under 10 words.`,
+Pick the most accurate kind based on what you actually see in the image.`,
+      file_urls: [file_url],
       response_json_schema: {
         type: 'object',
         properties: {
@@ -57,7 +69,7 @@ export default function PhotosTab({ job, onChange }) {
 
       let meta = { kind: 'General', location: '', caption: '' };
       if (useAI) {
-        meta = await detectPhotoMeta(file.name, job.rooms || []);
+        meta = await detectPhotoMeta(dataUrl, job.rooms || []);
         if (!photoKinds.includes(meta.kind)) meta.kind = 'General';
         const knownRooms = (job.rooms || []).map(r => r.name);
         if (!knownRooms.includes(meta.location)) meta.location = '';
