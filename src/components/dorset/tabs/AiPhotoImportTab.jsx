@@ -52,6 +52,91 @@ export default function AiPhotoImportTab({ job, onChange }) {
     setApplied(false);
   };
 
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+
+  const resizeAndUpload = async (photoItem) => {
+    const srcData = photoItem.dataUrl;
+    if (!srcData) return null;
+    const resized = await new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        const maxDimension = 1400;
+        const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      image.onerror = () => resolve(srcData);
+      image.src = srcData;
+    });
+    const blob = await (await fetch(resized)).blob();
+    const uploaded = await base44.integrations.Core.UploadFile({ file: new File([blob], 'photo.jpg', { type: 'image/jpeg' }) });
+    return uploaded.file_url;
+  };
+
+  const analysePhotoBatch = async (batchFiles, batchIndex, totalBatches) => {
+    const fileUrls = [];
+    for (const photoItem of batchFiles) {
+      const url = await resizeAndUpload(photoItem);
+      if (url) fileUrls.push(url);
+    }
+
+    const prompt = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
+You are given ${fileUrls.length} site photos (batch ${batchIndex + 1} of ${totalBatches}) from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
+${batchIndex === 0 && engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : ''}
+
+Analyse every photo carefully and extract information to populate a Legionella risk assessment report.
+
+Return ONLY valid JSON:
+{
+  "site_description": "string",
+  "summary": "string",
+  "rooms": [{"name": "string"}],
+  "outlets": [{"location": "string","type": "string","hot": "string","cold": "string","notes": "string","hasTmv": false,"infrequent": false}],
+  "showers": [{"location": "string","condition": "string","notes": "string"}],
+  "tmv_register": [{"ref": "string","location": "string","type": "string","condition": "string","notes": "string"}],
+  "dead_legs": [{"location": "string","description": "string","pipe_material": "string"}],
+  "issues_text": "string",
+  "actions": [{"system": "string","observation": "string","action": "string","priority": "string"}],
+  "photos": [{"caption": "string","kind": "string","location": "string"}]
+}
+Rules: Only include items you can actually see. Return EMPTY arrays where nothing is visible. outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV. photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General.`;
+
+    const llmResult = await base44.integrations.Core.InvokeLLM({
+      prompt,
+      file_urls: fileUrls,
+      model: 'claude_sonnet_4_6',
+    });
+
+    const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
+    const match = responseString.match(/```(?:json)?\s*([\s\S]*?)```/) || responseString.match(/(\{[\s\S]*\})/);
+    if (!match) return null;
+    return JSON.parse(match[1]);
+  };
+
+  const mergeResults = (batchResults) => {
+    const merged = { rooms: [], outlets: [], showers: [], tmv_register: [], dead_legs: [], actions: [], photos: [], issues_text: '', summary: '', site_description: '' };
+    for (const r of batchResults) {
+      if (!r) continue;
+      merged.rooms.push(...(r.rooms || []));
+      merged.outlets.push(...(r.outlets || []));
+      merged.showers.push(...(r.showers || []));
+      merged.tmv_register.push(...(r.tmv_register || []));
+      merged.dead_legs.push(...(r.dead_legs || []));
+      merged.actions.push(...(r.actions || []));
+      merged.photos.push(...(r.photos || []));
+      if (r.issues_text) merged.issues_text += (merged.issues_text ? '\n' : '') + r.issues_text;
+      if (!merged.summary && r.summary) merged.summary = r.summary;
+      if (!merged.site_description && r.site_description) merged.site_description = r.site_description;
+    }
+    // Deduplicate rooms by name
+    const seen = new Set();
+    merged.rooms = merged.rooms.filter(r => { if (seen.has(r.name)) return false; seen.add(r.name); return true; });
+    return merged;
+  };
+
   const handleAnalyse = async () => {
     if (files.length === 0 && !engineerNotes.trim()) return;
     setAnalysing(true);
@@ -59,135 +144,32 @@ export default function AiPhotoImportTab({ job, onChange }) {
     setResult(null);
 
     try {
-      // Limit to 10 photos max to avoid rate limits — process in batches
-      const MAX_PHOTOS = 10;
-      const filesToProcess = files.slice(0, MAX_PHOTOS);
-      setProcessedFiles(filesToProcess);
-
-      // Resize images and upload to CDN for the API — sequential to avoid rate limits
-      const fileUrls = [];
-      for (const photoItem of filesToProcess) {
-          const sourcData = photoItem.dataUrl;
-          if (!sourcData) return null;
-
-          // Resize to max 1400px
-          const resized = await new Promise((resolve) => {
-            const image = new Image();
-            image.onload = () => {
-              const maxDimension = 1400;
-              const scaleFactor = Math.min(1, maxDimension / Math.max(image.width, image.height));
-              const targetWidth = Math.round(image.width * scaleFactor);
-              const targetHeight = Math.round(image.height * scaleFactor);
-              const canvasEl = document.createElement('canvas');
-              canvasEl.width = targetWidth;
-              canvasEl.height = targetHeight;
-              canvasEl.getContext('2d').drawImage(image, 0, 0, targetWidth, targetHeight);
-              resolve(canvasEl.toDataURL('image/jpeg', 0.75));
-            };
-            image.onerror = () => resolve(sourcData);
-            image.src = sourcData;
-          });
-
-          const fetchResponse = await fetch(resized);
-          const blobData = await fetchResponse.blob();
-          const fileData = new File([blobData], 'photo.jpg', { type: 'image/jpeg' });
-          const uploadResult = await base44.integrations.Core.UploadFile({ file: fileData });
-          fileUrls.push(uploadResult.file_url);
-        }
-
-      const promptText = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
-You are given ${filesToProcess.length > 0 ? `${filesToProcess.length} site photos` : 'no photos'}${engineerNotes.trim() ? ' and engineer\'s written notes' : ''} from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
-${engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : ''}
-
-Analyse every photo carefully and extract as much information as possible to populate a Legionella risk assessment report.
-
-Return ONLY valid JSON matching this schema exactly:
-{
-  "site_description": "string — 1-2 sentence description of the site/premises from what you can see",
-  "summary": "string — 3-4 sentence professional executive summary based on the photos",
-  "rooms": [{"name": "string"}],
-  "outlets": [
-    {
-      "location": "string — room or area name",
-      "type": "string — one of: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV",
-      "hot": "string — temperature reading in °C if visible on thermometer, else empty string",
-      "cold": "string — cold temp if visible, else empty string",
-      "notes": "string — any observations (scale, condition, limescale, etc.)",
-      "hasTmv": false,
-      "infrequent": false
-    }
-  ],
-  "showers": [
-    {
-      "location": "string",
-      "condition": "string — Good / Fair / Poor",
-      "notes": "string"
-    }
-  ],
-  "tmv_register": [
-    {
-      "ref": "string — e.g. TMV-01",
-      "location": "string",
-      "type": "string — e.g. TMV3, TMV2, Thermostatic Bar Valve",
-      "condition": "string — Good / Fair / Poor",
-      "notes": "string"
-    }
-  ],
-  "dead_legs": [
-    {
-      "location": "string",
-      "description": "string",
-      "pipe_material": "string — Copper / CPVC / Plastic / Unknown"
-    }
-  ],
-  "issues_text": "string — bullet points of observations and concerns",
-  "actions": [
-    {
-      "system": "string",
-      "observation": "string",
-      "action": "string — recommended remedial action",
-      "priority": "string — 1 (high) / 2 (medium) / 3 (low)"
-    }
-  ],
-  "photos": [
-    {
-      "caption": "string — brief description of what the photo shows",
-      "kind": "string — one of: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General",
-      "location": "string — room or area if identifiable"
-    }
-  ]
-}
-
-Rules:
-- Only include items you can actually see or confidently infer from the photos.
-- For temperature readings, only enter a value if a thermometer/display is clearly visible.
-- Be precise about locations if signage or room labels are visible.
-- "actions" should include any issues that need remediation.
-- Return EMPTY arrays for sections where nothing relevant is visible.`;
-
-      const llmResult = await base44.integrations.Core.InvokeLLM({
-        prompt: promptText,
-        ...(fileUrls.length > 0 ? { file_urls: fileUrls } : {}),
-        model: 'claude_sonnet_4_6',
-      });
-
-      // Extract JSON from the plain string response
-      const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
-      const codeBlockMatch = responseString.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const jsonObjectMatch = responseString.match(/(\{[\s\S]*\})/);
-      const jsonString = codeBlockMatch ? codeBlockMatch[1] : (jsonObjectMatch ? jsonObjectMatch[1] : null);
-
-      if (!jsonString) {
-        setError('AI returned an unexpected response. Please try again.');
-        return;
+      const BATCH_SIZE = 10;
+      setProcessedFiles(files);
+      const batches = [];
+      for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        batches.push(files.slice(i, i + BATCH_SIZE));
       }
 
-      const parsedData = JSON.parse(jsonString);
-      setResult(parsedData);
+      // If only notes, no photos
+      if (files.length === 0) {
+        batches.push([]);
+      }
+
+      setBatchProgress({ current: 0, total: batches.length });
+      const batchResults = [];
+      for (let i = 0; i < batches.length; i++) {
+        setBatchProgress({ current: i + 1, total: batches.length });
+        const batchResult = await analysePhotoBatch(batches[i], i, batches.length);
+        batchResults.push(batchResult);
+      }
+
+      setResult(mergeResults(batchResults));
     } catch (err) {
       setError('AI analysis failed: ' + err.message);
     } finally {
       setAnalysing(false);
+      setBatchProgress({ current: 0, total: 0 });
     }
   };
 
@@ -342,10 +324,14 @@ Rules:
           style={{ background: analysing ? '#888' : '#d71920' }}
         >
           {analysing
-            ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> Analysing… this may take 20–40 seconds</span>
-            : <span>
-                ✨ Analyse {[files.length > 0 ? `${Math.min(files.length, 10)} photo${Math.min(files.length, 10) !== 1 ? 's' : ''}` : '', engineerNotes.trim() ? 'notes' : ''].filter(Boolean).join(' + ')} &amp; build report
-                {files.length > 10 && <span className="block text-xs font-normal opacity-80 mt-0.5">⚠ Only first 10 of {files.length} photos will be analysed</span>}
+            ? <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                {batchProgress.total > 1
+                  ? `Analysing batch ${batchProgress.current} of ${batchProgress.total}… please wait`
+                  : 'Analysing… this may take 20–40 seconds'}
+              </span>
+            : <span>✨ Analyse {[files.length > 0 ? `${files.length} photo${files.length !== 1 ? 's' : ''}` : '', engineerNotes.trim() ? 'notes' : ''].filter(Boolean).join(' + ')} &amp; build report
+                {files.length > 10 && <span className="block text-xs font-normal opacity-80 mt-0.5">Will process in {Math.ceil(files.length / 10)} batches of 10</span>}
               </span>
           }
         </button>
