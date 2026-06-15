@@ -11,6 +11,7 @@ export default function AiPhotoImportTab({ job, onChange }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [applied, setApplied] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState([]);
   const inputRef = useRef();
 
   const addFiles = useCallback(async (newFiles) => {
@@ -58,9 +59,14 @@ export default function AiPhotoImportTab({ job, onChange }) {
     setResult(null);
 
     try {
-      // Resize images and upload to CDN for the API
-      const fileUrls = await Promise.all(
-        files.map(async (photoItem) => {
+      // Limit to 10 photos max to avoid rate limits — process in batches
+      const MAX_PHOTOS = 10;
+      const filesToProcess = files.slice(0, MAX_PHOTOS);
+      setProcessedFiles(filesToProcess);
+
+      // Resize images and upload to CDN for the API — sequential to avoid rate limits
+      const fileUrls = [];
+      for (const photoItem of filesToProcess) {
           const sourcData = photoItem.dataUrl;
           if (!sourcData) return null;
 
@@ -86,12 +92,11 @@ export default function AiPhotoImportTab({ job, onChange }) {
           const blobData = await fetchResponse.blob();
           const fileData = new File([blobData], 'photo.jpg', { type: 'image/jpeg' });
           const uploadResult = await base44.integrations.Core.UploadFile({ file: fileData });
-          return uploadResult.file_url;
-        })
-      ).then(urlList => urlList.filter(Boolean));
+          fileUrls.push(uploadResult.file_url);
+        }
 
       const promptText = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
-You are given ${files.length > 0 ? `${files.length} site photos` : 'no photos'}${engineerNotes.trim() ? ' and engineer\'s written notes' : ''} from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
+You are given ${filesToProcess.length > 0 ? `${filesToProcess.length} site photos` : 'no photos'}${engineerNotes.trim() ? ' and engineer\'s written notes' : ''} from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
 ${engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : ''}
 
 Analyse every photo carefully and extract as much information as possible to populate a Legionella risk assessment report.
@@ -238,8 +243,8 @@ Rules:
     }
 
     const validPhotoKinds = ['Cover Photo','Temperature Reading','Outlet','CWST','TMV','Dead Leg','Shower Head','Plant Room','Defect','General'];
-    if (files.length > 0) {
-      const newPhotos = files.map((photoFile, photoIndex) => {
+    if (processedFiles.length > 0) {
+      const newPhotos = processedFiles.map((photoFile, photoIndex) => {
         const photoMeta = (result.photos || [])[photoIndex] || {};
         return {
           id: photoFile.id,
@@ -333,12 +338,15 @@ Rules:
         <button
           onClick={handleAnalyse}
           disabled={!readyToAnalyse || analysing}
-          className="w-full py-4 rounded-2xl font-bold text-white text-sm disabled:opacity-50 transition-all"
+          className="w-full py-3 rounded-2xl font-bold text-white text-sm disabled:opacity-50 transition-all"
           style={{ background: analysing ? '#888' : '#d71920' }}
         >
           {analysing
             ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> Analysing… this may take 20–40 seconds</span>
-            : `✨ Analyse ${[files.length > 0 ? `${files.length} photo${files.length !== 1 ? 's' : ''}` : '', engineerNotes.trim() ? 'notes' : ''].filter(Boolean).join(' + ')} & build report`
+            : <span>
+                ✨ Analyse {[files.length > 0 ? `${Math.min(files.length, 10)} photo${Math.min(files.length, 10) !== 1 ? 's' : ''}` : '', engineerNotes.trim() ? 'notes' : ''].filter(Boolean).join(' + ')} &amp; build report
+                {files.length > 10 && <span className="block text-xs font-normal opacity-80 mt-0.5">⚠ Only first 10 of {files.length} photos will be analysed</span>}
+              </span>
           }
         </button>
       )}
