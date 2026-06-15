@@ -230,227 +230,357 @@ function fmt(date) {
   catch { return date; }
 }
 
-function badge(text, type) {
-  const styles = {
-    PASS: 'background:#dcfce7;color:#166534',
-    FAIL: 'background:#fee2e2;color:#991b1b',
-    ADVISORY: 'background:#fef3c7;color:#92400e',
-    HIGH: 'background:#fee2e2;color:#991b1b',
-    MEDIUM: 'background:#fef3c7;color:#92400e',
-    LOW: 'background:#dcfce7;color:#166534',
-    IMMEDIATE: 'background:#fee2e2;color:#991b1b',
-    DEFAULT: 'background:#f3f4f6;color:#374151',
-  };
-  const s = styles[text] || styles[type] || styles.DEFAULT;
-  return `<span style="${s};padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;display:inline-block">${text}</span>`;
+const RISK_STYLES = {
+  PASS:      { bg: '#d1fae5', color: '#065f46', border: '#6ee7b7' },
+  FAIL:      { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  ADVISORY:  { bg: '#fef3c7', color: '#92400e', border: '#fcd34d' },
+  HIGH:      { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  MEDIUM:    { bg: '#fef3c7', color: '#92400e', border: '#fcd34d' },
+  LOW:       { bg: '#d1fae5', color: '#065f46', border: '#6ee7b7' },
+  IMMEDIATE: { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  DEFAULT:   { bg: '#f3f4f6', color: '#374151', border: '#d1d5db' },
+};
+
+function pill(text) {
+  const s = RISK_STYLES[text] || RISK_STYLES.DEFAULT;
+  return `<span style="background:${s.bg};color:${s.color};border:1px solid ${s.border};padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;white-space:nowrap">${text}</span>`;
+}
+
+function riskBadgeLarge(risk) {
+  const s = RISK_STYLES[risk] || RISK_STYLES.DEFAULT;
+  return `<div style="display:inline-flex;align-items:center;gap:10px;background:${s.bg};border:2px solid ${s.border};border-radius:8px;padding:12px 24px">
+    <span style="width:14px;height:14px;border-radius:50%;background:${s.color};display:inline-block;flex-shrink:0"></span>
+    <span style="font-size:18px;font-weight:800;color:${s.color};letter-spacing:1px">${risk} RISK</span>
+  </div>`;
 }
 
 function buildReport(d, job, uploaded) {
   const siteName = job.site_name || job.client || 'Site';
   const address = job.address || '';
+  const propertyType = job.property_type || 'Commercial';
   const assessDate = fmt(job.assessment_date) || fmt(new Date().toISOString().slice(0,10));
   const reviewDate = fmt(job.review_due) || (() => { const x = new Date(); x.setFullYear(x.getFullYear()+1); return fmt(x.toISOString().slice(0,10)); })();
   const ref = d.report_ref || job.report_ref || `DLL-${new Date().getFullYear()}-001`;
   const risk = (d.risk || 'MEDIUM').toUpperCase();
-  const riskCol = risk === 'HIGH' ? '#c0392b' : risk === 'MEDIUM' ? '#d4770a' : '#1a6e1a';
+  const riskStyle = RISK_STYLES[risk] || RISK_STYLES.DEFAULT;
   const assessor = job.assessor || 'Dorset Plumbing Ltd';
-  const rp = d.responsible_person || job.responsible_person || '';
+  const rp = d.responsible_person || job.responsible_person || '—';
   const dh = d.duty_holder || job.duty_holder || rp;
 
-  // Map photo index to dataUrl
+  // Map photo index → dataUrl & caption
   const photoData = {};
   (d.photos || []).forEach(p => {
     if (uploaded[p.idx]) photoData[p.fig] = { src: uploaded[p.idx].dataUrl, caption: p.caption };
   });
-
-  const fig = (n) => photoData[n]
-    ? `<div style="text-align:center;margin:12px 0"><img src="${photoData[n].src}" style="max-height:220px;max-width:100%;border:1px solid #ddd;border-radius:4px;display:inline-block"/><div style="font-size:9px;color:#666;margin-top:3px;font-style:italic">Fig. ${n} – ${photoData[n].caption}</div></div>`
-    : '';
-
   const allFigs = Object.keys(photoData).map(Number).sort((a,b)=>a-b);
 
-  const photoPairs = () => {
-    let out = '';
-    for (let i = 0; i < allFigs.length; i += 2) {
-      const a = photoData[allFigs[i]], b = photoData[allFigs[i+1]];
-      if (b) {
-        out += `<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr>
-          <td style="width:50%;padding:4px;text-align:center;vertical-align:top"><img src="${a.src}" style="max-height:180px;max-width:100%;border:1px solid #ddd;border-radius:3px"/><div style="font-size:8.5px;color:#666;font-style:italic;margin-top:2px">Fig. ${allFigs[i]} – ${a.caption}</div></td>
-          <td style="width:50%;padding:4px;text-align:center;vertical-align:top"><img src="${b.src}" style="max-height:180px;max-width:100%;border:1px solid #ddd;border-radius:3px"/><div style="font-size:8.5px;color:#666;font-style:italic;margin-top:2px">Fig. ${allFigs[i+1]} – ${b.caption}</div></td>
-        </tr></table>`;
-      } else {
-        out += fig(allFigs[i]);
-      }
-    }
+  const photoGrid = () => {
+    if (!allFigs.length) return '';
+    let out = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0">';
+    allFigs.forEach(n => {
+      const p = photoData[n];
+      out += `<div style="break-inside:avoid">
+        <img src="${p.src}" style="width:100%;height:180px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;display:block"/>
+        <p style="margin:5px 0 0;font-size:10px;color:#6b7280;font-style:italic;text-align:center">Fig. ${n} — ${p.caption}</p>
+      </div>`;
+    });
+    out += '</div>';
     return out;
   };
 
-  const css = `
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#222;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .wrap{max-width:820px;margin:0 auto}
-    .hdr{background:#b71c1c;padding:8px 20px;display:flex;justify-content:space-between;align-items:center}
-    .hdr-l{color:#fff;font-weight:700;font-size:11px;letter-spacing:.4px}
-    .hdr-r{color:#fff;font-size:9px;opacity:.9}
-    .ftr{background:#f4f4f4;border-top:1px solid #ddd;padding:5px 20px;display:flex;justify-content:space-between;font-size:8.5px;color:#777;margin-top:20px}
-    .body{padding:0 20px}
-    .sec{color:#b71c1c;font-size:14px;font-weight:700;border-bottom:2px solid #b71c1c;padding-bottom:4px;margin:18px 0 10px}
-    .sub{font-size:11px;font-weight:700;margin:12px 0 5px;color:#333}
-    p{font-size:10.5px;line-height:1.7;margin-bottom:7px}
-    table.t{width:100%;border-collapse:collapse;font-size:10px;margin:6px 0 10px}
-    table.t th{background:#f5e6e6;padding:5px 7px;border:1px solid #ccc;font-weight:700;text-align:left}
-    table.t td{padding:4px 7px;border:1px solid #ddd;vertical-align:top}
-    table.t tr:nth-child(even) td{background:#fafafa}
-    .fc{border:1px solid #e0e0e0;border-radius:4px;margin:8px 0;overflow:hidden}
-    .fch{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f9f9f9;border-bottom:1px solid #e0e0e0}
-    .fref{background:#222;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:2px}
-    .ftitle{font-size:10.5px;font-weight:700;flex:1}
-    .fcb{padding:9px 11px;font-size:10px;line-height:1.7;color:#333}
-    ul.bl{padding-left:15px;margin:3px 0 7px}
-    ul.bl li{font-size:10px;line-height:1.7;margin-bottom:1px}
-    .pb{page-break-before:always}
-    @media print{body{margin:0}.wrap{max-width:none}}
-  `;
+  const coverImg = allFigs.length > 0 && photoData[allFigs[0]]
+    ? `<img src="${photoData[allFigs[0]].src}" style="width:100%;height:280px;object-fit:cover;display:block"/>`
+    : `<div style="width:100%;height:160px;background:linear-gradient(135deg,#1e3a5f 0%,#2d6a9f 100%);display:flex;align-items:center;justify-content:center">
+        <span style="font-size:48px;opacity:0.4">💧</span>
+      </div>`;
 
-  const hdr = `<div class="hdr"><div class="hdr-l">DORSET LEGIONELLA LTD</div><div class="hdr-r">Legionella Risk Assessment &nbsp;|&nbsp; ${siteName}${address ? ', ' + address.split(',').slice(-1)[0].trim() : ''}</div></div>`;
-  const ftr = (n) => `<div class="ftr"><span>Dorset Plumbing Ltd &nbsp;|&nbsp; 01202 668822 &nbsp;|&nbsp; dorsetplumbing.com &nbsp;|&nbsp; Bayside Business Centre, 48 Willis Way, Poole BH15 3TB</span><span>Page ${n}</span></div>`;
-
-  // Cover photo
-  const firstFig = allFigs[0];
-  const coverPhoto = firstFig && photoData[firstFig]
-    ? `<div style="text-align:center;padding:16px 20px 8px"><img src="${photoData[firstFig].src}" style="max-height:200px;max-width:95%;border:1px solid #ddd;border-radius:4px"/><div style="font-size:9px;color:#666;margin-top:3px;font-style:italic">Fig. 1 – ${photoData[firstFig].caption}</div></div>`
-    : '';
-
-  const outletRows = (d.outlets || []).map(o =>
-    `<tr><td>${o.ref||''}</td><td>${o.location||''}</td><td>${o.type||''}</td><td>${o.tmv||''}</td><td>${o.hot||'—'}</td><td>${o.cold||'—'}</td><td>${badge(o.status||'N/A', o.status)}</td><td>${o.notes||''}</td></tr>`
+  // Outlet rows
+  const outletRows = (d.outlets||[]).map((o, i) =>
+    `<tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+      <td style="font-weight:600;color:#374151">${o.ref||''}</td>
+      <td>${o.location||''}</td>
+      <td>${o.type||''}</td>
+      <td style="text-align:center">${o.tmv==='YES'?'<span style="color:#059669;font-weight:700">✓</span>':o.tmv==='NO'?'<span style="color:#dc2626">✗</span>':'—'}</td>
+      <td style="text-align:center;font-weight:600">${o.hot||'—'}</td>
+      <td style="text-align:center;font-weight:600">${o.cold||'—'}</td>
+      <td style="text-align:center">${pill(o.status||'N/A')}</td>
+      <td style="color:#6b7280;font-size:10px">${o.notes||''}</td>
+    </tr>`
   ).join('');
 
-  const tempRows = (d.outlets||[]).filter(o=>o.hot||o.cold).map(o => {
-    const target = (o.tmv||'').includes('YES') ? '38-43°C blended' : (o.type||'').toLowerCase().includes('cylinder') ? '>60°C store' : '>50°C';
-    return `<tr><td>${o.ref}</td><td>${o.location}</td><td>${o.cold||'—'}</td><td>${o.hot||'—'}</td><td>${target}</td><td>${badge(o.status||'N/A', o.status)}</td></tr>`;
+  // Finding cards with left-border colour coding
+  const findingCards = (d.findings||[]).map(f => {
+    const rs = RISK_STYLES[f.risk] || RISK_STYLES.DEFAULT;
+    const urgMap = { IMMEDIATE: '#dc2626', '14 DAYS': '#ea580c', '1 MONTH': '#d97706', ROUTINE: '#16a34a' };
+    const urgCol = urgMap[f.timeframe] || '#6b7280';
+    return `<div style="border-left:4px solid ${rs.color};background:#fff;border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.07)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="background:#1e3a5f;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">${f.ref}</span>
+        <span style="font-size:12px;font-weight:700;color:#111827;flex:1">${f.title}${f.location?` <span style="font-weight:400;color:#6b7280">· ${f.location}</span>`:''}</span>
+        ${pill(f.risk||'MEDIUM')}
+        <span style="background:${urgCol}22;color:${urgCol};border:1px solid ${urgCol}55;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">${f.timeframe||'ROUTINE'}</span>
+      </div>
+      <p style="margin:0;font-size:11px;line-height:1.75;color:#374151">${f.detail||''}</p>
+    </div>`;
   }).join('');
 
-  const findingCards = (d.findings||[]).map(f =>
-    `<div class="fc"><div class="fch"><span class="fref">${f.ref}</span><span class="ftitle">${f.title}${f.location?` (${f.location})`:''}</span>${badge(f.risk||'MEDIUM', f.risk)} <span style="background:#fff3e0;color:#7c4000;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700">Action: ${f.timeframe||'ROUTINE'}</span></div><div class="fcb">${f.detail||''}</div></div>`
+  // Action table rows
+  const actionRows = (d.actions||[]).map((a, i) => {
+    const pBg = a.priority==='1' ? '#fee2e2' : a.priority==='2' ? '#fef3c7' : '#f0fdf4';
+    const pCol = a.priority==='1' ? '#991b1b' : a.priority==='2' ? '#92400e' : '#166534';
+    return `<tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+      <td style="font-weight:700;color:#1e3a5f">${a.ref}</td>
+      <td style="font-weight:600">${a.summary||''}</td>
+      <td style="text-align:center">${pill(a.risk||'MEDIUM')}</td>
+      <td>${a.action||''}</td>
+      <td style="text-align:center"><span style="background:${pBg};color:${pCol};font-weight:800;font-size:13px;padding:4px 10px;border-radius:6px;display:inline-block">${a.priority||''}</span></td>
+      <td style="color:#6b7280">${a.by_whom||''}</td>
+    </tr>`;
+  }).join('');
+
+  const limitRows = (d.limitations||[]).map((l,i) =>
+    `<tr style="background:${i%2===0?'#fff':'#f9fafb'}"><td>${l.ref}</td><td>${l.limitation}</td><td>${l.action}</td><td>${l.target}</td></tr>`
   ).join('');
 
-  const actionRows = (d.actions||[]).map(a =>
-    `<tr><td><b>${a.ref}</b></td><td>${a.summary||''}</td><td>${badge(a.risk||'MEDIUM', a.risk)}</td><td>${a.action||''}</td><td><b>${a.priority||''}</b></td><td>${a.by_whom||''}</td></tr>`
-  ).join('');
+  const list = (arr, colour='#1e3a5f') => arr&&arr.length
+    ? `<ul style="margin:8px 0 12px;padding-left:20px">${arr.map(x=>`<li style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:2px">${x}</li>`).join('')}</ul>`
+    : '<p style="font-size:11px;color:#9ca3af;margin:4px 0 12px">None specified.</p>';
 
-  const limitRows = (d.limitations||[]).map(l =>
-    `<tr><td>${l.ref}</td><td>${l.limitation}</td><td>${l.action}</td><td>${l.target}</td></tr>`
-  ).join('');
+  const thStyle = 'background:#1e3a5f;color:#fff;padding:9px 12px;font-size:10px;font-weight:700;text-align:left;border:none';
+  const tdStyle = 'padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:11px;vertical-align:top';
 
-  const list = (arr) => arr&&arr.length ? `<ul class="bl">${arr.map(x=>`<li>${x}</li>`).join('')}</ul>` : '';
+  const section = (num, title) =>
+    `<div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px">
+      <span style="background:#1e3a5f;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;flex-shrink:0">${num}</span>
+      <span style="font-size:16px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #1e3a5f;padding-bottom:3px;flex:1">${title}</span>
+    </div>`;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Legionella Risk Assessment – ${siteName}</title><style>${css}</style></head><body><div class="wrap">
+  const subsection = (title) =>
+    `<div style="font-size:12px;font-weight:700;color:#374151;margin:16px 0 6px;padding-left:12px;border-left:3px solid #dc2626">${title}</div>`;
 
-${hdr}
-<div style="background:#c62828;padding:24px 20px 18px;color:#fff">
-  <div style="font-size:20px;font-weight:700;margin-bottom:5px">LEGIONELLA RISK ASSESSMENT</div>
-  <div style="font-size:15px;font-weight:600;margin-bottom:3px">${siteName}</div>
-  <div style="font-size:11px;opacity:.9">${address}</div>
-</div>
+  const page = (content) =>
+    `<div style="page-break-before:always;padding:0 40px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e5e7eb;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#1e3a5f;letter-spacing:0.5px">DORSET PLUMBING LTD — LEGIONELLA RISK ASSESSMENT</span>
+        <span style="font-size:9px;color:#9ca3af">${siteName} · ${ref}</span>
+      </div>
+      ${content}
+      <div style="border-top:1px solid #e5e7eb;margin-top:28px;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#9ca3af">
+        <span>Dorset Plumbing Ltd · 01202 668822 · dorsetplumbing.com · Bayside Business Centre, 48 Willis Way, Poole BH15 3TB</span>
+        <span>CONFIDENTIAL</span>
+      </div>
+    </div>`;
 
-${coverPhoto}
+  // ── Cover Page ──────────────────────────────────────────────────────────
+  const cover = `<div style="min-height:100vh;display:flex;flex-direction:column;background:#fff">
+    ${coverImg}
+    <div style="background:#1e3a5f;padding:32px 40px 24px">
+      <div style="font-size:11px;font-weight:600;color:#93c5fd;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Legionella Risk Assessment</div>
+      <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:6px;line-height:1.2">${siteName}</div>
+      <div style="font-size:13px;color:#93c5fd">${address}</div>
+    </div>
+    <div style="padding:24px 40px;flex:1;background:#fff">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+        ${[
+          ['Report Reference', ref],
+          ['Property Type', propertyType],
+          ['Assessment Date', assessDate],
+          ['Next Review Due', reviewDate],
+          ['Assessed By', assessor],
+          ['Prepared By', 'Dorset Plumbing Ltd'],
+          ['Responsible Person', rp],
+          ['Duty Holder', dh],
+          ['Standard', 'HSE ACOP L8 (4th Ed.) / HSG274 / BS 8580-1:2019'],
+          ['Site Address', address||siteName],
+        ].map(([k,v],i) => `
+          <div style="padding:10px 14px;background:${i%2===0?'#f9fafb':'#fff'};border-bottom:1px solid #e5e7eb">
+            <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">${k}</div>
+            <div style="font-size:11px;font-weight:600;color:#111827">${v||'—'}</div>
+          </div>`
+        ).join('')}
+      </div>
+      <div style="text-align:center;margin:20px 0">
+        ${riskBadgeLarge(risk)}
+      </div>
+    </div>
+    <div style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 40px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:9px;color:#9ca3af">Dorset Plumbing Ltd · 01202 668822 · dorsetplumbing.com</span>
+      <span style="font-size:9px;color:#9ca3af">PRIVATE &amp; CONFIDENTIAL</span>
+    </div>
+  </div>`;
 
-<div style="padding:0 20px 12px">
-  <table class="t">
-    <tr><td style="font-weight:700;width:38%;background:#fafafa">Client:</td><td>${job.client||siteName}</td></tr>
-    ${rp?`<tr><td style="font-weight:700;background:#fafafa">Responsible Person:</td><td>${rp}</td></tr>`:''}
-    ${dh?`<tr><td style="font-weight:700;background:#fafafa">Duty Holder:</td><td>${dh}</td></tr>`:''}
-    <tr><td style="font-weight:700;background:#fafafa">Site Address:</td><td>${address||siteName}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Assessment Date:</td><td>${assessDate}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Report Reference:</td><td>${ref}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Assessed By:</td><td>${assessor}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Valid To:</td><td>${reviewDate} (annual review recommended)</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Prepared By:</td><td>Dorset Plumbing Ltd</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Standard:</td><td>HSE ACOP L8 (4th Ed.) | HSG 274 Parts 1-3 | BS 8580-1:2019</td></tr>
-  </table>
-  <div style="display:flex;border:1px solid #ddd;border-radius:4px;overflow:hidden;margin-top:4px">
-    <div style="background:#222;color:#fff;padding:10px 16px;font-weight:700;font-size:11px;flex:1">OVERALL RISK RATING</div>
-    <div style="background:${riskCol};color:#fff;padding:10px 20px;font-weight:700;font-size:13px">${risk}</div>
+  // ── Page 2: Scope, Site, Summary, Outlet Register ───────────────────────
+  const p2 = page(`
+    ${section('1', 'Scope and Methodology')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:12px">${d.scope||'This Legionella Risk Assessment has been carried out in accordance with HSE Approved Code of Practice L8 (4th Edition), HSG 274 Parts 1–3, and BS 8580-1:2019.'}</p>
+
+    ${subsection('1.1 Site Description')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:12px">${d.site_description||''}</p>
+
+    ${subsection('1.2 Population at Risk')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:12px">${d.population||''}</p>
+
+    ${subsection('1.3 Executive Summary')}
+    <div style="background:#eff6ff;border-left:4px solid #1e3a5f;border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:16px">
+      <p style="font-size:11px;line-height:1.8;color:#1e3a5f;margin:0">${d.summary||''}</p>
+    </div>
+
+    ${subsection('1.4 Water Outlet Register')}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+      <thead><tr>
+        <th style="${thStyle}">Ref.</th><th style="${thStyle}">Location</th><th style="${thStyle}">Type</th>
+        <th style="${thStyle};text-align:center">TMV</th><th style="${thStyle};text-align:center">Hot °C</th>
+        <th style="${thStyle};text-align:center">Cold °C</th><th style="${thStyle};text-align:center">Status</th>
+        <th style="${thStyle}">Notes</th>
+      </tr></thead>
+      <tbody>${outletRows}</tbody>
+    </table>
+  `);
+
+  // ── Page 3: Temperature Results + Photos ─────────────────────────────────
+  const p3 = page(`
+    ${section('2', 'Temperature Monitoring Results')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:12px">Temperatures were measured at all accessible outlets using a calibrated digital thermometer after allowing water to run for one minute or until stable. Compliance thresholds: hot water ≥50°C at non-blended outlets; cold water ≤20°C; TMV blended 38–43°C; cylinders ≥60°C storage.</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+      <thead><tr>
+        <th style="${thStyle}">Ref.</th><th style="${thStyle}">Location / Outlet</th>
+        <th style="${thStyle};text-align:center">Cold °C</th><th style="${thStyle};text-align:center">Hot / Blended °C</th>
+        <th style="${thStyle}">Target</th><th style="${thStyle};text-align:center">Status</th>
+      </tr></thead>
+      <tbody>${(d.outlets||[]).filter(o=>o.hot||o.cold).map((o,i) => {
+        const target = (o.tmv||'').includes('YES') ? '38–43°C blended' : (o.type||'').toLowerCase().includes('cylinder') ? '≥60°C store' : '≥50°C';
+        return `<tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+          <td style="${tdStyle};font-weight:600;color:#1e3a5f">${o.ref}</td>
+          <td style="${tdStyle}">${o.location}</td>
+          <td style="${tdStyle};text-align:center;font-weight:600;color:#2563eb">${o.cold||'—'}</td>
+          <td style="${tdStyle};text-align:center;font-weight:600;color:#dc2626">${o.hot||'—'}</td>
+          <td style="${tdStyle};color:#6b7280">${target}</td>
+          <td style="${tdStyle};text-align:center">${pill(o.status||'N/A')}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+    ${(d.temp_notes||[]).map(n=>`<p style="font-size:10px;color:#6b7280;font-style:italic;margin-bottom:4px">* ${n}</p>`).join('')}
+    ${allFigs.length > 0 ? `${subsection('2.1 Site Photographs')}${photoGrid()}` : ''}
+  `);
+
+  // ── Page 4: Findings ────────────────────────────────────────────────────
+  const p4 = page(`
+    ${section('3', 'Findings and Identified Hazards')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:16px">The following hazards were identified during the survey. Risk is classified using the BS 8580-1:2019 risk matrix. Each finding is assigned an action timeframe based on severity.</p>
+    ${findingCards || '<p style="font-size:11px;color:#9ca3af">No specific hazards identified.</p>'}
+  `);
+
+  // ── Page 5: Actions + Monitoring ────────────────────────────────────────
+  const p5 = page(`
+    ${section('4', 'Risk Summary and Action Plan')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:12px">The table below summarises all findings and required corrective actions. Priority 1 = Immediate; Priority 2 = Within 1 month; Priority 3 = Within 3 months. Progress should be recorded by the Responsible Person and reviewed at each subsequent visit.</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <thead><tr>
+        <th style="${thStyle}">Ref.</th><th style="${thStyle}">Finding</th><th style="${thStyle};text-align:center">Risk</th>
+        <th style="${thStyle}">Action Required</th><th style="${thStyle};text-align:center">Priority</th>
+        <th style="${thStyle}">By Whom</th>
+      </tr></thead>
+      <tbody>${actionRows}</tbody>
+    </table>
+
+    ${section('5', 'Ongoing Monitoring Programme')}
+    ${subsection('5.1 Monthly Tasks')}${list(d.monthly)}
+    ${subsection('5.2 Quarterly Tasks')}${list(d.quarterly)}
+    ${subsection('5.3 Annual Tasks')}${list(d.annually)}
+  `);
+
+  // ── Page 6: Limitations, Legislation, Declaration ────────────────────────
+  const p6 = page(`
+    ${limitRows ? `${section('6', 'Assessment Limitations')}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <thead><tr>
+        <th style="${thStyle}">Ref.</th><th style="${thStyle}">Limitation</th>
+        <th style="${thStyle}">Action Required</th><th style="${thStyle}">Target Date</th>
+      </tr></thead>
+      <tbody>${limitRows}</tbody>
+    </table>` : ''}
+
+    ${section('7', 'Legislative Framework')}
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:20px">
+      ${[
+        'Health and Safety at Work etc. Act 1974',
+        'Control of Substances Hazardous to Health Regulations 2002 (COSHH) — Regulation 12 and Schedule 3',
+        'Management of Health and Safety at Work Regulations 1999',
+        'HSE Approved Code of Practice L8 (4th Edition): Legionnaires\' disease — The control of legionella bacteria in water systems',
+        'HSG 274: Legionnaires\' disease — Technical guidance (Parts 1, 2 and 3)',
+        'BS 8580-1:2019: Water quality — Risk assessments for Legionella control — Code of practice',
+      ].map(l => `<div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:#1e3a5f;font-weight:700;flex-shrink:0">▸</span><span style="font-size:11px;color:#374151;line-height:1.6">${l}</span></div>`).join('')}
+    </div>
+
+    ${section('8', 'Declaration and Sign-off')}
+    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:16px">This risk assessment has been carried out by a competent person on behalf of Dorset Plumbing Ltd in accordance with the HSE ACOP L8 guidance. The findings and recommendations are based on conditions observed at the time of the survey. This report should be reviewed following any significant changes to the water system, occupancy, or at a minimum annually.</p>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;max-width:480px">
+      ${[
+        ['Assessed by', assessor],
+        ['On behalf of', 'Dorset Plumbing Ltd'],
+        ['Assessment date', assessDate],
+        ['Next review due', reviewDate],
+      ].map(([k,v],i) => `<tr style="background:${i%2===0?'#f9fafb':'#fff'}">
+        <td style="padding:10px 14px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;width:40%;border-bottom:1px solid #e5e7eb">${k}</td>
+        <td style="padding:10px 14px;font-size:11px;font-weight:600;color:#111827;border-bottom:1px solid #e5e7eb">${v}</td>
+      </tr>`).join('')}
+      <tr style="background:#fff">
+        <td style="padding:10px 14px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px">Signature</td>
+        <td style="padding:28px 14px"></td>
+      </tr>
+    </table>
+
+    <div style="background:#1e3a5f;color:#fff;border-radius:8px;padding:16px 20px;text-align:center">
+      <div style="font-weight:800;font-size:13px;margin-bottom:4px">Dorset Plumbing Ltd</div>
+      <div style="font-size:10px;opacity:0.8;line-height:1.8">Bayside Business Centre, 48 Willis Way, Poole, Dorset BH15 3TB<br/>
+      Tel: 01202 668822 &nbsp;·&nbsp; Web: dorsetplumbing.com</div>
+    </div>
+  `);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Legionella Risk Assessment — ${siteName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',Arial,sans-serif;background:#fff;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @media print{
+      body{margin:0}
+      .no-print{display:none!important}
+      @page{margin:0;size:A4}
+    }
+    @media screen{
+      body{background:#e5e7eb;padding:20px 0}
+      .page-wrap{max-width:860px;margin:0 auto 32px;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px;overflow:hidden}
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align:center;padding:16px;background:#1e3a5f;color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:600;position:sticky;top:0;z-index:100">
+    📄 Legionella Risk Assessment — ${siteName} &nbsp;·&nbsp;
+    <button onclick="window.print()" style="background:#dc2626;color:#fff;border:none;padding:6px 18px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">🖨 Print / Save as PDF</button>
   </div>
-</div>
-${ftr(1)}
-
-<div class="pb">${hdr}</div>
-<div class="body">
-  <div class="sec">1. Scope and Methodology</div>
-  <p>${d.scope||'This Legionella Risk Assessment has been carried out in accordance with HSE Approved Code of Practice L8 (4th Edition), HSG 274 Parts 1-3, and BS 8580-1:2019.'}</p>
-  <div class="sub">1.1 Site Description</div>
-  <p>${d.site_description||''}</p>
-  <div class="sub">1.2 Population at Risk</div>
-  <p>${d.population||''}</p>
-  <div class="sub">1.3 Executive Summary</div>
-  <p>${d.summary||''}</p>
-  <div class="sub">1.4 Water Outlet Register</div>
-  <table class="t"><thead><tr><th>Ref.</th><th>Location</th><th>Outlet Type</th><th>TMV</th><th>Hot °C</th><th>Cold °C</th><th>Status</th><th>Notes</th></tr></thead><tbody>${outletRows}</tbody></table>
-</div>
-${ftr(2)}
-
-<div class="pb">${hdr}</div>
-<div class="body">
-  <div class="sec">2. Temperature Monitoring Results</div>
-  <p>Temperatures were measured at all accessible outlets using a calibrated digital thermometer after running water for one minute or until stable. Hot water at non-TMV outlets must reach ≥50°C. Cold water must remain ≤20°C. TMV blended outlets must deliver 38–43°C. Cylinders must store at ≥60°C.</p>
-  <table class="t"><thead><tr><th>Ref.</th><th>Location / Outlet</th><th>Cold °C</th><th>Hot / Blended °C</th><th>Target</th><th>Status</th></tr></thead><tbody>${tempRows}</tbody></table>
-  ${(d.temp_notes||[]).map(n=>`<p style="font-size:9.5px;color:#555">${n}</p>`).join('')}
-  ${photoPairs()}
-</div>
-${ftr(3)}
-
-<div class="pb">${hdr}</div>
-<div class="body">
-  <div class="sec">3. Findings and Identified Hazards</div>
-  <p>The following hazards were identified during the survey. Risk is scored using the BS 8580-1:2019 matrix (Likelihood × Severity × Susceptibility).</p>
-  ${findingCards}
-</div>
-${ftr(4)}
-
-<div class="pb">${hdr}</div>
-<div class="body">
-  <div class="sec">4. Risk Summary and Action Plan</div>
-  <p>The table below summarises all findings and required corrective actions. Progress should be recorded by the nominated Responsible Person.</p>
-  <table class="t"><thead><tr><th>Ref.</th><th>Finding Summary</th><th>Risk</th><th>Action Required</th><th>Priority</th><th>By Whom</th></tr></thead><tbody>${actionRows}</tbody></table>
-
-  <div class="sec">5. Ongoing Monitoring Recommendations</div>
-  <div class="sub">5.1 Monthly</div>${list(d.monthly)}
-  <div class="sub">5.2 Quarterly</div>${list(d.quarterly)}
-  <div class="sub">5.3 Annually</div>${list(d.annually)}
-</div>
-${ftr(5)}
-
-<div class="pb">${hdr}</div>
-<div class="body">
-  ${limitRows?`<div class="sec">6. Assessment Limitations</div><table class="t"><thead><tr><th>Ref.</th><th>Limitation</th><th>Action Required</th><th>Target</th></tr></thead><tbody>${limitRows}</tbody></table>`:''}
-
-  <div class="sec">7. Legislative Framework</div>
-  <ul class="bl">
-    <li>Health and Safety at Work etc. Act 1974</li>
-    <li>Control of Substances Hazardous to Health Regulations 2002 (COSHH) — Regulation 12 and Schedule 3</li>
-    <li>Management of Health and Safety at Work Regulations 1999</li>
-    <li>HSE Approved Code of Practice L8 (4th Edition): Legionnaires' disease — The control of legionella bacteria in water systems</li>
-    <li>HSG 274: Legionnaires' disease — Technical guidance (Parts 1, 2 and 3)</li>
-    <li>BS 8580-1:2019: Water quality — Risk assessments for Legionella control — Code of practice</li>
-  </ul>
-
-  <div class="sec">8. Declaration</div>
-  <p>This risk assessment has been carried out by a competent person on behalf of Dorset Plumbing Ltd. The findings and recommendations are based on conditions observed at the time of survey. This report should be reviewed following any significant changes to the water system or occupancy, and at a minimum annually in accordance with ACOP L8.</p>
-  <table class="t" style="max-width:380px;margin-top:10px">
-    <tr><td style="font-weight:700;width:40%;background:#fafafa">Assessed by:</td><td>${assessor}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">On behalf of:</td><td>Dorset Plumbing Ltd</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Assessment date:</td><td>${assessDate}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Next review due:</td><td>${reviewDate}</td></tr>
-    <tr><td style="font-weight:700;background:#fafafa">Signature:</td><td style="padding:22px 7px"></td></tr>
-  </table>
-  <div style="margin-top:18px;background:#2d3748;color:#fff;padding:11px 14px;border-radius:4px;text-align:center;font-size:10px;line-height:1.8">
-    <strong>Dorset Plumbing Ltd</strong><br/>
-    Bayside Business Centre, 48 Willis Way, Poole, Dorset BH15 3TB<br/>
-    Tel: 01202 668822 &nbsp;|&nbsp; Web: dorsetplumbing.com
+  <div class="page-wrap">
+    ${cover}
   </div>
-</div>
-${ftr(6)}
-
-</div></body></html>`;
+  <div class="page-wrap" style="padding:0">
+    ${p2}
+  </div>
+  <div class="page-wrap" style="padding:0">
+    ${p3}
+  </div>
+  <div class="page-wrap" style="padding:0">
+    ${p4}
+  </div>
+  <div class="page-wrap" style="padding:0">
+    ${p5}
+  </div>
+  <div class="page-wrap" style="padding:0">
+    ${p6}
+  </div>
+</body>
+</html>`;
 }
