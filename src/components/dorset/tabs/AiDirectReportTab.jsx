@@ -59,12 +59,6 @@ export default function AiDirectReportTab({ job }) {
     setError('');
     setDone(false);
 
-    // Open the tab immediately while we still have the user gesture — browsers block popups opened after async work
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write('<html><body style="font-family:Arial;padding:40px;color:#333"><h2>⏳ Generating report…</h2><p>Please wait, this takes 60–90 seconds. Do not close this tab.</p></body></html>');
-    }
-
     try {
       // 1. Upload photos
       const uploaded = [];
@@ -74,7 +68,7 @@ export default function AiDirectReportTab({ job }) {
         uploaded.push(result);
       }
 
-      // 2. Call Claude directly from frontend (no HTTP timeout)
+      // 2. Call Claude
       setProgress('Claude is writing the report — please wait 60–90 seconds…');
 
       const siteName = job.site_name || job.client || 'Site';
@@ -120,21 +114,20 @@ Return ONLY a JSON object (no markdown fences, no explanation) with these exact 
       if (start === -1 || end === -1) throw new Error('AI did not return valid JSON — please try again');
       const data = JSON.parse(text.slice(start, end + 1));
 
-      // 4. Write the finished report into the tab we already opened
+      // 4. Download as HTML file — works everywhere, no popup needed
       const html = buildReport(data, job, uploaded);
-      if (win && !win.closed) {
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-      } else {
-        // Fallback: popup was closed — open a new one now (may be blocked, but worth trying)
-        const w2 = window.open('', '_blank');
-        if (w2) { w2.document.open(); w2.document.write(html); w2.document.close(); }
-      }
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `LRA-${(siteName).replace(/[^a-z0-9]/gi, '-')}-${new Date().toISOString().slice(0,10)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
       setDone(true);
     } catch (err) {
-      if (win && !win.closed) win.close();
       setError(err.message);
     } finally {
       setBusy(false);
@@ -206,7 +199,7 @@ Return ONLY a JSON object (no markdown fences, no explanation) with these exact 
 
       {done && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800 font-semibold text-center">
-          ✅ Report opened in a new tab — use File → Print → Save as PDF to save it
+          ✅ Report downloaded — open the HTML file in your browser, then File → Print → Save as PDF
         </div>
       )}
 
