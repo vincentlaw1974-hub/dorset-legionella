@@ -127,7 +127,7 @@ Valid photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg
     const llmResult = await base44.integrations.Core.InvokeLLM({
       prompt,
       file_urls: fileUrls.length > 0 ? fileUrls : undefined,
-      model: 'claude_sonnet_4_6',
+      model: 'gpt_5_4',
     });
     const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
     const match = responseString.match(/```(?:json)?\s*([\s\S]*?)```/) || responseString.match(/(\{[\s\S]*\})/);
@@ -226,7 +226,7 @@ Return ONLY valid JSON — no markdown, no explanation:
 }
 outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV
 action priority: "1"=immediate, "2"=within 1 month, "3"=within 3 months`,
-          model: 'claude_sonnet_4_6',
+          model: 'gpt_5_4',
         });
         const synthStr = typeof synthResult === 'string' ? synthResult : JSON.stringify(synthResult);
         const synthMatch = synthStr.match(/```(?:json)?\s*([\s\S]*?)```/) || synthStr.match(/(\{[\s\S]*\})/);
