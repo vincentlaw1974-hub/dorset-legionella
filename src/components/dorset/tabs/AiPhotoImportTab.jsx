@@ -60,13 +60,13 @@ export default function AiPhotoImportTab({ job, onChange }) {
     const resized = await new Promise((resolve) => {
       const image = new Image();
       image.onload = () => {
-        const maxDimension = 1400;
+        const maxDimension = 800;
         const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(image.width * scale);
         canvas.height = Math.round(image.height * scale);
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
       };
       image.onerror = () => resolve(srcData);
       image.src = srcData;
@@ -172,8 +172,8 @@ Valid photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg
         if (url) allFileUrls.push(url);
       }
 
-      // Split into batches of 20 for the LLM calls (engineer notes go in every batch)
-      const BATCH_SIZE = 20;
+      // Split into batches of 8 for the LLM calls (smaller = less rate limit pressure)
+      const BATCH_SIZE = 8;
       const batches = [];
       if (allFileUrls.length === 0) {
         batches.push([]); // notes-only
@@ -187,6 +187,7 @@ Valid photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg
       const batchResults = [];
       for (let i = 0; i < batches.length; i++) {
         setBatchProgress({ current: i + 1, total: batches.length });
+        if (i > 0) await new Promise(res => setTimeout(res, 3000)); // 3s pause between batches
         const batchResult = await runLLM(batches[i], i, batches.length);
         batchResults.push(batchResult);
       }
