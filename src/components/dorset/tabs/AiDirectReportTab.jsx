@@ -68,52 +68,23 @@ export default function AiDirectReportTab({ job }) {
         uploaded.push(result);
       }
 
-      // 2. Single LLM call
+      // 2. Call backend function (avoids browser timeout)
       setProgress('Claude is writing the report — please wait 30–60 seconds…');
 
-      const siteName = job.site_name || job.client || 'the site';
-      const notesBlock = notes.trim() ? `\n\nENGINEER NOTES:\n${notes.trim()}` : '';
+      const siteName = job.site_name || job.client || 'Site';
 
-      const raw = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an expert Legionella risk assessor for Dorset Plumbing Ltd (UK). Write a full professional ACoP L8 / HSG274 risk assessment report.
-
-Site: ${siteName} | Address: ${job.address || ''} | Type: ${job.property_type || 'Commercial'} | Date: ${job.assessment_date || new Date().toISOString().slice(0,10)}
-Assessor: ${job.assessor || ''} | Responsible Person: ${job.responsible_person || ''} | Duty Holder: ${job.duty_holder || ''}${notesBlock}
-
-Examine every photo and read every word of the notes. Extract ALL details.
-
-Return ONLY a JSON object (no markdown fences) with these exact keys:
-{
-  "report_ref": "DLL-2026-XXX-001",
-  "risk": "MEDIUM",
-  "scope": "2-3 sentence paragraph on methodology and standards",
-  "site_description": "detailed paragraph about the building and water systems",
-  "population": "paragraph about who uses the building",
-  "summary": "4-6 sentence executive summary",
-  "outlets": [{"ref":"W01","location":"","type":"","tmv":"YES/NO/N/A","hot":"","cold":"","status":"PASS/FAIL/ADVISORY/N/A","notes":""}],
-  "temp_notes": ["footnote explaining any advisory or fail"],
-  "findings": [{"ref":"F01","title":"","location":"","risk":"HIGH/MEDIUM/LOW","timeframe":"IMMEDIATE/14 DAYS/1 MONTH/ROUTINE","detail":"2-4 sentence explanation of finding, why it matters under ACOP L8, and what must be done"}],
-  "actions": [{"ref":"F01","summary":"","risk":"","action":"","priority":"","by_whom":""}],
-  "monthly": ["bullet"],
-  "quarterly": ["bullet"],
-  "annually": ["bullet"],
-  "limitations": [{"ref":"L01","limitation":"","action":"","target":""}],
-  "photos": [{"idx":0,"fig":1,"caption":"what the photo shows"}]
-}`,
-        file_urls: uploaded.length > 0 ? uploaded.map(u => u.cdnUrl) : undefined,
-        model: 'claude_sonnet_4_6',
+      const response = await base44.functions.invoke('generateLraReport', {
+        job,
+        notes,
+        photoUrls: uploaded.map(u => u.cdnUrl),
       });
 
-      // 3. Parse JSON
-      setProgress('Building PDF…');
-      let text = typeof raw === 'string' ? raw : JSON.stringify(raw);
-      // Strip any markdown fences just in case
-      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-      // Find the JSON object
-      const start = text.indexOf('{');
-      const end = text.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('AI did not return valid JSON — try again');
-      const data = JSON.parse(text.slice(start, end + 1));
+      if (response.data?.error) throw new Error(response.data.error);
+      const data = response.data?.data;
+      if (!data) throw new Error('No report data returned — please try again');
+
+      // 3. Build report
+      setProgress('Building report…');
 
       // 4. Build HTML and open directly in new tab
       const html = buildReport(data, job, uploaded);
