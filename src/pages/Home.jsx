@@ -29,6 +29,7 @@ import BuildingsTab from '@/components/dorset/tabs/BuildingsTab';
 import StatusGroupedTab from '@/components/dorset/tabs/StatusGroupedTab';
 import TmvsTab from '@/components/dorset/tabs/TmvsTab';
 import AiPhotoImportTab from '@/components/dorset/tabs/AiPhotoImportTab';
+import AiDirectReportTab from '@/components/dorset/tabs/AiDirectReportTab';
 import OfflineBanner from '@/components/dorset/OfflineBanner';
 
 const TABS = [
@@ -49,6 +50,7 @@ const TABS = [
   { id: 'report', label: '📄 Report' },
   { id: 'ai_photo_import', label: '📸 AI Import' },
   { id: 'ai_advice', label: '🤖 AI Advice' },
+  { id: 'ai_direct_report', label: '📋 AI Report' },
 ];
 
 // stripBase64 is imported from photoUpload
@@ -477,6 +479,7 @@ export default function Home() {
                       updateMutation.mutate({ id: withRisk.id, data: stripBase64(withRisk) });
                     }, 800);
                   }} />}
+                  {activeTab === 'ai_direct_report' && <AiDirectReportTab job={localJob} />}
                   {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} onChange={handleChange} messages={aiConversations[localJob.id]} onMessagesChange={(msgs) => setAiConversations(prev => ({ ...prev, [localJob.id]: msgs }))} />}
                   {activeTab === 'report' && (
                     <div className="space-y-3">
