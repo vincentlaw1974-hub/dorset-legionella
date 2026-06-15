@@ -83,13 +83,25 @@ export default function AiPhotoImportTab({ job, onChange }) {
       if (url) fileUrls.push(url);
     }
 
-    const prompt = `You are an expert Legionella risk assessor for Dorset Plumbing (UK).
-You are given ${fileUrls.length} site photos (batch ${batchIndex + 1} of ${totalBatches}) from a water system inspection at: ${job.site_name || job.client || 'a site'} (${job.property_type || 'Commercial'}).
-${batchIndex === 0 && engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : ''}
+    const notesSection = engineerNotes.trim() ? `\nENGINEER'S NOTES (use these heavily — they contain temperature readings, observations and locations):\n${engineerNotes.trim()}\n` : '';
 
-Analyse every photo carefully and extract information to populate a Legionella risk assessment report.
+    const prompt = `You are an expert Legionella risk assessor writing a professional ACoP L8 / HSG274 risk assessment report for Dorset Plumbing (UK).
+Site: ${job.site_name || job.client || 'the site'} | Type: ${job.property_type || 'Commercial'} | Batch: ${batchIndex + 1} of ${totalBatches}
+${notesSection}
 
-Return ONLY valid JSON:
+You MUST extract as much detail as possible from both the photos AND the engineer's notes. Be thorough and specific — don't be vague.
+
+For OUTLETS: list every individual outlet you can identify from the photos or notes. Include temperature readings exactly as written (e.g. "52" for hot, "18" for cold — numbers only, no °C). If a temperature thermometer/gauge is visible in a photo, read the exact value.
+For ACTIONS: raise a specific remedial action for EVERY defect, non-compliance or risk you identify. Use priority "1" (immediate), "2" (within 1 month), "3" (within 3 months).
+For ROOMS: list every distinct room, area or location mentioned in notes or visible in photos.
+For SHOWERS: list every shower head — note condition (Good/Fair/Poor/Heavily Scaled).
+For TMVs: list every TMV visible, with location and condition.
+For DEAD LEGS: identify any pipework that appears unused, capped, or redundant.
+For SITE DESCRIPTION: write a detailed professional paragraph describing the water systems, building type, and infrastructure observed.
+For SUMMARY: write a thorough professional executive summary (3-5 sentences) suitable for a formal risk assessment report, covering key findings and risk level.
+For ISSUES TEXT: list all deficiencies, non-compliances and hazards found, one per line starting with "•".
+
+Return ONLY valid JSON (no markdown, no explanation):
 {
   "site_description": "string",
   "summary": "string",
@@ -102,11 +114,12 @@ Return ONLY valid JSON:
   "actions": [{"system": "string","observation": "string","action": "string","priority": "string"}],
   "photos": [{"caption": "string","kind": "string","location": "string"}]
 }
-Rules: Only include items you can actually see. Return EMPTY arrays where nothing is visible. outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV. photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General.`;
+outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV
+photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General`;
 
     const llmResult = await base44.integrations.Core.InvokeLLM({
       prompt,
-      file_urls: fileUrls,
+      file_urls: fileUrls.length > 0 ? fileUrls : undefined,
       model: 'claude_sonnet_4_6',
     });
 
@@ -156,15 +169,54 @@ Rules: Only include items you can actually see. Return EMPTY arrays where nothin
         batches.push([]);
       }
 
-      setBatchProgress({ current: 0, total: batches.length });
+      setBatchProgress({ current: 0, total: batches.length + (batches.length > 1 ? 1 : 0) });
       const batchResults = [];
       for (let i = 0; i < batches.length; i++) {
-        setBatchProgress({ current: i + 1, total: batches.length });
+        setBatchProgress({ current: i + 1, total: batches.length + (batches.length > 1 ? 1 : 0) });
         const batchResult = await analysePhotoBatch(batches[i], i, batches.length);
         batchResults.push(batchResult);
       }
 
-      setResult(mergeResults(batchResults));
+      const merged = mergeResults(batchResults);
+
+      // If multiple batches, do a final synthesis pass to write a cohesive summary
+      if (batches.length > 1 && engineerNotes.trim()) {
+        setBatchProgress({ current: batches.length + 1, total: batches.length + 1 });
+        const synthResult = await base44.integrations.Core.InvokeLLM({
+          prompt: `You are writing the final executive summary and issues list for a professional Legionella risk assessment report for Dorset Plumbing (UK).
+Site: ${job.site_name || job.client || 'the site'} | Type: ${job.property_type || 'Commercial'}
+
+ENGINEER'S NOTES:
+${engineerNotes.trim()}
+
+DATA EXTRACTED FROM SITE PHOTOS:
+- ${merged.outlets.length} outlets identified
+- ${merged.showers.length} showers
+- ${merged.tmv_register.length} TMVs
+- ${merged.dead_legs.length} dead legs
+- Rooms: ${merged.rooms.map(r => r.name).join(', ') || 'none listed'}
+- Existing issues: ${merged.issues_text || 'none'}
+
+Write a thorough professional executive summary (4-6 sentences) and a comprehensive bullet-point issues list.
+Return ONLY valid JSON:
+{
+  "summary": "string",
+  "site_description": "string",
+  "issues_text": "string (bullet points starting with •, one per line)"
+}`,
+          model: 'claude_sonnet_4_6',
+        });
+        const synthStr = typeof synthResult === 'string' ? synthResult : JSON.stringify(synthResult);
+        const synthMatch = synthStr.match(/```(?:json)?\s*([\s\S]*?)```/) || synthStr.match(/(\{[\s\S]*\})/);
+        if (synthMatch) {
+          const synth = JSON.parse(synthMatch[1]);
+          if (synth.summary) merged.summary = synth.summary;
+          if (synth.site_description) merged.site_description = synth.site_description;
+          if (synth.issues_text) merged.issues_text = synth.issues_text;
+        }
+      }
+
+      setResult(merged);
     } catch (err) {
       setError('AI analysis failed: ' + err.message);
     } finally {
