@@ -193,25 +193,38 @@ Valid photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg
 
       const merged = mergeResults(batchResults);
 
-      // If multiple photo batches, do a final synthesis pass so the summary & issues cover everything
-      if (batches.length > 1) {
+      // Always do a synthesis pass — for multi-batch to consolidate, for notes-only to get a richer output
+      if (batches.length > 1 || (allFileUrls.length === 0 && engineerNotes.trim())) {
         setBatchProgress({ current: batches.length + 1, total: batches.length + 1 });
-        const notesSection = engineerNotes.trim() ? `\nENGINEER'S NOTES:\n${engineerNotes.trim()}\n` : '';
+        const notesSection = engineerNotes.trim() ? `\n=== ENGINEER'S NOTES ===\n${engineerNotes.trim()}\n=== END NOTES ===\n` : '';
+        const isNotesOnly = allFileUrls.length === 0;
         const synthResult = await base44.integrations.Core.InvokeLLM({
-          prompt: `You are finalising a professional Legionella risk assessment report for Dorset Plumbing (UK).
+          prompt: `You are an expert Legionella risk assessor producing a full ACoP L8 / HSG274 Part 2 risk assessment for Dorset Plumbing (UK).
 Site: ${job.site_name || job.client || 'the site'} | Type: ${job.property_type || 'Commercial'}
 ${notesSection}
-DATA EXTRACTED ACROSS ALL PHOTO BATCHES:
+${isNotesOnly ? '' : `DATA EXTRACTED ACROSS ALL PHOTO BATCHES:
 Outlets (${merged.outlets.length}): ${merged.outlets.map(o => `${o.location} ${o.type} H:${o.hot||'?'} C:${o.cold||'?'}`).join(' | ')}
 Rooms: ${merged.rooms.map(r => r.name).join(', ') || 'none'}
 Showers (${merged.showers.length}): ${merged.showers.map(s => `${s.location} ${s.condition}`).join(', ')}
 TMVs (${merged.tmv_register.length}): ${merged.tmv_register.map(t => t.location).join(', ')}
 Dead legs (${merged.dead_legs.length}): ${merged.dead_legs.map(d => d.location).join(', ')}
-Issues found: ${merged.issues_text || 'none yet'}
+`}
+Read every word of the engineer's notes. Extract EVERYTHING — every outlet with temperatures, every room, every TMV, every shower, every dead leg, every action item, every deficiency.
 
-Write a cohesive professional executive summary (4–6 sentences) and a comprehensive bullet-point issues list covering the FULL job.
-Return ONLY valid JSON:
-{"summary":"string","site_description":"string","issues_text":"string"}`,
+Return ONLY valid JSON — no markdown, no explanation:
+{
+  "summary": "thorough 4-6 sentence professional executive summary for a formal report",
+  "site_description": "detailed professional paragraph about the property and water systems",
+  "issues_text": "every deficiency and hazard, one per line starting with •",
+  "rooms": [{"name": "string"}],
+  "outlets": [{"location":"string","type":"string","hot":"string","cold":"string","notes":"string","hasTmv":false,"infrequent":false}],
+  "showers": [{"location":"string","condition":"string","notes":"string"}],
+  "tmv_register": [{"ref":"string","location":"string","type":"string","condition":"string","notes":"string"}],
+  "dead_legs": [{"location":"string","description":"string","pipe_material":"string"}],
+  "actions": [{"system":"string","observation":"string","action":"string","priority":"string"}]
+}
+outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV
+action priority: "1"=immediate, "2"=within 1 month, "3"=within 3 months`,
           model: 'claude_sonnet_4_6',
         });
         const synthStr = typeof synthResult === 'string' ? synthResult : JSON.stringify(synthResult);
@@ -221,6 +234,15 @@ Return ONLY valid JSON:
           if (synth.summary) merged.summary = synth.summary;
           if (synth.site_description) merged.site_description = synth.site_description;
           if (synth.issues_text) merged.issues_text = synth.issues_text;
+          // For notes-only, the synthesis IS the primary extraction — replace everything
+          if (isNotesOnly) {
+            if (synth.rooms?.length) merged.rooms = synth.rooms;
+            if (synth.outlets?.length) merged.outlets = synth.outlets;
+            if (synth.showers?.length) merged.showers = synth.showers;
+            if (synth.tmv_register?.length) merged.tmv_register = synth.tmv_register;
+            if (synth.dead_legs?.length) merged.dead_legs = synth.dead_legs;
+            if (synth.actions?.length) merged.actions = synth.actions;
+          }
         }
       }
 
