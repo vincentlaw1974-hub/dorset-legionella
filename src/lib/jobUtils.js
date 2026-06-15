@@ -9,6 +9,7 @@ export function today() {
 export const templateOutlets = {
   'Nursing Home': [['Main Kitchen','Kitchen Sink'],['Laundry','Cleaner Sink'],['Room 1 Ensuite','WHB'],['Room 1 Ensuite','Shower'],['Room 2 Ensuite','WHB'],['Room 2 Ensuite','Shower'],['Accessible Bathroom','WHB'],['Accessible Bathroom','Shower'],['Staff WC','WHB']],
   'Care Home': [['Kitchen','Kitchen Sink'],['Laundry','Cleaner Sink'],['Communal Bathroom','WHB'],['Communal Bathroom','Shower'],['Accessible Bathroom','WHB'],['Accessible Bathroom','Shower']],
+  'Community Centre': [['Main Hall WC — Gents','WHB'],['Main Hall WC — Ladies','WHB'],['Disabled WC','WHB'],['Kitchen','Kitchen Sink'],['Kitchen','Pot Wash'],['Sports Changing — Gents','Shower'],['Sports Changing — Ladies','Shower'],['Sports Changing — Gents','WHB'],['Sports Changing — Ladies','WHB']],
   'Holiday Park': [['Gents','WHB'],['Gents','Shower'],['Ladies','WHB'],['Ladies','Shower'],['Disabled','WHB'],['Disabled','Shower'],['Kitchen','Kitchen Sink']],
   'Factory Unit': [['Kitchen','Kitchen Sink'],['WC','WHB']],
   'Domestic': [['Kitchen','Kitchen Sink'],['Bathroom','WHB'],['Bathroom','Bath'],['Bathroom','Shower']]
@@ -101,9 +102,11 @@ export function calculateRisk(job) {
   const isHoliday = pt === 'Holiday Park';
   const isDomestic = pt === 'Domestic';
   const isMedical = pt === 'Doctors Surgery' || pt === 'Dental Surgery';
+  const isCommunityCentre = pt === 'Community Centre';
 
   if (pt === 'Nursing Home' || pt === 'Care Home') score += 3;
   else if (isMedical) score += 2;
+  else if (isCommunityCentre) score += 2; // mixed public/vulnerable use — elevated base risk
   else if (isHoliday || pt === 'Factory Unit' || pt === 'Commercial') score += 1;
   else if (isDomestic) score += 0;
   else score += 1;
@@ -170,10 +173,12 @@ export function calculateRisk(job) {
   if (isCare) result = score >= 9 ? 'HIGH' : score >= 4 ? 'MEDIUM' : 'LOW';
   else if (isDomestic) result = score >= 5 ? 'HIGH' : score >= 2 ? 'MEDIUM' : 'LOW';
   else if (isMedical) result = score >= 7 ? 'HIGH' : score >= 3 ? 'MEDIUM' : 'LOW';
+  else if (isCommunityCentre) result = score >= 7 ? 'HIGH' : score >= 3 ? 'MEDIUM' : 'LOW';
   else result = score >= 7 ? 'HIGH' : score >= 3 ? 'MEDIUM' : 'LOW';
 
   if (job.vulnerable_users && result === 'LOW') result = 'MEDIUM';
   if (isMedical && result === 'LOW') result = 'MEDIUM';
+  if (isCommunityCentre && result === 'LOW') result = 'MEDIUM'; // community venues are always at least medium
   if (isAcHigh) result = 'HIGH';
   // CWST > 20°C always HIGH
   const cwstT = parseFloat(job.cwst_temp);

@@ -195,6 +195,11 @@ export default function ManagementTab({ job, onChange }) {
               🌿 Garden Centre: Multiple water system types apply — standard H&amp;C plumbing (HSG274 Pt2) PLUS water features (HSG274 Pt3), greenhouse tanks, misting systems and irrigation. Complete the Garden Centre section below. Reassessment every 2 years minimum.
             </div>
           )}
+          {propertyType === 'Community Centre' && (
+            <div className="mt-2 pt-2 border-t border-red-200 text-xs text-blue-900 font-medium bg-blue-50 rounded px-2 py-1">
+              🏛️ Community Centre: Mixed public use with potentially vulnerable visitors (elderly, children, disabled). Classified as medium-to-high risk under HSG274 Part 2. Written scheme required; sentinel temperature checks monthly; shower heads (sports facilities) six-monthly descale. Reassessment every 2 years minimum.
+            </div>
+          )}
         </div>
       </div>
 
