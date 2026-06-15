@@ -71,8 +71,11 @@ export default function PhotosTab({ job, onChange }) {
       if (useAI) {
         meta = await detectPhotoMeta(dataUrl, job.rooms || []);
         if (!photoKinds.includes(meta.kind)) meta.kind = 'General';
-        const knownRooms = (job.rooms || []).map(r => r.name);
-        if (!knownRooms.includes(meta.location)) meta.location = '';
+        // Only snap to a known room if rooms exist; otherwise keep the AI's free-text location
+        if ((job.rooms || []).length > 0) {
+          const knownRooms = (job.rooms || []).map(r => r.name);
+          if (!knownRooms.includes(meta.location)) meta.location = '';
+        }
       }
 
       // Step 1: Add photo with base64 immediately — visible & saved to IDB even if offline
@@ -128,11 +131,7 @@ export default function PhotosTab({ job, onChange }) {
       >
         <div className="text-3xl mb-1">🖼️</div>
         <div className="text-sm font-semibold text-gray-700">Drag &amp; drop photos here</div>
-        <div className="text-xs text-gray-500 mt-1">
-          {(job.rooms || []).length > 0
-            ? '✨ AI will detect the room and type from the filename'
-            : 'Add rooms first to enable AI auto-tagging'}
-        </div>
+        <div className="text-xs text-gray-500 mt-1">✨ AI will analyse each photo and auto-tag kind, location and caption</div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
@@ -156,7 +155,7 @@ export default function PhotosTab({ job, onChange }) {
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleInput} className="hidden" />
       <input ref={uploadRef} type="file" accept="image/*" multiple onChange={handleInput} className="hidden" />
 
-      {uploading && <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">✨ AI is tagging photos from filenames…</div>}
+      {uploading && <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">✨ AI is analysing photos and tagging them…</div>}
 
       <div className="space-y-4">
         {(job.photos || []).map(p => {
