@@ -33,6 +33,7 @@ export default function AiDirectReportTab({ job }) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [reportHtml, setReportHtml] = useState('');
   const inputRef = useRef();
 
   const addFiles = useCallback(async (newFiles) => {
@@ -114,17 +115,9 @@ Return ONLY a JSON object (no markdown fences, no explanation) with these exact 
       if (start === -1 || end === -1) throw new Error('AI did not return valid JSON — please try again');
       const data = JSON.parse(text.slice(start, end + 1));
 
-      // 4. Download as HTML file — works everywhere, no popup needed
+      // 4. Store HTML in state so user can open it via a button click (iframe-safe)
       const html = buildReport(data, job, uploaded);
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `LRA-${(siteName).replace(/[^a-z0-9]/gi, '-')}-${new Date().toISOString().slice(0,10)}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setReportHtml(html);
 
       setDone(true);
     } catch (err) {
@@ -199,8 +192,25 @@ Return ONLY a JSON object (no markdown fences, no explanation) with these exact 
 
       {done && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800 font-semibold text-center">
-          ✅ Report downloaded — open the HTML file in your browser, then File → Print → Save as PDF
+          ✅ Report ready! Click the button below to open it
         </div>
+      )}
+
+      {reportHtml && (
+        <button
+          onClick={() => {
+            const win = window.open('', '_blank');
+            if (win) {
+              win.document.open();
+              win.document.write(reportHtml);
+              win.document.close();
+            }
+          }}
+          className="w-full py-3 rounded-2xl font-bold text-white text-sm"
+          style={{ background: '#16a34a' }}
+        >
+          📄 Open Report in New Tab → Print / Save as PDF
+        </button>
       )}
 
       {error && (
