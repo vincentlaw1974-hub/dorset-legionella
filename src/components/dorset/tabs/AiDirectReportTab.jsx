@@ -144,57 +144,21 @@ Return ONLY valid JSON:
         if (r.risk) merged.risk = r.risk;
       }
 
-      // Synthesis pass if multiple batches or notes-only
-      if (batches.length > 1 || (uploadedUrls.length === 0 && notes.trim())) {
-        setProgress('Synthesising full report…');
-        await sleep(2000);
-        const synthResult = await base44.integrations.Core.InvokeLLM({
-          prompt: `You are an expert Legionella risk assessor. Produce a complete standalone report for Dorset Plumbing.
-Site: ${siteName} | Type: ${propType}${notesSection}
-
-Data extracted:
-Outlets (${merged.outlets.length}): ${merged.outlets.map(o => `${o.location} ${o.type} H:${o.hot||'?'} C:${o.cold||'?'}`).join(' | ') || 'none'}
-Rooms: ${merged.rooms.map(r => r.name).join(', ') || 'none'}
-Showers (${merged.showers.length}): ${merged.showers.map(s => `${s.location} ${s.condition}`).join(', ') || 'none'}
-TMVs (${merged.tmv_register.length}): ${merged.tmv_register.map(t => t.location).join(', ') || 'none'}
-Dead legs (${merged.dead_legs.length}): ${merged.dead_legs.map(d => d.location).join(', ') || 'none'}
-Actions (${merged.actions.length}) raised.
-
-Write the definitive consolidated report. Return ONLY valid JSON:
-{
-  "site_description": "string",
-  "summary": "4–6 sentence executive summary",
-  "risk": "LOW|MEDIUM|HIGH",
-  "issues_text": "all deficiencies, one bullet per line starting with •",
-  "compliance_notes": "string",
-  "rooms": [{"name":"string"}],
-  "outlets": [{"location":"string","type":"string","hot":"string","cold":"string","notes":"string","hasTmv":false,"infrequent":false}],
-  "showers": [{"location":"string","condition":"string","notes":"string"}],
-  "tmv_register": [{"ref":"string","location":"string","type":"string","condition":"string","notes":"string"}],
-  "dead_legs": [{"location":"string","description":"string","pipe_material":"string"}],
-  "actions": [{"system":"string","observation":"string","action":"string","priority":"string"}]
-}`,
-          model: 'claude_sonnet_4_6',
-        });
-        const synthStr = typeof synthResult === 'string' ? synthResult : JSON.stringify(synthResult);
-        const synthMatch = synthStr.match(/```(?:json)?\s*([\s\S]*?)```/) || synthStr.match(/(\{[\s\S]*\})/);
-        if (synthMatch) {
-          const synth = JSON.parse(synthMatch[1]);
-          Object.assign(merged, synth);
-        }
-      }
-
       // Build and open the HTML report
       setProgress('Building report…');
       const html = buildHtmlReport(merged, job, uploadedUrls);
       const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      if (win) {
-        win.addEventListener('load', () => {
-          setTimeout(() => { win.focus(); win.print(); URL.revokeObjectURL(url); }, 600);
-        });
-      }
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Use a link click — more reliable than window.open (avoids popup blockers)
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
       setStatus('done');
       setProgress('');
