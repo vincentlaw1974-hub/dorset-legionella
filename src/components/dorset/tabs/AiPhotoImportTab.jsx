@@ -122,17 +122,30 @@ Valid outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, 
 Valid photo kinds: Cover Photo, Temperature Reading, Outlet, CWST, TMV, Dead Leg, Shower Head, Plant Room, Defect, General`;
   };
 
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
   const runLLM = async (fileUrls, batchIndex, totalBatches) => {
     const prompt = buildPrompt(fileUrls.length, batchIndex, totalBatches);
-    const llmResult = await base44.integrations.Core.InvokeLLM({
-      prompt,
-      file_urls: fileUrls.length > 0 ? fileUrls : undefined,
-      model: 'gpt_5_4',
-    });
-    const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
-    const match = responseString.match(/```(?:json)?\s*([\s\S]*?)```/) || responseString.match(/(\{[\s\S]*\})/);
-    if (!match) return null;
-    return JSON.parse(match[1]);
+    // Try Claude first (best quality), fall back to GPT-4o on rate limit
+    const models = ['claude_sonnet_4_6', 'gpt_5_4'];
+    for (let i = 0; i < models.length; i++) {
+      try {
+        if (i > 0) await sleep(5000); // wait before fallback
+        const llmResult = await base44.integrations.Core.InvokeLLM({
+          prompt,
+          file_urls: fileUrls.length > 0 ? fileUrls : undefined,
+          model: models[i],
+        });
+        const responseString = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult);
+        const match = responseString.match(/```(?:json)?\s*([\s\S]*?)```/) || responseString.match(/(\{[\s\S]*\})/);
+        if (!match) return null;
+        return JSON.parse(match[1]);
+      } catch (err) {
+        const isRateLimit = err.message?.toLowerCase().includes('rate limit') || err.message?.includes('429');
+        if (isRateLimit && i < models.length - 1) continue; // try next model
+        throw err;
+      }
+    }
   };
 
   const mergeResults = (batchResults) => {
@@ -226,7 +239,7 @@ Return ONLY valid JSON — no markdown, no explanation:
 }
 outlet types: WHB, Shower, Bath, Kitchen Sink, Cleaner Sink, Outside Tap, Pot Wash, TMV
 action priority: "1"=immediate, "2"=within 1 month, "3"=within 3 months`,
-          model: 'gpt_5_4',
+          model: 'claude_sonnet_4_6',
         });
         const synthStr = typeof synthResult === 'string' ? synthResult : JSON.stringify(synthResult);
         const synthMatch = synthStr.match(/```(?:json)?\s*([\s\S]*?)```/) || synthStr.match(/(\{[\s\S]*\})/);
