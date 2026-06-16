@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { fileToDataUrl } from '@/lib/photoUpload';
+import { fileToDataUrl, uploadToCdn } from '@/lib/photoUpload';
 
 const BRAND_RED   = '#C0392B';
 const BRAND_DARK  = '#2C3E50';
@@ -49,10 +49,8 @@ async function resizeAndUpload(file) {
     img.src = dataUrl;
   });
   const blob = await (await fetch(resized)).blob();
-  const { file_url } = await base44.integrations.Core.UploadFile({
-    file: new File([blob], 'photo.jpg', { type: 'image/jpeg' }),
-  });
-  return { dataUrl: resized, cdnUrl: file_url };
+  const cdnUrl = await uploadToCdn(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+  return { dataUrl: resized, cdnUrl };
 }
 
 function buildPrompt(job, notes) {
@@ -189,17 +187,47 @@ export default function AiDirectReportTab({ job }) {
     if (!job) { setStatus('No job loaded.'); return; }
     setLoading(true);
     setReport('');
-    setStatus('Building prompt…');
     setProgress(10);
+
     try {
-      const images = photos.map(p => ({ cdnUrl: p.cdnUrl, caption: p.caption || '' }));
-      setStatus('Sending to Claude — this may take 30–60 seconds…');
-      setProgress(55);
-      const response = await base44.functions.invoke('generateLraReport', { job, notes, images });
-      setProgress(85);
-      const reportHtml = response.data?.report || '';
-      if (!reportHtml) throw new Error(response.data?.error || 'No report returned');
-      setReport(reportHtml);
+      const siteName = job.site_name || job.client || 'Site';
+      const address  = job.address || '';
+      const type     = job.property_type || 'Commercial';
+      const date     = job.assessment_date || new Date().toISOString().slice(0, 10);
+      const assessor = job.assessor || CERT.assessor;
+      const rp       = job.responsible_person || '';
+      const dh       = job.duty_holder || rp;
+      const notesBlock = notes?.trim() ? `\n\nENGINEER NOTES:\n${notes.trim()}` : '';
+      const fileUrls = photos.filter(p => p.cdnUrl).map(p => p.cdnUrl);
+      const captionLines = photos.map((p, i) => p.caption ? `Photo ${i+1}: ${p.caption}` : null).filter(Boolean);
+      const captionBlock = captionLines.length ? `\n\nPHOTO CAPTIONS:\n${captionLines.join('\n')}` : '';
+
+      const combined = `${type} ${siteName} ${notes || ''}`.toLowerCase();
+      const isClinical  = /aesthetic|clinic|dental|botox|filler|injectable|needle|medical|gp|surgery|practice/.test(combined);
+      const hasChildren = /child|nursery|playgroup|school|eyfs|ofsted|kids|toddler/.test(combined);
+      const clinicalNote = isClinical ? `\n\nCLINICAL SITE: Apply ELEVATED susceptibility scoring (BS 8580-1:2019 Table 3). Hot outlets ≥50°C within 60s (HTM 04-01). Flag any procedure water as MEDIUM/HIGH risk. Recommend point-of-use filters on clinical wash basins.` : '';
+      const childrenNote = hasChildren ? `\n\nCHILDREN'S FACILITY: TMVs mandatory on all child-accessible outlets (max 41°C). Apply ELEVATED susceptibility scoring. Flag unprotected outlets as HIGH priority.` : '';
+
+      const baseContext = `You are a senior Legionella risk assessor for ${COMPANY.tradingAs} (${COMPANY.name}, Gas Safe ${COMPANY.gasSafe}, Reg ${COMPANY.companyReg}, VAT ${COMPANY.vat}). Qualification: ${CERT.company}, Cert ${CERT.certNo}, valid ${CERT.validTo}.
+Site: ${siteName} | Address: ${address} | Type: ${type} | Date: ${date} | Assessor: ${assessor} | RP: ${rp || 'Not recorded'} | Duty Holder: ${dh || 'Not recorded'}${notesBlock}${captionBlock}${clinicalNote}${childrenNote}
+Regulatory refs: ACOP L8 (2013), HSG274 Parts 1-3, BS 8580-1:2019, COSHH 2002, HSWA 1974, MHSWR 1999, Water Fittings Regs 1999.
+Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50, HIGH=bg #C0392B white, MEDIUM=bg #E67E22 white, LOW=bg #27AE60 white. No placeholder text — state if data missing.`;
+
+      const pass1Prompt = `${baseContext}\n\nProduce sections 1–5 ONLY:\n1. EXECUTIVE SUMMARY (3-4 sentences)\n2. MANDATORY LEGAL STATEMENT (verbatim): "This risk assessment has been carried out in accordance with BS 8580-1:2019, the HSE Approved Code of Practice L8 (4th Edition), and associated HSG274 guidance. It reflects conditions observed at the time of inspection on ${date} and should not be regarded as a guarantee of conditions at any other time. This document does not constitute legal advice. ${COMPANY.tradingAs} / ${COMPANY.name} accepts no liability for incidents arising from changes to the water system, occupancy, or use patterns after the date of this assessment. The duty holder is reminded that ACOP L8 places a continuing legal obligation to manage Legionella risk and this document should be reviewed whenever significant changes occur, and in any event at least every two years (or annually for high-risk premises)."\n3. SCOPE & LIMITATIONS (bullets)\n4. PROPERTY DESCRIPTION\n5. WATER SYSTEM INVENTORY TABLE (cols: Ref|Asset|Location|Normal Temp|Last Serviced|Condition|Notes; prefixes HW-/CW-/TM-/SH-)`;
+
+      const pass2Prompt = `${baseContext}\n\nProduce sections 6–10 ONLY:\n6. TEMPERATURE DATA\n7. RISK ASSESSMENT TABLE (cols: Ref|Description|Location|Likelihood 1-5|Severity 1-5|Score|Risk Level|Action|Priority)\n8. PRIORITISED ACTION PLAN TABLE (cols: Priority|Ref|Action|Responsible|Target Date)\n9. ONGOING MONITORING PROGRAMME (monthly/quarterly/annual)\n10. ASSESSOR DECLARATION: "This assessment was carried out by ${assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${date}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."`;
+
+      setStatus('Generating report sections in parallel — please wait 60–90 seconds…');
+      setProgress(20);
+
+      const [p1, p2] = await Promise.all([
+        base44.integrations.Core.InvokeLLM({ prompt: pass1Prompt, file_urls: fileUrls.length ? fileUrls : undefined, model: 'claude_sonnet_4_6' }),
+        base44.integrations.Core.InvokeLLM({ prompt: pass2Prompt, model: 'claude_sonnet_4_6' }),
+      ]);
+
+      setProgress(90);
+      const strip = (s) => (typeof s === 'string' ? s : JSON.stringify(s)).replace(/^```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '');
+      setReport(strip(p1) + strip(p2));
       setStatus('Report generated successfully.');
       setProgress(100);
     } catch (e) {
