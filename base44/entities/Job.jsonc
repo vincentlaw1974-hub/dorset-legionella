@@ -20,19 +20,26 @@
     "property_type": {
       "type": "string",
       "enum": [
+        "Community Hall",
+        "Church Hall",
         "Nursing Home",
         "Care Home",
         "Holiday Park",
         "Factory Unit",
         "Domestic",
+        "Domestic / HMO",
         "Commercial",
         "Community Centre",
         "Doctors Surgery",
+        "Doctors Surgery / GP Practice",
         "Dental Surgery",
+        "Dental Practice",
+        "Aesthetic Clinic",
         "Garden Centre",
+        "School / Nursery",
         "Other"
       ],
-      "default": "Nursing Home"
+      "default": "Community Hall"
     },
     "assessment_date": {
       "type": "string",
