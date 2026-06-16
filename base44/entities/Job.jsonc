@@ -2,16 +2,10 @@
   "name": "Job",
   "type": "object",
   "properties": {
-    "customer_id": {
-      "type": "string"
-    },
-    "customer_name": {
+    "site_name": {
       "type": "string"
     },
     "client": {
-      "type": "string"
-    },
-    "site_name": {
       "type": "string"
     },
     "address": {
@@ -22,21 +16,17 @@
       "enum": [
         "Community Hall",
         "Church Hall",
-        "Nursing Home",
-        "Care Home",
-        "Holiday Park",
-        "Factory Unit",
-        "Domestic",
-        "Domestic / HMO",
-        "Commercial",
-        "Community Centre",
-        "Doctors Surgery",
-        "Doctors Surgery / GP Practice",
-        "Dental Surgery",
-        "Dental Practice",
         "Aesthetic Clinic",
-        "Garden Centre",
+        "Dental Practice",
+        "Doctors Surgery / GP Practice",
+        "Care Home",
+        "Nursing Home",
+        "Holiday Park",
+        "Office / Commercial",
+        "Factory / Industrial Unit",
         "School / Nursery",
+        "HMO / Domestic",
+        "Garden Centre",
         "Other"
       ],
       "default": "Community Hall"
@@ -45,27 +35,17 @@
       "type": "string",
       "format": "date"
     },
-    "review_due": {
+    "assessor": {
       "type": "string",
-      "format": "date"
+      "default": "Benjamin White"
     },
-    "report_ref": {
+    "responsible_person": {
       "type": "string"
     },
-    "visit_dates": {
+    "duty_holder": {
       "type": "string"
     },
-    "status": {
-      "type": "string",
-      "enum": [
-        "In Progress",
-        "Completed",
-        "Reviewed",
-        "Future"
-      ],
-      "default": "In Progress"
-    },
-    "risk": {
+    "risk_level": {
       "type": "string",
       "enum": [
         "LOW",
@@ -74,741 +54,42 @@
       ],
       "default": "MEDIUM"
     },
-    "risk_override": {
-      "type": "boolean",
-      "default": false
-    },
-    "summary": {
+    "report_ref": {
       "type": "string"
     },
-    "assessor": {
+    "next_review_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
       "type": "string"
     },
-    "assessor_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "reviewer": {
-      "type": "string"
-    },
-    "reviewer_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "responsible_person": {
-      "type": "string"
-    },
-    "responsible_person_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "responsible_role": {
-      "type": "string"
-    },
-    "responsible_role_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "duty_holder": {
-      "type": "string"
-    },
-    "duty_holder_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "duty_holder_role": {
-      "type": "string"
-    },
-    "duty_holder_role_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "deputy_person": {
-      "type": "string"
-    },
-    "deputy_person_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "deputy_role": {
-      "type": "string"
-    },
-    "deputy_role_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "written_scheme": {
-      "type": "boolean",
-      "default": false
-    },
-    "written_scheme_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "schematics_available": {
-      "type": "boolean",
-      "default": false
-    },
-    "schematics_available_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "training_records": {
-      "type": "boolean",
-      "default": false
-    },
-    "training_records_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "monitoring_records": {
-      "type": "boolean",
-      "default": false
-    },
-    "monitoring_records_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "monthly_temp_log": {
-      "type": "boolean",
-      "default": true
-    },
-    "flushing_log": {
-      "type": "boolean",
-      "default": true
-    },
-    "shower_cleaning_log": {
-      "type": "boolean",
-      "default": true
-    },
-    "tmv_service_records": {
-      "type": "boolean",
-      "default": true
-    },
-    "log_temps_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "log_flush_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "log_shower_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "log_tmv_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "vulnerable_users": {
-      "type": "boolean",
-      "default": true
-    },
-    "vulnerable_users_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "cqc_mode": {
-      "type": "boolean",
-      "default": true
-    },
-    "cqc_mode_na": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_water_features": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_water_features_count": {
-      "type": "string"
-    },
-    "gc_water_features_treatment": {
-      "type": "string"
-    },
-    "gc_water_features_last_clean": {
-      "type": "string"
-    },
-    "gc_misting_systems": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_misting_source": {
-      "type": "string"
-    },
-    "gc_misting_last_service": {
-      "type": "string"
-    },
-    "gc_irrigation_systems": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_irrigation_notes": {
-      "type": "string"
-    },
-    "gc_greenhouse_tanks": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_greenhouse_tank_temp": {
-      "type": "string"
-    },
-    "gc_greenhouse_tank_last_clean": {
-      "type": "string"
-    },
-    "gc_food_prep_area": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_animal_area": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_staff_facilities": {
-      "type": "boolean",
-      "default": true
-    },
-    "gc_public_toilets": {
-      "type": "boolean",
-      "default": true
-    },
-    "gc_seasonal_closure": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_seasonal_closure_notes": {
-      "type": "string"
-    },
-    "gc_hsg274_p3_assessed": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_written_scheme_covers_features": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_biocide_records": {
-      "type": "boolean",
-      "default": false
-    },
-    "gc_notes": {
-      "type": "string"
-    },
-    "water_samples_taken": {
-      "type": "boolean",
-      "default": false
-    },
-    "water_samples_date": {
-      "type": "string"
-    },
-    "water_samples_lab": {
-      "type": "string"
-    },
-    "water_samples_results": {
+    "status": {
       "type": "string",
       "enum": [
-        "Pending",
-        "Satisfactory",
-        "Unsatisfactory",
-        "Action Required"
-      ]
+        "Enquiry",
+        "Booked",
+        "In Progress",
+        "Report Draft",
+        "Report Sent",
+        "Complete",
+        "Invoiced",
+        "Paid"
+      ],
+      "default": "Booked"
     },
-    "water_samples_advised": {
-      "type": "boolean",
-      "default": false
-    },
-    "water_samples_advised_date": {
-      "type": "string"
-    },
-    "water_samples_advised_method": {
-      "type": "string"
-    },
-    "water_samples_notes": {
-      "type": "string"
-    },
-    "compliance_notes": {
-      "type": "string"
-    },
-    "site_description": {
-      "type": "string"
-    },
-    "occupants": {
-      "type": "string"
-    },
-    "cold_source": {
-      "type": "string",
-      "default": "Mains"
-    },
-    "hot_system": {
-      "type": "string"
-    },
-    "cwst_present": {
-      "type": "boolean",
-      "default": false
-    },
-    "tmvs_installed": {
-      "type": "boolean",
-      "default": true
-    },
-    "air_con": {
-      "type": "boolean",
-      "default": false
-    },
-    "ac_last_service_date": {
-      "type": "string"
-    },
-    "closed_systems": {
-      "type": "boolean",
-      "default": false
-    },
-    "cwst_location": {
-      "type": "string"
-    },
-    "cwst_temp": {
-      "type": "string"
-    },
-    "cwst_clean": {
-      "type": "boolean",
-      "default": true
-    },
-    "cwst_drinking": {
-      "type": "boolean",
-      "default": false
-    },
-    "cwst_photo_url": {
-      "type": "string"
-    },
-    "cylinder_temp": {
-      "type": "string"
-    },
-    "hw_not_stored": {
-      "type": "boolean",
-      "default": false
-    },
-    "hw_boiler_set_temp": {
-      "type": "string"
-    },
-    "cylinder_photo_url": {
-      "type": "string"
-    },
-    "plant_room_photo_url": {
-      "type": "string"
-    },
-    "last_flush_date": {
-      "type": "string"
-    },
-    "previous_assessment_date": {
-      "type": "string"
-    },
-    "building_age": {
-      "type": "string"
-    },
-    "reassessment_interval": {
-      "type": "string",
-      "default": "24"
-    },
-    "restrictions": {
-      "type": "string"
-    },
-    "risk_contam": {
-      "type": "string",
-      "default": "1"
-    },
-    "risk_amplify": {
-      "type": "string",
-      "default": "4"
-    },
-    "risk_transmit": {
-      "type": "string",
-      "default": "1"
-    },
-    "risk_suscept": {
-      "type": "string",
-      "default": "4"
-    },
-    "issues_text": {
-      "type": "string"
-    },
-    "cover_photo_url": {
-      "type": "string"
-    },
-    "rooms": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "buildings": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "has_mains_cold": {
-            "type": "boolean"
-          },
-          "cwst_count": {
-            "type": "string"
-          },
-          "cwst_capacity": {
-            "type": "string"
-          },
-          "cwst_location": {
-            "type": "string"
-          },
-          "has_hw_storage": {
-            "type": "boolean"
-          },
-          "hw_storage_count": {
-            "type": "string"
-          },
-          "hw_cylinder_temp": {
-            "type": "string"
-          },
-          "has_boiler": {
-            "type": "boolean"
-          },
-          "boiler_count": {
-            "type": "string"
-          },
-          "boiler_set_temp": {
-            "type": "string"
-          },
-          "has_tmvs": {
-            "type": "boolean"
-          },
-          "has_outside_tap": {
-            "type": "boolean"
-          },
-          "has_shower": {
-            "type": "boolean"
-          },
-          "shower_count": {
-            "type": "string"
-          },
-          "has_air_con": {
-            "type": "boolean"
-          },
-          "has_closed_system": {
-            "type": "boolean"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "rooms": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "outlets": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "location": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                },
-                "hot": {
-                  "type": "string"
-                },
-                "cold": {
-                  "type": "string"
-                },
-                "notes": {
-                  "type": "string"
-                },
-                "infrequent": {
-                  "type": "boolean"
-                },
-                "hasTmv": {
-                  "type": "boolean"
-                },
-                "photo_url": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "photos": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "file_url": {
-                  "type": "string"
-                },
-                "kind": {
-                  "type": "string"
-                },
-                "caption": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "outlets": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "hot": {
-            "type": "string"
-          },
-          "cold": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "infrequent": {
-            "type": "boolean"
-          },
-          "hasTmv": {
-            "type": "boolean"
-          },
-          "tmv_ref": {
-            "type": "string"
-          },
-          "hasCheckValve": {
-            "type": "boolean"
-          },
-          "check_valve": {
-            "type": "boolean"
-          },
-          "photo_url": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "dead_legs": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "pipe_material": {
-            "type": "string"
-          },
-          "last_actioned": {
-            "type": "string"
-          },
-          "action": {
-            "type": "string"
-          },
-          "photo_url": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "showers": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "last_descale": {
-            "type": "string"
-          },
-          "next_descale": {
-            "type": "string"
-          },
-          "condition": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "photo_url": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "actions": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "ref": {
-            "type": "string"
-          },
-          "system": {
-            "type": "string"
-          },
-          "observation": {
-            "type": "string"
-          },
-          "action": {
-            "type": "string"
-          },
-          "priority": {
-            "type": "string"
-          },
-          "responsible_person": {
-            "type": "string"
-          },
-          "deadline": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          }
-        }
-      }
+    "invoice_amount": {
+      "type": "number"
     },
     "photos": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "file_url": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "location": {
+          "url": {
             "type": "string"
           },
           "caption": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "logs": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "date": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "string"
-          },
-          "completed_by": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "tmv_register": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "ref": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "outlets_served": {
-            "type": "string"
-          },
-          "last_inspection": {
-            "type": "string"
-          },
-          "last_descale": {
-            "type": "string"
-          },
-          "failsafe_passed": {
-            "type": "string"
-          },
-          "condition": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "photo_url": {
             "type": "string"
           }
         }
