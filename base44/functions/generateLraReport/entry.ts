@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import Anthropic from 'npm:@anthropic-ai/sdk@0.31.0';
 
 const COMPANY = {
   name:       'Dorset Plumbing Ltd',
@@ -139,40 +138,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No job data provided' }, { status: 400 });
     }
 
-    const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+    const prompt = buildPrompt(job, notes);
 
-    const content = [
-      { type: 'text', text: buildPrompt(job, notes) },
-    ];
+    // Build file_urls array from uploaded CDN URLs (images already uploaded by client)
+    // or fall back to base64 data URLs if no CDN URL available
+    const fileUrls = images
+      .filter(img => img.cdnUrl || img.data)
+      .map(img => img.cdnUrl || `data:${img.mediaType || 'image/jpeg'};base64,${img.data}`);
 
-    for (const img of images) {
-      if (img.data) {
-        content.push({
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: img.mediaType || 'image/jpeg',
-            data: img.data,
-          },
-        });
-        if (img.caption) {
-          content.push({ type: 'text', text: `Photo caption: ${img.caption}` });
-        }
-      }
-    }
+    const captionLines = images
+      .map((img, i) => img.caption ? `Photo ${i + 1}: ${img.caption}` : null)
+      .filter(Boolean);
 
-    const response = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 8000,
-      messages:   [{ role: 'user', content }],
+    const fullPrompt = captionLines.length > 0
+      ? `${prompt}\n\nPHOTO CAPTIONS:\n${captionLines.join('\n')}`
+      : prompt;
+
+    const reportHtml = await base44.integrations.Core.InvokeLLM({
+      prompt: fullPrompt,
+      file_urls: fileUrls.length > 0 ? fileUrls : undefined,
+      model: 'claude_sonnet_4_6',
     });
 
-    const reportHtml = response.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
-
-    return Response.json({ report: reportHtml, usage: response.usage });
+    return Response.json({ report: typeof reportHtml === 'string' ? reportHtml : JSON.stringify(reportHtml) });
   } catch (error) {
     console.error('generateLraReport error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });

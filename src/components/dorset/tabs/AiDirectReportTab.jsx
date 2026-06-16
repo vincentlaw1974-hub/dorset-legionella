@@ -192,13 +192,7 @@ export default function AiDirectReportTab({ job }) {
     setStatus('Building prompt…');
     setProgress(10);
     try {
-      const images = [];
-      for (let i = 0; i < photos.length; i++) {
-        setStatus(`Attaching photo ${i + 1} of ${photos.length}…`);
-        setProgress(10 + Math.round((i / photos.length) * 40));
-        const b64 = photos[i].dataUrl.split(',')[1];
-        if (b64) images.push({ data: b64, mediaType: 'image/jpeg', caption: photos[i].caption || '' });
-      }
+      const images = photos.map(p => ({ cdnUrl: p.cdnUrl, caption: p.caption || '' }));
       setStatus('Sending to Claude — this may take 30–60 seconds…');
       setProgress(55);
       const response = await base44.functions.invoke('generateLraReport', { job, notes, images });
