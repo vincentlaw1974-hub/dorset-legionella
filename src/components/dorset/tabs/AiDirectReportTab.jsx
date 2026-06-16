@@ -192,32 +192,20 @@ export default function AiDirectReportTab({ job }) {
     setStatus('Building prompt…');
     setProgress(10);
     try {
-      const prompt = buildPrompt(job, notes);
-      const content = [{ type: 'text', text: prompt }];
+      const images = [];
       for (let i = 0; i < photos.length; i++) {
         setStatus(`Attaching photo ${i + 1} of ${photos.length}…`);
         setProgress(10 + Math.round((i / photos.length) * 40));
         const b64 = photos[i].dataUrl.split(',')[1];
-        if (b64) {
-          content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
-          if (photos[i].caption) content.push({ type: 'text', text: `Photo caption: ${photos[i].caption}` });
-        }
+        if (b64) images.push({ data: b64, mediaType: 'image/jpeg', caption: photos[i].caption || '' });
       }
       setStatus('Sending to Claude — this may take 30–60 seconds…');
       setProgress(55);
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content }] }),
-      });
+      const response = await base44.functions.invoke('generateLraReport', { job, notes, images });
       setProgress(85);
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      const text = data.content?.map(b => b.text || '').join('') || '';
-      setReport(text);
+      const reportHtml = response.data?.report || '';
+      if (!reportHtml) throw new Error(response.data?.error || 'No report returned');
+      setReport(reportHtml);
       setStatus('Report generated successfully.');
       setProgress(100);
     } catch (e) {

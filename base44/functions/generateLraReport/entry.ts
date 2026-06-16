@@ -155,6 +155,9 @@ Deno.serve(async (req) => {
             data: img.data,
           },
         });
+        if (img.caption) {
+          content.push({ type: 'text', text: `Photo caption: ${img.caption}` });
+        }
       }
     }
 
