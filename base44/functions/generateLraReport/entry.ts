@@ -154,13 +154,39 @@ Deno.serve(async (req) => {
       ? `${prompt}\n\nPHOTO CAPTIONS:\n${captionLines.join('\n')}`
       : prompt;
 
-    const reportHtml = await base44.integrations.Core.InvokeLLM({
-      prompt: fullPrompt,
-      file_urls: fileUrls.length > 0 ? fileUrls : undefined,
-      model: 'claude_sonnet_4_6',
-    });
+    // Split into two passes to avoid timeout: first half then second half
+    const pass1Prompt = fullPrompt + `\n\nIMPORTANT: Output ONLY sections 1–5 (Executive Summary, Legal Statement, Scope & Limitations, Property Description, Water System Inventory). Stop after section 5. Keep each section concise but complete.`;
+    const pass2Prompt = `You are a senior Legionella risk assessor for ${COMPANY.tradingAs}. Continue the risk assessment report for ${job.site_name || job.client || 'the site'} (${job.property_type || 'Commercial'}, assessed ${job.assessment_date || 'today'}).
 
-    return Response.json({ report: typeof reportHtml === 'string' ? reportHtml : JSON.stringify(reportHtml) });
+Output ONLY sections 6–10 in clean HTML:
+6. TEMPERATURE DATA
+7. RISK ASSESSMENT — BS 8580-1:2019 SCORING (table: Finding Ref | Description | Location | Likelihood 1-5 | Severity 1-5 | Risk Score | Risk Level | Recommended Action | Priority)
+8. PRIORITISED ACTION PLAN (table: Priority | Ref | Action | Responsible Party | Target Date)
+9. ONGOING MONITORING PROGRAMME
+10. ASSESSOR DECLARATION: "This assessment was carried out by ${job.assessor || CERT.assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${job.assessment_date || 'the date of inspection'}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."
+
+Engineer notes: ${notes || 'None provided.'}
+Formatting: HTML only, headings #C0392B, body #2C3E50, HIGH=#C0392B white, MEDIUM=#E67E22 white, LOW=#27AE60 white.`;
+
+    const [part1, part2] = await Promise.all([
+      base44.integrations.Core.InvokeLLM({
+        prompt: pass1Prompt,
+        file_urls: fileUrls.length > 0 ? fileUrls : undefined,
+        model: 'claude_sonnet_4_6',
+      }),
+      base44.integrations.Core.InvokeLLM({
+        prompt: pass2Prompt,
+        model: 'claude_sonnet_4_6',
+      }),
+    ]);
+
+    const stripFences = (s) => {
+      const str = typeof s === 'string' ? s : JSON.stringify(s);
+      return str.replace(/^```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '');
+    };
+
+    const combined = stripFences(part1) + stripFences(part2);
+    return Response.json({ report: combined });
   } catch (error) {
     console.error('generateLraReport error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
