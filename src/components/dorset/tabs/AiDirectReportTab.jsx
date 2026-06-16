@@ -311,18 +311,10 @@ function buildReport(d, job, uploaded) {
     return out;
   };
 
-  // Cover photo — full-width hero spanning the red banner area
   const coverImgSrc = allFigs.length > 0 && photoData[allFigs[0]] ? photoData[allFigs[0]].src : null;
   const coverImg = coverImgSrc
-    ? `<div style="width:100%;height:260px;overflow:hidden;position:relative">
-        <img src="${coverImgSrc}" style="width:100%;height:100%;object-fit:cover;display:block"/>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.5));padding:8px 16px">
-          <span style="font-size:9px;color:#fff;font-style:italic">Fig. 1 — ${photoData[allFigs[0]].caption}</span>
-        </div>
-      </div>`
-    : `<div style="width:100%;height:120px;background:linear-gradient(135deg,${DP_NAVY} 0%,#3d5a73 100%);display:flex;align-items:center;justify-content:center">
-        <span style="font-size:40px;opacity:0.3">💧</span>
-      </div>`;
+    ? `<div style="text-align:center;padding:14px 40px 8px"><img src="${coverImgSrc}" style="max-height:220px;max-width:95%;border:1px solid #ddd;border-radius:4px"/><div style="font-size:9px;color:#666;margin-top:3px;font-style:italic">Fig. 1 — ${photoData[allFigs[0]].caption}</div></div>`
+    : '';
 
   // Outlet rows
   const outletRows = (d.outlets||[]).map((o, i) =>
@@ -515,97 +507,6 @@ function buildReport(d, job, uploaded) {
     ${allFigs.length > 0 ? `${subsection('2.1 Site Photographs')}${photoGrid()}` : ''}
   `, 3);
 
-  // ── Schematic Page ───────────────────────────────────────────────────────
-  const buildSchematic = () => {
-    const outlets = d.outlets || [];
-    const assets = d.assets || [];
-    const hasCwst = job.cwst_present || assets.some(a => (a.type||'').toLowerCase().includes('tank') || (a.type||'').toLowerCase().includes('cwst'));
-    const hwAssets = assets.filter(a => (a.type||'').toLowerCase().includes('cylinder') || (a.type||'').toLowerCase().includes('calorifier') || (a.type||'').toLowerCase().includes('boiler') || (a.type||'').toLowerCase().includes('unvented'));
-    const hasTmvs = outlets.some(o => o.tmv === 'YES') || job.tmvs_installed;
-
-    const passCount = outlets.filter(o => o.status === 'PASS').length;
-    const failCount = outlets.filter(o => o.status === 'FAIL' || o.status === 'HIGH RISK').length;
-    const advCount = outlets.filter(o => o.status === 'ADVISORY').length;
-
-    // SVG system schematic
-    const SVG_W = 740, SVG_H = 340;
-    // Node positions
-    const mains  = { x: 40,  y: 170, label: 'Mains\nSupply' };
-    const cwst   = { x: 160, y: 80,  label: 'CWST' };
-    const hw     = { x: 300, y: 170, label: hwAssets.length > 0 ? (hwAssets[0].make||'HW') + '\nCylinder' : 'HW\nCylinder' };
-    const tmv    = { x: 460, y: 170, label: 'TMV\nBlending' };
-    const cold   = { x: 460, y: 280, label: 'Cold\nDistrib.' };
-    const hotOut = { x: 600, y: 120, label: 'Hot\nOutlets' };
-    const tmvOut = { x: 600, y: 200, label: 'Blended\nOutlets' };
-    const coldOut= { x: 600, y: 280, label: 'Cold\nOutlets' };
-
-    const node = (pos, colour, icon) =>
-      `<circle cx="${pos.x}" cy="${pos.y}" r="26" fill="${colour}" stroke="#fff" stroke-width="2"/>
-       <text x="${pos.x}" y="${pos.y-4}" text-anchor="middle" font-size="14" fill="#fff">${icon}</text>
-       ${pos.label.split('\n').map((l,i) => `<text x="${pos.x}" y="${pos.y+42+(i*13)}" text-anchor="middle" font-size="9" fill="#374151" font-family="Arial">${l}</text>`).join('')}`;
-
-    const line = (a, b, colour='#94a3b8', dash='') =>
-      `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${colour}" stroke-width="2" ${dash?`stroke-dasharray="${dash}"`:''} marker-end="url(#arrow)"/>`;
-
-    const statusBar = (label, count, colour) => count > 0
-      ? `<span style="display:inline-flex;align-items:center;gap:5px;background:${colour}22;border:1px solid ${colour}55;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:${colour}">${label}: ${count}</span>`
-      : '';
-
-    const svg = `<svg width="${SVG_W}" height="${SVG_H}" viewBox="0 0 ${SVG_W} ${SVG_H}" style="max-width:100%;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-          <polygon points="0 0,8 3,0 6" fill="#94a3b8"/>
-        </marker>
-      </defs>
-      <!-- Cold supply lines -->
-      ${line(mains, hasCwst ? cwst : hw, '#3b82f6')}
-      ${hasCwst ? line(cwst, hw, '#3b82f6') : ''}
-      ${line(hw, tmv, '#ef4444')}
-      ${line(mains, cold, '#3b82f6')}
-      ${line(cold, coldOut, '#3b82f6', '4 2')}
-      <!-- Hot lines -->
-      ${line(hw, hotOut, '#ef4444', '4 2')}
-      <!-- TMV lines -->
-      ${hasTmvs ? line(tmv, tmvOut, '#f59e0b', '4 2') : ''}
-      <!-- Nodes -->
-      ${node(mains, '#2C3E50', '🏙')}
-      ${hasCwst ? node(cwst, '#3b82f6', '🗳') : ''}
-      ${node(hw, '#ef4444', '🔥')}
-      ${hasTmvs ? node(tmv, '#f59e0b', '⚙') : ''}
-      ${node(cold, '#3b82f6', '❄')}
-      ${node(hotOut, '#ef4444', '🚿')}
-      ${hasTmvs ? node(tmvOut, '#f59e0b', '🚿') : ''}
-      ${node(coldOut, '#3b82f6', '🚿')}
-      <!-- Legend -->
-      <line x1="20" y1="320" x2="50" y2="320" stroke="#ef4444" stroke-width="2"/>
-      <text x="55" y="324" font-size="9" fill="#374151" font-family="Arial">Hot water</text>
-      <line x1="110" y1="320" x2="140" y2="320" stroke="#3b82f6" stroke-width="2"/>
-      <text x="145" y="324" font-size="9" fill="#374151" font-family="Arial">Cold water</text>
-      ${hasTmvs ? `<line x1="200" y1="320" x2="230" y2="320" stroke="#f59e0b" stroke-width="2"/><text x="235" y="324" font-size="9" fill="#374151" font-family="Arial">TMV blended</text>` : ''}
-    </svg>`;
-
-    const hwTemp = hwAssets.length > 0 && hwAssets[0].stat_temp ? `<br/><small style="color:#6b7280">Stat: ${hwAssets[0].stat_temp}°C</small>` : (job.cylinder_temp ? `<br/><small style="color:#6b7280">Stat: ${job.cylinder_temp}°C</small>` : '');
-
-    return `
-      ${svg}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px">
-        ${statusBar('PASS', passCount, '#059669')}
-        ${statusBar('FAIL', failCount, '#dc2626')}
-        ${statusBar('ADVISORY', advCount, '#d97706')}
-        ${hasCwst ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#1d4ed8">CWST: Present</span>` : ''}
-        ${hasTmvs ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#92400e">TMVs: Installed</span>` : ''}
-        ${hwAssets.length > 0 ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#991b1b">HW Assets: ${hwAssets.length}</span>` : ''}
-      </div>
-      <p style="font-size:10px;color:#6b7280;margin:4px 0 0;font-style:italic">Schematic is indicative only and based on information gathered during the survey. Dashed lines indicate distribution branches.</p>
-    `;
-  };
-
-  const pSchematic = page(`
-    ${section('S', 'Water System Schematic')}
-    <p style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:12px">The diagram below shows the indicative water system layout identified during the survey, including cold water supply, hot water storage, TMV blending valves, and outlet distribution branches.</p>
-    ${buildSchematic()}
-  `, '3a');
-
   // ── Page 4: Findings ────────────────────────────────────────────────────
   const p4 = page(`
     ${section('3', 'Findings and Identified Hazards')}
@@ -728,9 +629,6 @@ function buildReport(d, job, uploaded) {
   </div>
   <div class="page-wrap" style="padding:0">
     ${p3}
-  </div>
-  <div class="page-wrap" style="padding:0">
-    ${pSchematic}
   </div>
   <div class="page-wrap" style="padding:0">
     ${p4}
