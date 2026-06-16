@@ -268,33 +268,191 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
     }
   };
 
+  const buildSchematicSvg = () => {
+    // Simple SVG schematic: mains → cold tank → calorifier → hot outlets, cold outlets
+    const w = 680, h = 320;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif;font-size:11px;">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#2C3E50"/>
+        </marker>
+      </defs>
+      <!-- Background -->
+      <rect width="${w}" height="${h}" fill="#f9f9f9" rx="6" stroke="#ddd"/>
+      <text x="10" y="20" font-weight="bold" fill="#C0392B" font-size="13">Water System Schematic — ${(job?.site_name||'Site').replace(/</g,'&lt;')}</text>
+
+      <!-- Mains -->
+      <rect x="20" y="50" width="90" height="40" fill="#3498DB" rx="4"/>
+      <text x="65" y="67" text-anchor="middle" fill="white" font-weight="bold">MAINS</text>
+      <text x="65" y="82" text-anchor="middle" fill="white">WATER</text>
+
+      <!-- Line mains → CW tank -->
+      <line x1="110" y1="70" x2="170" y2="70" stroke="#2C3E50" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- CW Storage Tank -->
+      <rect x="170" y="40" width="100" height="60" fill="#85C1E9" rx="4" stroke="#2C3E50" stroke-width="1.5"/>
+      <text x="220" y="62" text-anchor="middle" fill="#1A5276" font-weight="bold">CW STORAGE</text>
+      <text x="220" y="77" text-anchor="middle" fill="#1A5276">TANK</text>
+      <text x="220" y="92" text-anchor="middle" fill="#1A5276" font-size="9">≤20°C target</text>
+
+      <!-- Line CW tank → Calorifier -->
+      <line x1="270" y1="70" x2="330" y2="70" stroke="#2C3E50" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- Calorifier -->
+      <rect x="330" y="35" width="110" height="70" fill="#E8DAEF" rx="4" stroke="#7D3C98" stroke-width="1.5"/>
+      <text x="385" y="57" text-anchor="middle" fill="#6C3483" font-weight="bold">CALORIFIER /</text>
+      <text x="385" y="72" text-anchor="middle" fill="#6C3483" font-weight="bold">HOT WATER</text>
+      <text x="385" y="87" text-anchor="middle" fill="#6C3483" font-size="9">≥60°C store</text>
+      <text x="385" y="99" text-anchor="middle" fill="#6C3483" font-size="9">≥50°C flow</text>
+
+      <!-- HW distribution line -->
+      <line x1="440" y1="70" x2="520" y2="70" stroke="#E74C3C" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="480" y="63" text-anchor="middle" fill="#E74C3C" font-size="9">HW ≥50°C</text>
+
+      <!-- Hot outlets box -->
+      <rect x="520" y="40" width="140" height="35" fill="#FADBD8" rx="4" stroke="#C0392B" stroke-width="1.5"/>
+      <text x="590" y="55" text-anchor="middle" fill="#922B21" font-weight="bold">HOT OUTLETS</text>
+      <text x="590" y="68" text-anchor="middle" fill="#922B21" font-size="9">WHBs · Showers · Baths</text>
+
+      <!-- CW distribution line -->
+      <line x1="220" y1="100" x2="220" y2="150" stroke="#2980B9" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="220" y1="150" x2="520" y2="150" stroke="#2980B9" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="370" y="143" text-anchor="middle" fill="#2980B9" font-size="9">CW ≤20°C</text>
+
+      <!-- Cold outlets box -->
+      <rect x="520" y="130" width="140" height="35" fill="#D6EAF8" rx="4" stroke="#2980B9" stroke-width="1.5"/>
+      <text x="590" y="145" text-anchor="middle" fill="#154360" font-weight="bold">COLD OUTLETS</text>
+      <text x="590" y="158" text-anchor="middle" fill="#154360" font-size="9">WHBs · Drinking · Kitchen</text>
+
+      <!-- TMV line -->
+      <line x1="520" y1="57" x2="520" y2="147" stroke="#8E44AD" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <rect x="495" y="95" width="50" height="22" fill="#E8DAEF" rx="3" stroke="#8E44AD"/>
+      <text x="520" y="110" text-anchor="middle" fill="#6C3483" font-weight="bold" font-size="10">TMV</text>
+
+      <!-- Return line -->
+      <line x1="440" y1="85" x2="440" y2="200" stroke="#E74C3C" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <line x1="440" y1="200" x2="385" y2="200" stroke="#E74C3C" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="385" y1="200" x2="385" y2="105" stroke="#E74C3C" stroke-width="1.5"/>
+      <text x="412" y="215" text-anchor="middle" fill="#E74C3C" font-size="9">HW return ≥50°C</text>
+
+      <!-- Legend -->
+      <rect x="20" y="240" width="640" height="70" fill="white" rx="4" stroke="#ddd"/>
+      <text x="30" y="258" font-weight="bold" fill="#2C3E50">Legend:</text>
+      <rect x="30" y="265" width="14" height="8" fill="#E74C3C"/>
+      <text x="50" y="274" fill="#2C3E50">Hot water (≥50°C)</text>
+      <rect x="170" y="265" width="14" height="8" fill="#2980B9"/>
+      <text x="190" y="274" fill="#2C3E50">Cold water (≤20°C)</text>
+      <line x1="330" y1="269" x2="344" y2="269" stroke="#8E44AD" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="350" y="274" fill="#2C3E50">TMV blended supply</text>
+      <line x1="490" y1="269" x2="504" y2="269" stroke="#E74C3C" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="510" y="274" fill="#2C3E50">HW return/circulation</text>
+      <text x="30" y="298" fill="#666" font-size="9">Note: This schematic is indicative only, based on site observations. Full system survey may reveal additional components.</text>
+    </svg>`;
+  };
+
+  const buildPhotoGrid = () => {
+    if (!photos.length) return '';
+    const photoHtml = photos.map((p, i) => {
+      const src = p.cdnUrl || p.dataUrl;
+      if (!src) return '';
+      return `<div style="display:inline-block;width:30%;margin:1%;vertical-align:top;page-break-inside:avoid;">
+        <img src="${src}" style="width:100%;height:160px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" />
+        <div style="font-size:9pt;color:#555;margin-top:4px;text-align:center;">${p.caption || `Photo ${i+1}`}</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-top:8px;">${photoHtml}</div>`;
+  };
+
   const printReport = () => {
+    const coverPhoto = photos[0]?.cdnUrl || photos[0]?.dataUrl || '';
+    const riskStyle = RISK_STYLES[(job?.risk_level || '').toUpperCase()] || { bg: '#95A5A6', fg: '#fff', label: job?.risk_level || 'NOT SET' };
+    const siteName = job?.site_name || job?.client || 'Site';
+    const date = job?.assessment_date || new Date().toISOString().slice(0, 10);
+
+    const coverPage = `
+<div style="page-break-after:always;height:100vh;display:flex;flex-direction:column;background:#fff;">
+  <!-- Red header bar -->
+  <div style="background:#C0392B;color:white;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:22pt;font-weight:bold;letter-spacing:1px;">${COMPANY.tradingAs}</div>
+      <div style="font-size:10pt;opacity:0.85;margin-top:2px;">${COMPANY.name} &nbsp;·&nbsp; Gas Safe No. ${COMPANY.gasSafe} &nbsp;·&nbsp; Reg. ${COMPANY.companyReg}</div>
+    </div>
+    <div style="text-align:right;font-size:9pt;opacity:0.85;">
+      <div>${COMPANY.tradingTel}</div>
+      <div>${COMPANY.tradingWeb}</div>
+      <div>${COMPANY.email}</div>
+    </div>
+  </div>
+
+  <!-- Cover photo -->
+  ${coverPhoto ? `<div style="flex:1;overflow:hidden;max-height:340px;">
+    <img src="${coverPhoto}" style="width:100%;height:340px;object-fit:cover;" />
+  </div>` : `<div style="flex:1;background:linear-gradient(135deg,#2C3E50 0%,#C0392B 100%);max-height:340px;display:flex;align-items:center;justify-content:center;">
+    <div style="font-size:48pt;opacity:0.3;">💧</div>
+  </div>`}
+
+  <!-- Report title block -->
+  <div style="padding:24px 30px;border-top:4px solid #C0392B;">
+    <div style="font-size:8pt;color:#C0392B;font-weight:bold;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Legionella Risk Assessment Report</div>
+    <div style="font-size:22pt;font-weight:bold;color:#2C3E50;">${siteName}</div>
+    ${job?.address ? `<div style="font-size:11pt;color:#666;margin-top:4px;">${job.address}</div>` : ''}
+    <div style="margin-top:16px;display:flex;gap:24px;flex-wrap:wrap;">
+      <div><span style="font-size:8pt;color:#999;text-transform:uppercase;">Property Type</span><br/><strong style="color:#2C3E50;">${job?.property_type || '—'}</strong></div>
+      <div><span style="font-size:8pt;color:#999;text-transform:uppercase;">Assessment Date</span><br/><strong style="color:#2C3E50;">${date}</strong></div>
+      <div><span style="font-size:8pt;color:#999;text-transform:uppercase;">Assessor</span><br/><strong style="color:#2C3E50;">${job?.assessor || CERT.assessor}</strong></div>
+      <div><span style="font-size:8pt;color:#999;text-transform:uppercase;">Overall Risk</span><br/><strong style="background:${riskStyle.bg};color:${riskStyle.fg};padding:2px 12px;border-radius:3px;">${riskStyle.label}</strong></div>
+      <div><span style="font-size:8pt;color:#999;text-transform:uppercase;">Report Ref</span><br/><strong style="color:#2C3E50;">${job?.report_ref || 'See report'}</strong></div>
+    </div>
+  </div>
+
+  <!-- Certification footer -->
+  <div style="background:#2C3E50;color:white;padding:10px 30px;font-size:8pt;display:flex;justify-content:space-between;align-items:center;">
+    <div>Qualification: ${CERT.company} &nbsp;·&nbsp; Cert No. ${CERT.certNo} &nbsp;·&nbsp; Valid to ${CERT.validTo}</div>
+    <div>CONFIDENTIAL — For the attention of the Duty Holder only</div>
+  </div>
+</div>`;
+
+    const schematic = `
+<div style="page-break-inside:avoid;margin:20px 0;">
+  <h2 style="color:#C0392B;font-size:13pt;border-bottom:1px solid #C0392B;padding-bottom:4px;">Water System Schematic</h2>
+  ${buildSchematicSvg()}
+</div>`;
+
+    const photosSection = photos.length > 0 ? `
+<div style="page-break-before:always;">
+  <h2 style="color:#C0392B;font-size:13pt;border-bottom:1px solid #C0392B;padding-bottom:4px;">Site Photographs</h2>
+  <p style="font-size:9pt;color:#666;">The following photographs were taken during the site visit on ${date} and form part of this risk assessment.</p>
+  ${buildPhotoGrid()}
+</div>` : '';
+
     const win = window.open('', '_blank');
     win.document.write(`<!DOCTYPE html><html><head>
 <meta charset="utf-8">
-<title>Legionella Risk Assessment — ${job?.site_name || 'Report'}</title>
+<title>Legionella Risk Assessment — ${siteName}</title>
 <style>
-  @page { margin: 18mm 15mm 22mm 15mm; }
-  body { font-family: Arial, sans-serif; font-size: 11pt; color: #2C3E50; line-height: 1.5; }
+  @page { margin: 15mm 12mm 20mm 12mm; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #2C3E50; line-height: 1.5; margin: 0; }
   h1 { color: #C0392B; font-size: 16pt; border-bottom: 2px solid #C0392B; padding-bottom: 4px; }
   h2 { color: #C0392B; font-size: 13pt; margin-top: 18px; }
   h3 { color: #2C3E50; font-size: 11pt; margin-top: 12px; }
   table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
-  th { background: #2C3E50; color: #fff; padding: 6px 8px; text-align: left; }
+  th { background: #C0392B; color: #fff; padding: 6px 8px; text-align: left; }
   td { border: 1px solid #ccc; padding: 5px 8px; vertical-align: top; }
   tr:nth-child(even) td { background: #f7f7f7; }
-  .risk-high   { background: #C0392B; color: #fff; padding: 2px 8px; border-radius: 3px; font-weight: bold; }
-  .risk-medium { background: #E67E22; color: #fff; padding: 2px 8px; border-radius: 3px; font-weight: bold; }
-  .risk-low    { background: #27AE60; color: #fff; padding: 2px 8px; border-radius: 3px; font-weight: bold; }
-  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding: 4px 0; text-align: center; }
+  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding: 4px 12px; text-align: center; background: white; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head><body>
-<div class="page-footer">${COMPANY.tradingAs} &nbsp;|&nbsp; Gas Safe No. ${COMPANY.gasSafe} &nbsp;|&nbsp; Company Reg. ${COMPANY.companyReg} &nbsp;|&nbsp; VAT ${COMPANY.vat} &nbsp;|&nbsp; ${COMPANY.tradingTel} &nbsp;|&nbsp; ${COMPANY.tradingWeb}</div>
+${coverPage}
+<div style="padding: 0 4mm;">
+<div class="page-footer">${COMPANY.tradingAs} &nbsp;|&nbsp; Gas Safe No. ${COMPANY.gasSafe} &nbsp;|&nbsp; Reg. ${COMPANY.companyReg} &nbsp;|&nbsp; VAT ${COMPANY.vat} &nbsp;|&nbsp; ${COMPANY.tradingTel} &nbsp;|&nbsp; ${COMPANY.tradingWeb}</div>
+${schematic}
 ${report}
+${photosSection}
+</div>
 </body></html>`);
     win.document.close();
-    setTimeout(() => win.print(), 600);
+    setTimeout(() => win.print(), 800);
   };
 
   const riskColour = (level) => RISK_STYLES[(level || '').toUpperCase()] || { bg: '#95A5A6', fg: '#fff', label: level || '—' };
