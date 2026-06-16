@@ -275,6 +275,9 @@ function riskBadgeLarge(risk) {
 }
 
 function buildReport(d, job, uploaded) {
+  const DP_RED = '#C0392B';
+  const DP_NAVY = '#2C3E50';
+
   const siteName = job.site_name || job.client || 'Site';
   const address = job.address || '';
   const propertyType = job.property_type || 'Commercial';
@@ -361,12 +364,10 @@ function buildReport(d, job, uploaded) {
     `<tr style="background:${i%2===0?'#fff':'#f9fafb'}"><td>${l.ref}</td><td>${l.limitation}</td><td>${l.action}</td><td>${l.target}</td></tr>`
   ).join('');
 
-  const list = (arr, colour='#1e3a5f') => arr&&arr.length
+  const list = (arr) => arr&&arr.length
     ? `<ul style="margin:8px 0 12px;padding-left:20px">${arr.map(x=>`<li style="font-size:11px;line-height:1.8;color:#374151;margin-bottom:2px">${x}</li>`).join('')}</ul>`
     : '<p style="font-size:11px;color:#9ca3af;margin:4px 0 12px">None specified.</p>';
 
-  const DP_RED = '#C0392B';
-  const DP_NAVY = '#2C3E50';
   const thStyle = `background:${DP_NAVY};color:#fff;padding:9px 12px;font-size:10px;font-weight:700;text-align:left;border:none`;
   const tdStyle = 'padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:11px;vertical-align:top';
 
