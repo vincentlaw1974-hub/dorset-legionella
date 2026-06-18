@@ -239,10 +239,9 @@ INSTRUCTIONS:
 
       // Try to extract structured findings from AI response to enable "Apply to report"
       let extractedFindings = null;
-      if (fileUrls.length > 0 || text.toLowerCase().includes('analys') || text.toLowerCase().includes('photo') || text.toLowerCase().includes('image')) {
-        try {
-          const extractResult = await base44.integrations.Core.InvokeLLM({
-            prompt: `Given this Legionella risk assessment AI response, extract any specific findings that could be added to a report. Return ONLY valid JSON or null if there's nothing actionable.
+      try {
+        const extractResult = await base44.integrations.Core.InvokeLLM({
+          prompt: `Given this Legionella risk assessment AI response, extract any specific findings that could be added to a report. Return ONLY valid JSON or null if there's nothing actionable.
 
 AI RESPONSE:
 ${responseText}
@@ -257,17 +256,16 @@ Return JSON matching this schema (omit empty arrays):
 }
 
 Return null if the response is just general advice with no specific site findings to record.`,
-            model: 'gpt_5_mini',
-          });
-          const raw = typeof extractResult === 'string' ? extractResult : JSON.stringify(extractResult);
-          const jsonMatch = raw.match(/(\{[\s\S]*\})/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[1]);
-            const hasFindings = (parsed.actions?.length || parsed.outlets?.length || parsed.showers?.length || parsed.dead_legs?.length || parsed.issues_text);
-            if (hasFindings) extractedFindings = parsed;
-          }
-        } catch (_) { /* silent — apply button just won't show */ }
-      }
+          model: 'gpt_5_mini',
+        });
+        const raw = typeof extractResult === 'string' ? extractResult : JSON.stringify(extractResult);
+        const jsonMatch = raw.match(/(\{[\s\S]*\})/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[1]);
+          const hasFindings = (parsed.actions?.length || parsed.outlets?.length || parsed.showers?.length || parsed.dead_legs?.length || parsed.issues_text);
+          if (hasFindings) extractedFindings = parsed;
+        }
+      } catch (_) { /* silent — apply button just won't show */ }
 
       updateMessages(prev => prev.map((m, i) =>
         i === prev.length - 1 ? { role: 'assistant', text: responseText, findings: extractedFindings } : m
