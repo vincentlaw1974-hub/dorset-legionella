@@ -479,7 +479,7 @@ export default function Home() {
                       updateMutation.mutate({ id: withRisk.id, data: stripBase64(withRisk) });
                     }, 800);
                   }} />}
-                  {activeTab === 'ai_direct_report' && <AiDirectReportTab job={localJob} />}
+                  {activeTab === 'ai_direct_report' && <AiDirectReportTab job={localJob} onChange={handleChange} />}
                   {activeTab === 'ai_advice' && <AiAdviceTab job={localJob} onChange={handleChange} messages={aiConversations[localJob.id]} onMessagesChange={(msgs) => setAiConversations(prev => ({ ...prev, [localJob.id]: msgs }))} />}
                   {activeTab === 'report' && (
                     <div className="space-y-3">

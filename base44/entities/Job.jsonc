@@ -91,6 +91,35 @@
           },
           "caption": {
             "type": "string"
+          },
+          "isCover": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "ai_report_html": {
+      "type": "string",
+      "description": "Generated AI report HTML \u2014 editable by user"
+    },
+    "ai_report_notes": {
+      "type": "string",
+      "description": "Engineer notes used to generate the AI report"
+    },
+    "ai_report_photos": {
+      "type": "array",
+      "description": "Photos uploaded for the AI report, with cover flag and captions",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "isCover": {
+            "type": "boolean"
           }
         }
       }
