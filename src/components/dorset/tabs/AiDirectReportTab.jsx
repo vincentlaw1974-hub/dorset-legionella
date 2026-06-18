@@ -167,7 +167,7 @@ export default function AiDirectReportTab({ job }) {
       setStatus(`Resizing photo ${i + 1} of ${arr.length}…`);
       try {
         const result = await resizeAndUpload(arr[i]);
-        processed.push({ file: arr[i], ...result, caption: arr[i].name });
+        processed.push({ file: arr[i], ...result, caption: '', isCover: false });
       } catch (e) {
         console.warn('Photo failed:', arr[i].name, e);
       }
@@ -182,6 +182,7 @@ export default function AiDirectReportTab({ job }) {
   const onDragOver = (e) => e.preventDefault();
   const removePhoto = (idx) => setPhotos(prev => prev.filter((_, i) => i !== idx));
   const updateCaption = (idx, val) => setPhotos(prev => prev.map((p, i) => i === idx ? { ...p, caption: val } : p));
+  const setCover = (idx) => setPhotos(prev => prev.map((p, i) => ({ ...p, isCover: i === idx })));
 
   const generate = async () => {
     if (!job) { setStatus('No job loaded.'); return; }
@@ -204,33 +205,49 @@ export default function AiDirectReportTab({ job }) {
       const clinicalNote = isClinical ? `\n\nCLINICAL SITE: Apply ELEVATED susceptibility scoring (BS 8580-1:2019 Table 3). Hot outlets ≥50°C within 60s (HTM 04-01). Flag any procedure water as MEDIUM/HIGH risk. Recommend point-of-use filters on clinical wash basins.` : '';
       const childrenNote = hasChildren ? `\n\nCHILDREN'S FACILITY: TMVs mandatory on all child-accessible outlets (max 41°C). Apply ELEVATED susceptibility scoring. Flag unprotected outlets as HIGH priority.` : '';
 
-      // Step 1: If there are photos, analyse them in batches of 8 to extract text observations
+      // Step 1: If there are photos, analyse them individually (in batches for API efficiency)
+      // to extract specific, identified observations — never trust filenames, never generalise.
       const fileUrls = photos.filter(p => p.cdnUrl).map(p => p.cdnUrl);
       let photoObservations = '';
 
       if (fileUrls.length > 0) {
-        const BATCH = 8;
+        const BATCH = 6; // smaller batches = more attention per photo
+        const photoMeta = photos.filter(p => p.cdnUrl);
         const batches = [];
-        for (let i = 0; i < fileUrls.length; i += BATCH) batches.push(fileUrls.slice(i, i + BATCH));
+        for (let i = 0; i < photoMeta.length; i += BATCH) batches.push(photoMeta.slice(i, i + BATCH));
 
-        setStatus(`Analysing ${fileUrls.length} photos in ${batches.length} batch${batches.length > 1 ? 'es' : ''}…`);
+        setStatus(`Inspecting ${fileUrls.length} photos in detail (${batches.length} batch${batches.length > 1 ? 'es' : ''})…`);
 
-        const captionLines = photos.map((p, i) => p.caption ? `Photo ${i+1}: ${p.caption}` : null).filter(Boolean);
-        const captionBlock = captionLines.length ? `Photo captions: ${captionLines.join('; ')}` : '';
+        const batchPrompt = (batchItems, batchIdx, startNum) =>
+          `You are a senior Legionella risk assessor visually inspecting site photographs from ${siteName} (${type}) for a chargeable compliance report. This is batch ${batchIdx+1} of ${batches.length}.
 
-        const batchPrompt = (batchUrls, batchIdx) =>
-          `You are a Legionella risk assessor. Examine these ${batchUrls.length} site photos (batch ${batchIdx+1} of ${batches.length}) from ${siteName} (${type}).
-${captionBlock}
-List every observable detail relevant to a Legionella risk assessment: outlet types and locations, temperatures shown on gauges, TMV locations and condition, shower heads and scale, tank conditions, pipework issues, labels, warning signs, defects. Be concise but specific. Plain text only — no HTML.`;
+CRITICAL RULES:
+- You are looking at ${batchItems.length} real photographs. Examine EACH one individually and in detail before writing anything.
+- NEVER assume what a photo shows from its filename or position in the sequence — only describe what is visually present in the image itself.
+- If the person has provided a caption, treat it as a hint only — verify it against what you actually see, and flag if it appears wrong.
+- Identify SPECIFIC details wherever visible: manufacturer/brand names and model numbers printed on equipment, tap/fitting types (monobloc mixer, separate pillar taps, TMV, pillar tap with lever), visible temperature gauge readings, condition of scale/corrosion/sediment, presence of warning labels or signage, anything held/draped over taps, bin placement, overflow staining, insulation condition, tank lids, pipe lagging condition, and any text legible on stickers, plates, or signage.
+- Distinguish precisely between similar-looking fixtures (e.g. a hose union tap is NOT a sink tap; a CWST is NOT a calorifier).
+- Do not pad with generic boilerplate ("the photo shows a tap in a bathroom setting") — report only what is distinctive, specific and risk-relevant.
 
+${batchItems.map((p, i) => `Photo ${startNum + i}${p.caption ? ` (person's caption: "${p.caption}")` : ''}`).join('\n')}
+
+For EACH photo above, in order, write:
+Photo [number]: [one specific sentence on what it actually shows — fixture type, location context if inferable] — [risk-relevant observations: brand/model if visible, condition, temperature if shown, defects, hygiene concerns, anything atypical]
+
+Plain text only, no HTML, no headers — just the numbered list.`;
+
+        let runningNum = 1;
         const batchResults = await Promise.all(
-          batches.map((batchUrls, idx) => {
+          batches.map((batchItems, idx) => {
+            const startNum = runningNum;
+            runningNum += batchItems.length;
             setProgress(5 + Math.round(((idx + 1) / batches.length) * 30));
-            return base44.integrations.Core.InvokeLLM({ prompt: batchPrompt(batchUrls, idx), file_urls: batchUrls, model: 'claude_sonnet_4_6' });
+            const batchUrls = batchItems.map(p => p.cdnUrl);
+            return base44.integrations.Core.InvokeLLM({ prompt: batchPrompt(batchItems, idx, startNum), file_urls: batchUrls, model: 'claude_sonnet_4_6' });
           })
         );
 
-        photoObservations = batchResults.map((r, i) => `[Photo batch ${i+1}]\n${typeof r === 'string' ? r : JSON.stringify(r)}`).join('\n\n');
+        photoObservations = batchResults.map((r) => (typeof r === 'string' ? r : JSON.stringify(r))).join('\n');
         setProgress(40);
       }
 
@@ -241,6 +258,13 @@ List every observable detail relevant to a Legionella risk assessment: outlet ty
       const baseContext = `You are a senior Legionella risk assessor for ${COMPANY.tradingAs} (${COMPANY.name}, Gas Safe ${COMPANY.gasSafe}, Reg ${COMPANY.companyReg}, VAT ${COMPANY.vat}). Qualification: ${CERT.company}, Cert ${CERT.certNo}, valid ${CERT.validTo}.
 Site: ${siteName} | Address: ${address} | Type: ${type} | Date: ${date} | Assessor: ${assessor} | RP: ${rp || 'Not recorded'} | Duty Holder: ${dh || 'Not recorded'}${notesBlock}${photoBlock}${clinicalNote}${childrenNote}
 Regulatory refs: ACOP L8 (2013), HSG274 Parts 1-3, BS 8580-1:2019, COSHH 2002, HSWA 1974, MHSWR 1999, Water Fittings Regs 1999.
+
+EVIDENCE RULES — these are not optional:
+- The numbered photo observations above are direct visual evidence from the site visit. Use them as PRIMARY data, on equal footing with engineer notes. Reference specific brands, models, and conditions identified in them directly in your findings and asset register — do not generalise away detail that was actually observed.
+- If a specific photo observation identifies a manufacturer, model, fault, or reading, that fact MUST appear in the relevant section (asset register, findings, or risk table) — do not silently drop it.
+- Only write "not recorded", "not confirmed", or "not observed" when there is genuinely no photo, note, or job-field evidence covering that point. Do not hedge on points where evidence was provided.
+- Engineer notes always override photo interpretation where they conflict.
+
 Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50, HIGH=bg #C0392B white, MEDIUM=bg #E67E22 white, LOW=bg #27AE60 white. No placeholder text — state if data missing.`;
 
       const pass1Prompt = `${baseContext}\n\nProduce sections 1–5 ONLY:\n1. EXECUTIVE SUMMARY (3-4 sentences)\n2. MANDATORY LEGAL STATEMENT (verbatim): "This risk assessment has been carried out in accordance with BS 8580-1:2019, the HSE Approved Code of Practice L8 (4th Edition), and associated HSG274 guidance. It reflects conditions observed at the time of inspection on ${date} and should not be regarded as a guarantee of conditions at any other time. This document does not constitute legal advice. ${COMPANY.tradingAs} / ${COMPANY.name} accepts no liability for incidents arising from changes to the water system, occupancy, or use patterns after the date of this assessment. The duty holder is reminded that ACOP L8 places a continuing legal obligation to manage Legionella risk and this document should be reviewed whenever significant changes occur, and in any event at least every two years (or annually for high-risk premises)."\n3. SCOPE & LIMITATIONS (bullets)\n4. PROPERTY DESCRIPTION\n5. WATER SYSTEM INVENTORY TABLE (cols: Ref|Asset|Location|Normal Temp|Last Serviced|Condition|Notes; prefixes HW-/CW-/TM-/SH-)`;
@@ -269,7 +293,6 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
   };
 
   const buildSchematicSvg = () => {
-    // Simple SVG schematic: mains → cold tank → calorifier → hot outlets, cold outlets
     const w = 680, h = 320;
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif;font-size:11px;">
       <defs>
@@ -277,65 +300,40 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
           <path d="M0,0 L0,6 L8,3 z" fill="#2C3E50"/>
         </marker>
       </defs>
-      <!-- Background -->
       <rect width="${w}" height="${h}" fill="#f9f9f9" rx="6" stroke="#ddd"/>
       <text x="10" y="20" font-weight="bold" fill="#C0392B" font-size="13">Water System Schematic — ${(job?.site_name||'Site').replace(/</g,'&lt;')}</text>
-
-      <!-- Mains -->
       <rect x="20" y="50" width="90" height="40" fill="#3498DB" rx="4"/>
       <text x="65" y="67" text-anchor="middle" fill="white" font-weight="bold">MAINS</text>
       <text x="65" y="82" text-anchor="middle" fill="white">WATER</text>
-
-      <!-- Line mains → CW tank -->
       <line x1="110" y1="70" x2="170" y2="70" stroke="#2C3E50" stroke-width="2" marker-end="url(#arr)"/>
-
-      <!-- CW Storage Tank -->
       <rect x="170" y="40" width="100" height="60" fill="#85C1E9" rx="4" stroke="#2C3E50" stroke-width="1.5"/>
       <text x="220" y="62" text-anchor="middle" fill="#1A5276" font-weight="bold">CW STORAGE</text>
       <text x="220" y="77" text-anchor="middle" fill="#1A5276">TANK</text>
       <text x="220" y="92" text-anchor="middle" fill="#1A5276" font-size="9">≤20°C target</text>
-
-      <!-- Line CW tank → Calorifier -->
       <line x1="270" y1="70" x2="330" y2="70" stroke="#2C3E50" stroke-width="2" marker-end="url(#arr)"/>
-
-      <!-- Calorifier -->
       <rect x="330" y="35" width="110" height="70" fill="#E8DAEF" rx="4" stroke="#7D3C98" stroke-width="1.5"/>
       <text x="385" y="57" text-anchor="middle" fill="#6C3483" font-weight="bold">CALORIFIER /</text>
       <text x="385" y="72" text-anchor="middle" fill="#6C3483" font-weight="bold">HOT WATER</text>
       <text x="385" y="87" text-anchor="middle" fill="#6C3483" font-size="9">≥60°C store</text>
       <text x="385" y="99" text-anchor="middle" fill="#6C3483" font-size="9">≥50°C flow</text>
-
-      <!-- HW distribution line -->
       <line x1="440" y1="70" x2="520" y2="70" stroke="#E74C3C" stroke-width="2" marker-end="url(#arr)"/>
       <text x="480" y="63" text-anchor="middle" fill="#E74C3C" font-size="9">HW ≥50°C</text>
-
-      <!-- Hot outlets box -->
       <rect x="520" y="40" width="140" height="35" fill="#FADBD8" rx="4" stroke="#C0392B" stroke-width="1.5"/>
       <text x="590" y="55" text-anchor="middle" fill="#922B21" font-weight="bold">HOT OUTLETS</text>
       <text x="590" y="68" text-anchor="middle" fill="#922B21" font-size="9">WHBs · Showers · Baths</text>
-
-      <!-- CW distribution line -->
       <line x1="220" y1="100" x2="220" y2="150" stroke="#2980B9" stroke-width="2" marker-end="url(#arr)"/>
       <line x1="220" y1="150" x2="520" y2="150" stroke="#2980B9" stroke-width="2" marker-end="url(#arr)"/>
       <text x="370" y="143" text-anchor="middle" fill="#2980B9" font-size="9">CW ≤20°C</text>
-
-      <!-- Cold outlets box -->
       <rect x="520" y="130" width="140" height="35" fill="#D6EAF8" rx="4" stroke="#2980B9" stroke-width="1.5"/>
       <text x="590" y="145" text-anchor="middle" fill="#154360" font-weight="bold">COLD OUTLETS</text>
       <text x="590" y="158" text-anchor="middle" fill="#154360" font-size="9">WHBs · Drinking · Kitchen</text>
-
-      <!-- TMV line -->
       <line x1="520" y1="57" x2="520" y2="147" stroke="#8E44AD" stroke-width="1.5" stroke-dasharray="5,3"/>
       <rect x="495" y="95" width="50" height="22" fill="#E8DAEF" rx="3" stroke="#8E44AD"/>
       <text x="520" y="110" text-anchor="middle" fill="#6C3483" font-weight="bold" font-size="10">TMV</text>
-
-      <!-- Return line -->
       <line x1="440" y1="85" x2="440" y2="200" stroke="#E74C3C" stroke-width="1.5" stroke-dasharray="5,3"/>
       <line x1="440" y1="200" x2="385" y2="200" stroke="#E74C3C" stroke-width="1.5" marker-end="url(#arr)"/>
       <line x1="385" y1="200" x2="385" y2="105" stroke="#E74C3C" stroke-width="1.5"/>
       <text x="412" y="215" text-anchor="middle" fill="#E74C3C" font-size="9">HW return ≥50°C</text>
-
-      <!-- Legend -->
       <rect x="20" y="240" width="640" height="70" fill="white" rx="4" stroke="#ddd"/>
       <text x="30" y="258" font-weight="bold" fill="#2C3E50">Legend:</text>
       <rect x="30" y="265" width="14" height="8" fill="#E74C3C"/>
@@ -364,14 +362,14 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
   };
 
   const printReport = () => {
-    const coverPhoto = photos[0]?.cdnUrl || photos[0]?.dataUrl || '';
+    const coverChoice = photos.find(p => p.isCover) || photos[0];
+    const coverPhoto = coverChoice?.cdnUrl || coverChoice?.dataUrl || '';
     const riskStyle = RISK_STYLES[(job?.risk_level || '').toUpperCase()] || { bg: '#95A5A6', fg: '#fff', label: job?.risk_level || 'NOT SET' };
     const siteName = job?.site_name || job?.client || 'Site';
     const date = job?.assessment_date || new Date().toISOString().slice(0, 10);
 
     const coverPage = `
 <div style="page-break-after:always;height:100vh;display:flex;flex-direction:column;background:#fff;">
-  <!-- Red header bar -->
   <div style="background:#C0392B;color:white;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;">
     <div>
       <div style="font-size:22pt;font-weight:bold;letter-spacing:1px;">${COMPANY.tradingAs}</div>
@@ -383,15 +381,11 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
       <div>${COMPANY.email}</div>
     </div>
   </div>
-
-  <!-- Cover photo -->
   ${coverPhoto ? `<div style="flex:1;overflow:hidden;max-height:340px;">
     <img src="${coverPhoto}" style="width:100%;height:340px;object-fit:cover;" />
   </div>` : `<div style="flex:1;background:linear-gradient(135deg,#2C3E50 0%,#C0392B 100%);max-height:340px;display:flex;align-items:center;justify-content:center;">
     <div style="font-size:48pt;opacity:0.3;">💧</div>
   </div>`}
-
-  <!-- Report title block -->
   <div style="padding:24px 30px;border-top:4px solid #C0392B;">
     <div style="font-size:8pt;color:#C0392B;font-weight:bold;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Legionella Risk Assessment Report</div>
     <div style="font-size:22pt;font-weight:bold;color:#2C3E50;">${siteName}</div>
@@ -404,8 +398,6 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
       <div><span style="font-size:8pt;color:#999;text-transform:uppercase;">Report Ref</span><br/><strong style="color:#2C3E50;">${job?.report_ref || 'See report'}</strong></div>
     </div>
   </div>
-
-  <!-- Certification footer -->
   <div style="background:#2C3E50;color:white;padding:10px 30px;font-size:8pt;display:flex;justify-content:space-between;align-items:center;">
     <div>Qualification: ${CERT.company} &nbsp;·&nbsp; Cert No. ${CERT.certNo} &nbsp;·&nbsp; Valid to ${CERT.validTo}</div>
     <div>CONFIDENTIAL — For the attention of the Duty Holder only</div>
@@ -487,9 +479,10 @@ ${photosSection}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
           {photos.map((p, i) => (
             <div key={i} style={{ position: 'relative', width: '120px' }}>
-              <img src={p.dataUrl} alt="" style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd' }} />
+              <img src={p.dataUrl} alt="" style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px', border: p.isCover ? `2px solid ${BRAND_RED}` : '1px solid #ddd' }} />
               <button onClick={() => removePhoto(i)} style={{ position: 'absolute', top: '2px', right: '2px', background: BRAND_RED, color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '11px', lineHeight: '20px', textAlign: 'center', padding: 0 }}>×</button>
-              <input value={p.caption} onChange={e => updateCaption(i, e.target.value)} placeholder="Caption…" style={{ width: '100%', marginTop: '4px', fontSize: '11px', padding: '2px 4px', border: '1px solid #ccc', borderRadius: '3px', boxSizing: 'border-box' }} />
+              <button onClick={() => setCover(i)} title="Use as cover photo" style={{ position: 'absolute', top: '2px', left: '2px', background: p.isCover ? BRAND_RED : 'rgba(255,255,255,0.85)', color: p.isCover ? '#fff' : '#999', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '12px', lineHeight: '20px', textAlign: 'center', padding: 0 }}>★</button>
+              <input value={p.caption} onChange={e => updateCaption(i, e.target.value)} placeholder="What is this actually? e.g. plant room cylinder" style={{ width: '100%', marginTop: '4px', fontSize: '11px', padding: '2px 4px', border: '1px solid #ccc', borderRadius: '3px', boxSizing: 'border-box' }} />
             </div>
           ))}
         </div>
