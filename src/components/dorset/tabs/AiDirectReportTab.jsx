@@ -219,20 +219,26 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
 
       const legalStatement = `"This risk assessment has been carried out in accordance with BS 8580-1:2019, the HSE Approved Code of Practice L8 (4th Edition), and associated HSG274 guidance. It reflects conditions observed at the time of inspection on ${date} and should not be regarded as a guarantee of conditions at any other time. This document does not constitute legal advice. ${COMPANY.tradingAs} / ${COMPANY.name} accepts no liability for incidents arising from changes to the water system, occupancy, or use patterns after the date of this assessment. The duty holder is reminded that ACOP L8 places a continuing legal obligation to manage Legionella risk and this document should be reviewed whenever significant changes occur, and in any event at least every two years (or annually for high-risk premises)."`;
 
-      const pass1Prompt = `${baseContext}\n\nSections 1–5 ONLY:\n1. EXECUTIVE SUMMARY (3-4 sentences)\n2. MANDATORY LEGAL STATEMENT (verbatim): ${legalStatement}\n3. SCOPE & LIMITATIONS (bullets)\n4. PROPERTY DESCRIPTION\n5. WATER SYSTEM INVENTORY TABLE (cols: Ref|Asset|Location|Normal Temp|Last Serviced|Condition|Notes; prefixes HW-/CW-/TM-/SH-)`;
+      const pass1Prompt = `${baseContext}\n\nOutput Sections 1–3 ONLY. Be thorough and detailed — this is a chargeable compliance document.\n1. EXECUTIVE SUMMARY (4-6 sentences: what was inspected, overall risk level with justification, key findings, immediate actions required, any significant data gaps)\n2. MANDATORY LEGAL STATEMENT (reproduce verbatim, do not alter): ${legalStatement}\n3. SCOPE & LIMITATIONS (detailed bullet list: what was inspected, what was not inspected, access restrictions, items that could not be verified, reliance on third-party data)`;
 
-      const pass2Prompt = `${baseContext}\n\nSections 6–10 ONLY:\n6. TEMPERATURE DATA\n7. RISK ASSESSMENT TABLE (cols: Ref|Description|Location|Likelihood 1-5|Severity 1-5|Score|Risk Level|Action|Priority)\n8. PRIORITISED ACTION PLAN TABLE (cols: Priority|Ref|Action|Responsible|Target Date)\n9. ONGOING MONITORING PROGRAMME (monthly/quarterly/annual)\n10. ASSESSOR DECLARATION: "This assessment was carried out by ${assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${date}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."`;
+      const pass2Prompt = `${baseContext}\n\nOutput Sections 4–5 ONLY. Be thorough and detailed.\n4. PROPERTY DESCRIPTION (building overview: construction, floors, approximate age, occupancy profile, hours of use, water system architecture, incoming supply, distribution layout)\n5. WATER SYSTEM INVENTORY / ASSET REGISTER — full HTML table with columns: Ref | Asset Description | Location | Normal Operating Temp | Last Serviced | Condition | Notes. Use prefixes HW- (hot water), CW- (cold water), AC- (air conditioning), TM- (TMVs), SH- (showers), OH- (other hot outlets), OC- (other cold outlets). List every asset identified from notes and photos.`;
 
-      setStatus('Writing report sections…');
-      setProgress(50);
+      const pass3Prompt = `${baseContext}\n\nOutput Sections 6–8 ONLY. Be thorough and detailed — this is the core risk assessment.\n6. TEMPERATURE DATA (record all readings from notes/photos; if none taken, state this and recommend the duty holder provides records. Include a table of sentinel and representative outlets.)\n7. RISK ASSESSMENT — BS 8580-1:2019 SCORING — full HTML table: Finding Ref | Description | Location | Likelihood (1–5) | Severity (1–5) | Risk Score | Risk Level (LOW/MEDIUM/HIGH) | Recommended Action | Priority. Apply ELEVATED susceptibility scoring for healthcare, care homes, children's facilities, clinical sites. Reference specific photo observations and engineer notes as evidence.\n8. PRIORITISED ACTION PLAN — full HTML table: Priority | Ref | Action | Responsible Party | Target Date. Order by priority (1 = highest). Be specific about remedial actions.`;
 
-      const [p1, p2] = await Promise.all([
+      const pass4Prompt = `${baseContext}\n\nOutput Sections 9–10 ONLY. Be thorough and detailed.\n9. ONGOING MONITORING PROGRAMME (tailored to this property type — specify monthly, quarterly, six-monthly and annual tasks with responsible parties and record-keeping requirements. Reference ACOP L8 and HSG274 frequencies.)\n10. ASSESSOR DECLARATION (reproduce verbatim): "This assessment was carried out by ${assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${date}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."`;
+
+      setStatus('Writing report sections (4 parallel passes)…');
+      setProgress(55);
+
+      const [p1, p2, p3, p4] = await Promise.all([
         base44.integrations.Core.InvokeLLM({ prompt: pass1Prompt, model: 'claude_sonnet_4_6' }),
         base44.integrations.Core.InvokeLLM({ prompt: pass2Prompt, model: 'claude_sonnet_4_6' }),
+        base44.integrations.Core.InvokeLLM({ prompt: pass3Prompt, model: 'claude_sonnet_4_6' }),
+        base44.integrations.Core.InvokeLLM({ prompt: pass4Prompt, model: 'claude_sonnet_4_6' }),
       ]);
 
       const strip = (s) => (typeof s === 'string' ? s : JSON.stringify(s)).replace(/^```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '');
-      const html = strip(p1) + strip(p2);
+      const html = strip(p1) + strip(p2) + strip(p3) + strip(p4);
 
       setReport(html);
       setProgress(100);
