@@ -211,10 +211,78 @@ Plain text only.`;
       const notesBlock = notes?.trim() ? `\n\nENGINEER NOTES:\n${notes.trim()}` : '';
       const photoBlock  = photoObservations ? `\n\nPHOTO OBSERVATIONS (from ${fileUrls.length} photos):\n${photoObservations}` : '';
 
+      // Build structured job data block — this is what Claude uses to write a detailed, evidence-based report
+      const allOutlets = [
+        ...(job.outlets || []),
+        ...(job.buildings || []).flatMap(b => (b.outlets || []).map(o => ({ ...o, building: b.name || b.site_name || '' })))
+      ];
+      const failOutlets = allOutlets.filter(o => {
+        const hot = parseFloat(o.hot);
+        const cold = parseFloat(o.cold);
+        return (!isNaN(hot) && hot < 50) || (!isNaN(cold) && cold > 20);
+      });
+
+      const tmvs = job.tmvs || [];
+      const showers = job.showers || [];
+      const deadLegs = job.dead_legs || [];
+      const actions = job.actions || [];
+      const issues = job.issues_text || job.issues || '';
+
+      const outletTable = allOutlets.length > 0
+        ? allOutlets.map((o, i) => `  ${i+1}. ${o.type || 'Outlet'} at ${o.location || 'unknown'}${o.building ? ` (${o.building})` : ''} — Hot: ${o.hot || 'N/A'}°C, Cold: ${o.cold || 'N/A'}°C${o.hasTmv ? ', TMV fitted' : ''}${o.infrequent ? ', infrequent use' : ''}${o.notes ? `, notes: ${o.notes}` : ''}`).join('\n')
+        : '  None recorded.';
+      const tmvList = tmvs.length > 0
+        ? tmvs.map((t, i) => `  ${i+1}. ${t.location || 'Unknown'} — ${t.type || 'TMV'}, set temp: ${t.set_temp || t.temperature || 'N/A'}°C, last tested: ${t.last_tested || t.last_serviced || 'N/A'}, condition: ${t.condition || 'N/A'}`).join('\n')
+        : '  None recorded.';
+      const showerList = showers.length > 0
+        ? showers.map((s, i) => `  ${i+1}. ${s.location || 'Unknown'} — condition: ${s.condition || 'N/A'}, last descaled: ${s.last_descaled || s.descale_date || 'N/A'}${s.notes ? `, notes: ${s.notes}` : ''}`).join('\n')
+        : '  None recorded.';
+      const deadLegList = deadLegs.length > 0
+        ? deadLegs.map((d, i) => `  ${i+1}. ${d.location || 'Unknown'} — ${d.description || 'Dead leg identified'}${d.pipe_material ? `, pipe: ${d.pipe_material}` : ''}`).join('\n')
+        : '  None identified.';
+      const actionList = actions.length > 0
+        ? actions.map((a, i) => `  ${a.ref || `A${i+1}`} [${a.priority || 'med'} priority] ${a.action || a.title || ''} — ${a.system || ''} ${a.observation || ''} (responsible: ${a.responsible_person || 'TBC'}, deadline: ${a.deadline || 'TBC'}, status: ${a.status || 'Open'})`).join('\n')
+        : '  None recorded.';
+
+      const structuredData = `\n\nSTRUCTURED SITE DATA (already captured during assessment — use as PRIMARY evidence alongside photos and notes):
+
+WATER SYSTEMS:
+- Cold water source: ${job.cold_source || 'Mains'}
+- Hot water system: ${job.hw_not_stored ? 'Combi / instantaneous (no stored HW)' : `Stored HW — cylinder/calorifier temp: ${job.cylinder_temp || 'not recorded'}°C`}
+- CWST (cold water storage tank): ${job.cwst_present ? `Present — location: ${job.cwst_location || 'unknown'}, condition: ${job.cwst_condition || 'not recorded'}` : 'Not present / not identified'}
+- TMVs installed on site: ${job.tmvs_installed ? 'Yes' : 'No / not confirmed'}
+- Written scheme in place: ${job.written_scheme ? 'Yes' : 'No / not confirmed'}
+
+OUTLET TEMPERATURE READINGS (${allOutlets.length} total, ${failOutlets.length} failing criteria — HOT must be ≥50°C within 1 min, COLD must be ≤20°C):
+${outletTable}
+
+TMV REGISTER (${tmvs.length}):
+${tmvList}
+
+SHOWER REGISTER (${showers.length}):
+${showerList}
+
+DEAD LEGS / STAGNATION RISKS (${deadLegs.length}):
+${deadLegList}
+
+EXISTING ACTIONS / RECOMMENDATIONS (${actions.length}):
+${actionList}
+
+ISSUES IDENTIFIED:
+${issues || '  None specifically recorded.'}
+
+SUSCEPTIBILITY & COMPLIANCE:
+- Vulnerable users on site: ${job.vulnerable_users ? 'Yes' : 'No / not confirmed'}
+- CQC / care mode: ${job.cqc_mode ? 'Yes — stricter thresholds apply (HOT ≥55°C, COLD ≤20°C)' : 'No — standard thresholds (HOT ≥50°C, COLD ≤20°C)'}
+- Water samples taken: ${job.water_samples_taken ? `Yes — result: ${job.water_samples_results || 'pending'}` : 'No'}
+- Recommended reassessment interval: ${job.reassessment_interval || '24'} months
+- Overall calculated risk level: ${job.risk || job.risk_level || 'Not calculated'}
+`;
+
       const baseContext = `You are a senior Legionella risk assessor for ${COMPANY.tradingAs} (${COMPANY.name}, Gas Safe ${COMPANY.gasSafe}, Reg ${COMPANY.companyReg}, VAT ${COMPANY.vat}). Qualification: ${CERT.company}, Cert ${CERT.certNo}, valid ${CERT.validTo}.
-Site: ${siteName} | Address: ${address} | Type: ${type} | Date: ${date} | Assessor: ${assessor} | RP: ${rp || 'Not recorded'} | Duty Holder: ${dh || 'Not recorded'}${notesBlock}${photoBlock}${clinicalNote}${childrenNote}
+Site: ${siteName} | Address: ${address} | Type: ${type} | Date: ${date} | Assessor: ${assessor} | RP: ${rp || 'Not recorded'} | Duty Holder: ${dh || 'Not recorded'}${notesBlock}${photoBlock}${structuredData}${clinicalNote}${childrenNote}
 Regulatory refs: ACOP L8 (2013), HSG274 Parts 1-3, BS 8580-1:2019, COSHH 2002, HSWA 1974, MHSWR 1999, Water Fittings Regs 1999.
-Use photo observations and engineer notes as PRIMARY evidence. Reference specific brands/models/readings in your findings.
+You have THREE sources of evidence: (1) STRUCTURED SITE DATA above — outlet temperatures, system details, TMV/shower/dead leg registers, existing actions; (2) PHOTO OBSERVATIONS; (3) ENGINEER NOTES. Use ALL of them. Reference specific readings, locations, and observations in your findings. Do NOT invent readings — if data is missing, state this clearly and recommend the duty holder provides it.
 Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50, HIGH=bg #C0392B white, MEDIUM=bg #E67E22 white, LOW=bg #27AE60 white.`;
 
       const legalStatement = `"This risk assessment has been carried out in accordance with BS 8580-1:2019, the HSE Approved Code of Practice L8 (4th Edition), and associated HSG274 guidance. It reflects conditions observed at the time of inspection on ${date} and should not be regarded as a guarantee of conditions at any other time. This document does not constitute legal advice. ${COMPANY.tradingAs} / ${COMPANY.name} accepts no liability for incidents arising from changes to the water system, occupancy, or use patterns after the date of this assessment. The duty holder is reminded that ACOP L8 places a continuing legal obligation to manage Legionella risk and this document should be reviewed whenever significant changes occur, and in any event at least every two years (or annually for high-risk premises)."`;
@@ -223,7 +291,7 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
 
       const pass2Prompt = `${baseContext}\n\nOutput Sections 4–5 ONLY. Be thorough and detailed.\n4. PROPERTY DESCRIPTION (building overview: construction, floors, approximate age, occupancy profile, hours of use, water system architecture, incoming supply, distribution layout)\n5. WATER SYSTEM INVENTORY / ASSET REGISTER — full HTML table with columns: Ref | Asset Description | Location | Normal Operating Temp | Last Serviced | Condition | Notes. Use prefixes HW- (hot water), CW- (cold water), AC- (air conditioning), TM- (TMVs), SH- (showers), OH- (other hot outlets), OC- (other cold outlets). List every asset identified from notes and photos.`;
 
-      const pass3Prompt = `${baseContext}\n\nOutput Sections 6–8 ONLY. Be thorough and detailed — this is the core risk assessment.\n6. TEMPERATURE DATA (record all readings from notes/photos; if none taken, state this and recommend the duty holder provides records. Include a table of sentinel and representative outlets.)\n7. RISK ASSESSMENT — BS 8580-1:2019 SCORING — full HTML table: Finding Ref | Description | Location | Likelihood (1–5) | Severity (1–5) | Risk Score | Risk Level (LOW/MEDIUM/HIGH) | Recommended Action | Priority. Apply ELEVATED susceptibility scoring for healthcare, care homes, children's facilities, clinical sites. Reference specific photo observations and engineer notes as evidence.\n8. PRIORITISED ACTION PLAN — full HTML table: Priority | Ref | Action | Responsible Party | Target Date. Order by priority (1 = highest). Be specific about remedial actions.`;
+      const pass3Prompt = `${baseContext}\n\nOutput Sections 6–8 ONLY. Be thorough and detailed — this is the core risk assessment.\n6. TEMPERATURE DATA — Use the OUTLET TEMPERATURE READINGS from the STRUCTURED SITE DATA above as your primary source. Build a full HTML table of every outlet with its hot/cold readings and pass/fail status against the applicable thresholds (HOT ≥50°C or ≥55°C in care/CQC mode; COLD ≤20°C). If no readings were taken, state this and recommend the duty holder provides records. Also include any system temperatures noted (cylinder, CWST, etc.).\n7. RISK ASSESSMENT — BS 8580-1:2019 SCORING — full HTML table: Finding Ref | Description | Location | Likelihood (1–5) | Severity (1–5) | Risk Score | Risk Level (LOW/MEDIUM/HIGH) | Recommended Action | Priority. Score EVERY finding from the structured data: each failing outlet, each dead leg, each shower in poor condition, each missing control measure, system temperature non-compliance, stagnation risks, etc. Apply ELEVATED susceptibility scoring for healthcare, care homes, children's facilities, clinical sites. Reference specific readings, locations, and photo observations as evidence for each finding.\n8. PRIORITISED ACTION PLAN — full HTML table: Priority | Ref | Action | Responsible Party | Target Date. Order by priority (1 = highest). Incorporate the EXISTING ACTIONS from the structured data, plus any new actions identified during this assessment. Be specific about remedial actions.`;
 
       const pass4Prompt = `${baseContext}\n\nOutput Sections 9–10 ONLY. Be thorough and detailed.\n9. ONGOING MONITORING PROGRAMME (tailored to this property type — specify monthly, quarterly, six-monthly and annual tasks with responsible parties and record-keeping requirements. Reference ACOP L8 and HSG274 frequencies.)\n10. ASSESSOR DECLARATION (reproduce verbatim): "This assessment was carried out by ${assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${date}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."`;
 
