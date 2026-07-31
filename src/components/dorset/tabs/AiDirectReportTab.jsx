@@ -45,9 +45,12 @@ async function resizeAndUpload(file) {
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       resolve(canvas.toDataURL('image/jpeg', 0.70));
     };
-    img.onerror = () => resolve(dataUrl);
+    // If the browser can't decode the image (e.g. HEIC), skip it — uploading raw
+    // unreadable bytes produces a "Could not process image" LLM error.
+    img.onerror = () => resolve(null);
     img.src = dataUrl;
   });
+  if (!resized) return null;
   const blob = await (await fetch(resized)).blob();
   const cdnUrl = await uploadToCdn(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
   return { dataUrl: resized, cdnUrl };
@@ -103,7 +106,8 @@ export default function AiDirectReportTab({ job, onChange }) {
       setStatus(`Uploading photo ${i + 1} of ${arr.length}…`);
       try {
         const result = await resizeAndUpload(arr[i]);
-        processed.push({ file: arr[i], ...result, caption: '', isCover: false });
+        if (result) processed.push({ ...result, caption: '', isCover: false });
+        else setStatus(`Skipped ${arr[i].name} — unsupported format (e.g. HEIC). Convert to JPG/PNG and re-upload.`);
       } catch (e) {
         console.warn('Photo failed:', arr[i].name, e);
       }
@@ -190,7 +194,7 @@ For each photo write: Photo [N]: [what it shows] — [risk-relevant observations
 Plain text only.`;
 
         let runningNum = 1;
-        const batchResults = await Promise.all(
+        const settled = await Promise.allSettled(
           batches.map((batchItems, idx) => {
             const startNum = runningNum;
             runningNum += batchItems.length;
@@ -203,7 +207,12 @@ Plain text only.`;
           })
         );
 
-        photoObservations = batchResults.map(r => (typeof r === 'string' ? r : JSON.stringify(r))).join('\n');
+        const goodBatches = settled.filter(s => s.status === 'fulfilled').map(s => s.value);
+        const failedCount = settled.filter(s => s.status === 'rejected').length;
+        if (failedCount > 0) {
+          setStatus(`${failedCount} photo batch${failedCount > 1 ? 'es' : ''} skipped (unreadable image${failedCount > 1 ? 's' : ''}) — continuing with remaining photos.`);
+        }
+        photoObservations = goodBatches.map(r => (typeof r === 'string' ? r : JSON.stringify(r))).join('\n');
         setProgress(40);
       }
 
