@@ -287,26 +287,21 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
 
       const legalStatement = `"This risk assessment has been carried out in accordance with BS 8580-1:2019, the HSE Approved Code of Practice L8 (4th Edition), and associated HSG274 guidance. It reflects conditions observed at the time of inspection on ${date} and should not be regarded as a guarantee of conditions at any other time. This document does not constitute legal advice. ${COMPANY.tradingAs} / ${COMPANY.name} accepts no liability for incidents arising from changes to the water system, occupancy, or use patterns after the date of this assessment. The duty holder is reminded that ACOP L8 places a continuing legal obligation to manage Legionella risk and this document should be reviewed whenever significant changes occur, and in any event at least every two years (or annually for high-risk premises)."`;
 
-      const pass1Prompt = `${baseContext}\n\nOutput Sections 1–3 ONLY. Be thorough and detailed — this is a chargeable compliance document.\n1. EXECUTIVE SUMMARY (4-6 sentences: what was inspected, overall risk level with justification, key findings, immediate actions required, any significant data gaps)\n2. MANDATORY LEGAL STATEMENT (reproduce verbatim, do not alter): ${legalStatement}\n3. SCOPE & LIMITATIONS (detailed bullet list: what was inspected, what was not inspected, access restrictions, items that could not be verified, reliance on third-party data)`;
+      // Two cohesive passes — each half written as one continuous document so sections flow into each other
+      const passAPrompt = `${baseContext}\n\nOutput Sections 1–5 as one continuous, cohesive document. This is a chargeable compliance report — be thorough, detailed, and professional throughout. Sections must flow naturally and cross-reference each other (e.g. the executive summary should foreshadow findings detailed later; the asset register should align with the property description).\n1. EXECUTIVE SUMMARY (5-7 sentences: what was inspected, overall risk level with justification referencing specific findings, key findings, immediate actions required, any significant data gaps)\n2. MANDATORY LEGAL STATEMENT (reproduce verbatim, do not alter): ${legalStatement}\n3. SCOPE & LIMITATIONS (detailed bullet list: what was inspected, what was not inspected, access restrictions, items that could not be verified, reliance on third-party data)\n4. PROPERTY DESCRIPTION (building overview: construction, floors, approximate age, occupancy profile, hours of use, water system architecture, incoming supply, distribution layout)\n5. WATER SYSTEM INVENTORY / ASSET REGISTER — full HTML table with columns: Ref | Asset Description | Location | Normal Operating Temp | Last Serviced | Condition | Notes. Use prefixes HW- (hot water), CW- (cold water), AC- (air conditioning), TM- (TMVs), SH- (showers), OH- (other hot outlets), OC- (other cold outlets). List every asset identified from the structured data, notes and photos.`;
 
-      const pass2Prompt = `${baseContext}\n\nOutput Sections 4–5 ONLY. Be thorough and detailed.\n4. PROPERTY DESCRIPTION (building overview: construction, floors, approximate age, occupancy profile, hours of use, water system architecture, incoming supply, distribution layout)\n5. WATER SYSTEM INVENTORY / ASSET REGISTER — full HTML table with columns: Ref | Asset Description | Location | Normal Operating Temp | Last Serviced | Condition | Notes. Use prefixes HW- (hot water), CW- (cold water), AC- (air conditioning), TM- (TMVs), SH- (showers), OH- (other hot outlets), OC- (other cold outlets). List every asset identified from notes and photos.`;
+      const passBPrompt = `${baseContext}\n\nOutput Sections 6–10 as one continuous, cohesive document. This continues the risk assessment — the risk scoring in section 7 must directly reference the outlets and findings from section 6, and the action plan in section 8 must directly address every finding scored in section 7. Cross-reference findings by their Ref numbers so the document reads as one unified assessment.\n6. TEMPERATURE DATA — Use the OUTLET TEMPERATURE READINGS from the STRUCTURED SITE DATA above as your primary source. Build a full HTML table of every outlet with its hot/cold readings and pass/fail status against the applicable thresholds (HOT ≥50°C or ≥55°C in care/CQC mode; COLD ≤20°C). If no readings were taken, state this and recommend the duty holder provides records. Also include any system temperatures noted (cylinder, CWST, etc.).\n7. RISK ASSESSMENT — BS 8580-1:2019 SCORING — full HTML table: Finding Ref | Description | Location | Likelihood (1–5) | Severity (1–5) | Risk Score | Risk Level (LOW/MEDIUM/HIGH) | Recommended Action | Priority. Score EVERY finding from the structured data: each failing outlet, each dead leg, each shower in poor condition, each missing control measure, system temperature non-compliance, stagnation risks, etc. Apply ELEVATED susceptibility scoring for healthcare, care homes, children's facilities, clinical sites. Reference specific readings, locations, and photo observations as evidence for each finding.\n8. PRIORITISED ACTION PLAN — full HTML table: Priority | Ref | Action | Responsible Party | Target Date. Order by priority (1 = highest). The Ref column MUST match the Finding Refs from section 7. Incorporate the EXISTING ACTIONS from the structured data, plus any new actions identified during this assessment. Be specific about remedial actions.\n9. ONGOING MONITORING PROGRAMME (tailored to this property type — specify monthly, quarterly, six-monthly and annual tasks with responsible parties and record-keeping requirements. Reference ACOP L8 and HSG274 frequencies.)\n10. ASSESSOR DECLARATION (reproduce verbatim): "This assessment was carried out by ${assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${date}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."`;
 
-      const pass3Prompt = `${baseContext}\n\nOutput Sections 6–8 ONLY. Be thorough and detailed — this is the core risk assessment.\n6. TEMPERATURE DATA — Use the OUTLET TEMPERATURE READINGS from the STRUCTURED SITE DATA above as your primary source. Build a full HTML table of every outlet with its hot/cold readings and pass/fail status against the applicable thresholds (HOT ≥50°C or ≥55°C in care/CQC mode; COLD ≤20°C). If no readings were taken, state this and recommend the duty holder provides records. Also include any system temperatures noted (cylinder, CWST, etc.).\n7. RISK ASSESSMENT — BS 8580-1:2019 SCORING — full HTML table: Finding Ref | Description | Location | Likelihood (1–5) | Severity (1–5) | Risk Score | Risk Level (LOW/MEDIUM/HIGH) | Recommended Action | Priority. Score EVERY finding from the structured data: each failing outlet, each dead leg, each shower in poor condition, each missing control measure, system temperature non-compliance, stagnation risks, etc. Apply ELEVATED susceptibility scoring for healthcare, care homes, children's facilities, clinical sites. Reference specific readings, locations, and photo observations as evidence for each finding.\n8. PRIORITISED ACTION PLAN — full HTML table: Priority | Ref | Action | Responsible Party | Target Date. Order by priority (1 = highest). Incorporate the EXISTING ACTIONS from the structured data, plus any new actions identified during this assessment. Be specific about remedial actions.`;
-
-      const pass4Prompt = `${baseContext}\n\nOutput Sections 9–10 ONLY. Be thorough and detailed.\n9. ONGOING MONITORING PROGRAMME (tailored to this property type — specify monthly, quarterly, six-monthly and annual tasks with responsible parties and record-keeping requirements. Reference ACOP L8 and HSG274 frequencies.)\n10. ASSESSOR DECLARATION (reproduce verbatim): "This assessment was carried out by ${assessor} on behalf of ${COMPANY.tradingAs} / ${COMPANY.name} on ${date}. The assessor holds a current Legionella risk assessment qualification (${CERT.company}, Cert No. ${CERT.certNo}, valid to ${CERT.validTo}). The findings and recommendations are based solely on conditions observed at the time of the site visit."`;
-
-      setStatus('Writing report sections (4 parallel passes)…');
+      setStatus('Writing report (2 cohesive passes)…');
       setProgress(55);
 
-      const [p1, p2, p3, p4] = await Promise.all([
-        base44.integrations.Core.InvokeLLM({ prompt: pass1Prompt, model: 'claude_sonnet_4_6' }),
-        base44.integrations.Core.InvokeLLM({ prompt: pass2Prompt, model: 'claude_sonnet_4_6' }),
-        base44.integrations.Core.InvokeLLM({ prompt: pass3Prompt, model: 'claude_sonnet_4_6' }),
-        base44.integrations.Core.InvokeLLM({ prompt: pass4Prompt, model: 'claude_sonnet_4_6' }),
+      const [pA, pB] = await Promise.all([
+        base44.integrations.Core.InvokeLLM({ prompt: passAPrompt, model: 'claude_sonnet_4_6' }),
+        base44.integrations.Core.InvokeLLM({ prompt: passBPrompt, model: 'claude_sonnet_4_6' }),
       ]);
 
       const strip = (s) => (typeof s === 'string' ? s : JSON.stringify(s)).replace(/^```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '');
-      const html = strip(p1) + strip(p2) + strip(p3) + strip(p4);
+      const html = strip(pA) + strip(pB);
 
       setReport(html);
       setProgress(100);
@@ -438,17 +433,26 @@ Output clean HTML only (h1,h2,h3,table,ul,li,p). Headings #C0392B, body #2C3E50,
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Legionella Risk Assessment — ${siteName}</title>
 <style>
-  @page { margin: 15mm 12mm 20mm 12mm; }
-  body { font-family: Arial, sans-serif; font-size: 11pt; color: #2C3E50; line-height: 1.5; margin: 0; }
-  h1 { color: #C0392B; font-size: 16pt; border-bottom: 2px solid #C0392B; padding-bottom: 4px; }
-  h2 { color: #C0392B; font-size: 13pt; margin-top: 18px; }
-  h3 { color: #2C3E50; font-size: 11pt; margin-top: 12px; }
-  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
-  th { background: #C0392B; color: #fff; padding: 6px 8px; text-align: left; }
-  td { border: 1px solid #ccc; padding: 5px 8px; vertical-align: top; }
+  @page { margin: 18mm 16mm 22mm 16mm; }
+  body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #2C3E50; line-height: 1.55; margin: 0; }
+  h1 { color: #C0392B; font-size: 17pt; border-bottom: 2px solid #C0392B; padding-bottom: 5px; page-break-after: avoid; }
+  h2 { color: #C0392B; font-size: 13.5pt; margin-top: 22px; margin-bottom: 6px; page-break-after: avoid; border-bottom: 1px solid #e8c8c5; padding-bottom: 3px; }
+  h3 { color: #2C3E50; font-size: 11pt; margin-top: 14px; margin-bottom: 4px; page-break-after: avoid; }
+  p { margin: 6px 0; orphans: 3; widows: 3; }
+  ul, ol { margin: 6px 0 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 9.5pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: #C0392B; color: #fff; padding: 7px 9px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #d0d0d0; padding: 6px 9px; vertical-align: top; }
   tr:nth-child(even) td { background: #f7f7f7; }
-  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding: 4px 12px; text-align: center; background: white; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  h2 + table, h3 + table { margin-top: 6px; }
+  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding: 5px 16px; text-align: center; background: white; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h2 { page-break-before: auto; }
+  }
 </style></head><body>
 ${coverPage}
 <div style="padding:0 4mm;">
